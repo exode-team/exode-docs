@@ -7,7 +7,7 @@
     "light": "#3a9cfc",
     "dark": "#0e32cf"
   },
-  "favicon": "https://cdn.exode.biz/static/images/brand/biz/icon-white.svg",
+  "favicon": "/logo/exode-tech-light.svg",
   "logo": {
     "light": "/logo/exode-tech-light.svg",
     "dark": "/logo/exode-tech-dark.svg"
