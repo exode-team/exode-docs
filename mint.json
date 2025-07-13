@@ -2,10 +2,10 @@
   "$schema": "https://mintlify.com/schema.json",
   "name": "Starter Kit",
   "logo": {
-    "dark": "/logo/dark.svg",
-    "light": "/logo/light.svg"
+    "dark": "https://cdn.exode.biz/static/images/brand/biz/icon-white.svg",
+    "light": "https://cdn.exode.biz/static/images/brand/biz/icon.svg"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "https://cdn.exode.biz/static/images/brand/biz/icon-white.svg",
   "colors": {
     "primary": "#0D9373",
     "light": "#07C983",
@@ -18,7 +18,7 @@
   "topbarLinks": [
     {
       "name": "Support",
-      "url": "mailto:hi@mintlify.com"
+      "url": "https://t.me/exode_support_biz"
     }
   ],
   "topbarCtaButton": {
@@ -33,17 +33,12 @@
   ],
   "anchors": [
     {
-      "name": "Documentation",
+      "name": "API",
       "icon": "book-open-cover",
       "url": "https://mintlify.com/docs"
     },
     {
-      "name": "Community",
-      "icon": "slack",
-      "url": "https://mintlify.com/community"
-    },
-    {
-      "name": "Blog",
+      "name": "Receipts",
       "icon": "newspaper",
       "url": "https://mintlify.com/blog"
     }
