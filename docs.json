@@ -1,0 +1,69 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Exode Tech Docs",
+  "colors": {
+    "primary": "#0e32cf",
+    "light": "#3a9cfc",
+    "dark": "#0e32cf"
+  },
+  "favicon": "https://cdn.exode.biz/static/images/brand/biz/icon-white.svg",
+  "logo": {
+    "light": "/logo/exode-tech-light.svg",
+    "dark": "/logo/exode-tech-dark.svg"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "School API",
+        "groups": [
+          {
+            "group": "School API",
+            "pages": [
+              "ru/introduction",
+              "ru/quickstart",
+              "ru/development"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Exode Pay API",
+        "groups": [
+          {
+            "group": "Exode Pay API",
+            "pages": [
+              "ru/essentials/markdown",
+              "ru/essentials/code",
+              "ru/essentials/images",
+              "ru/essentials/settings",
+              "ru/essentials/navigation",
+              "ru/essentials/reusable-snippets"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "78-113-95-70",
+        "href": "tel:781139570",
+        "icon": "phone"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Поддержка",
+      "href": "https://t.me/exode_support_biz"
+    }
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/mintlify",
+      "github": "https://github.com/mintlify",
+      "linkedin": "https://linkedin.com/company/mintlify"
+    }
+  }
+}
