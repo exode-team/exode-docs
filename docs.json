@@ -44,10 +44,10 @@
         ]
       },
       {
-        "tab": "Exode Sales API",
+        "tab": "Sales API",
         "groups": [
           {
-            "group": "Exode Sales API",
+            "group": "Sales API",
             "pages": [
               "ru/essentials/markdown",
               "ru/essentials/code",
