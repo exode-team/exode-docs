@@ -42,6 +42,22 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Exode Sales API",
+        "groups": [
+          {
+            "group": "Exode Sales API",
+            "pages": [
+              "ru/essentials/markdown",
+              "ru/essentials/code",
+              "ru/essentials/images",
+              "ru/essentials/settings",
+              "ru/essentials/navigation",
+              "ru/essentials/reusable-snippets"
+            ]
+          }
+        ]
       }
     ]
   },
