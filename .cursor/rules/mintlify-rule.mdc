@@ -397,7 +397,11 @@ description: "Concise description explaining page purpose and value"
 - Use **RequestExample/ResponseExample** specifically for API endpoint documentation
 - Use **ParamField** for API parameters, **ResponseField** for API responses
 - Use **Expandable** for nested object properties or hierarchical information
+- Never use ** for bold text - it breaks app
 
-
-
-// Never use ** for bold text - it breaks app
+## Other important rules
+- Be carefully with code spaces. Code tabs size = 2 spaces
+- Skip point inside last sentece in blocks (wrapped blocks like <Info/> etc...)
+- Try to find and understand logic inside selected endpoint (controller) before start to describe it
+- Preferred languages: cURL / Node.js / PHP / Python
+- 
