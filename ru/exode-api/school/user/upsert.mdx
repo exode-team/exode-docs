@@ -1,0 +1,358 @@
+---
+title: "Апсерт пользователя"
+description: "Создание нового пользователя или обновление существующего в школе с указанием данных профиля"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<Tip>
+    **Upsert** — это операция "создать или обновить". Если пользователь с указанным email, телефоном или Telegram ID уже
+    существует,
+    то его данные будут обновлены. Если пользователя нет — он будет создан.
+</Tip>
+
+<HeaderParamFields/>
+
+## Параметры запроса
+
+##### Для определения существующего пользователя по логину — передайте хотя бы один из ниже перечисленных параметров, в противном случае пользователь будет создаваться при каждом запросе.
+
+<Info>
+  В случае если **пользователь найден** по указанным ниже полям — произойдет только его обновление.
+  **В случае создания** — логин и пароль для входа отправятся новому пользователю **автоматически**.
+</Info>
+
+<ParamField body="email" type="string" required={false}>
+  Email адрес пользователя. Должен быть валидным email форматом. При передаче пустой строки — преобразуется в `null`.
+</ParamField>
+
+<ParamField body="phone" type="string" required={false}>
+  Номер телефона пользователя. Должен быть в международном формате (например, +9876543210). При передаче пустой строки
+  — преобразуется в `null`.
+</ParamField>
+
+<ParamField body="tgId" type="integer" required={false}>
+  Telegram ID пользователя. Целое число или `null`.
+</ParamField>
+
+### Параметры профиля
+
+<ParamField body="profile" type="object" required={false}>
+  Объект с данными профиля пользователя.
+
+  <Expandable title="Свойства профиля">
+    <ParamField body="firstName" type="string" required={false}>
+      Имя пользователя. Максимум 15 символов, только буквы (латиница и кириллица) и пробелы. Автоматически
+      обрезаются пробелы в начале и конце.
+    </ParamField>
+
+    <ParamField body="lastName" type="string" required={false}>
+      Фамилия пользователя. Максимум 15 символов, только буквы (латиница и кириллица) и пробелы. Автоматически
+      обрезаются пробелы в начале и конце.
+    </ParamField>
+
+    <ParamField body="bdate" type="string" required={false}>
+      Дата рождения в формате YYYY-MM-DD.
+    </ParamField>
+
+    <ParamField body="sex" type="enum" required={false}>
+      Пол пользователя. Возможные значения: `Women`, `Men`.
+    </ParamField>
+
+    <ParamField body="role" type="enum" required={false}>
+      Роль пользователя. Возможные значения: `Student`, `Tutor`, `Parent`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<Info>
+  При создании пользователя автоматически создается связанный профиль с указанными данными. Если профиль не указан,
+  создается пустой профиль, поля `firstName` и `lastName` будут заполнены пользователем при первом входе в аккаунт.
+</Info>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/user/upsert' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "email": "user@example.com",
+    "phone": "+9876543210",
+    "tgId": null,
+    "banned": false,
+    "profile": {
+      "firstName": "Firstname",
+      "lastName": "Lastname",
+      "bdate": "1990-01-01",
+      "sex": "Men",
+      "role": "Student"
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const upsertUser = async () => {
+  try {
+    const response = await axios.put('https://api.exode.biz/saas/v2/user/upsert', {
+      email: 'user@example.com',
+      phone: '+9876543210',
+      tgId: null,
+      banned: false,
+      profile: {
+        firstName: 'Firstname',
+        lastName: 'Lastname',
+        bdate: '1990-01-01',
+        sex: 'Men',
+        role: 'Student'
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('User upserted:', response.data);
+    console.log('Is created:', response.data.isCreated);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+upsertUser();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/user/upsert';
+$data = [
+  'email' => 'user@example.com',
+  'phone' => '+9876543210',
+  'tgId' => null,
+  'banned' => false,
+  'profile' => [
+    'firstName' => 'Firstname',
+    'lastName' => 'Lastname',
+    'bdate' => '1990-01-01',
+    'sex' => 'Men',
+    'role' => 'Student'
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  echo "User upserted successfully\n";
+  echo "Is created: " . ($result['isCreated'] ? 'true' : 'false') . "\n";
+  print_r($result);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/user/upsert'
+
+data = {
+  'email': 'user@example.com',
+  'phone': '+9876543210',
+  'tgId': None,
+  'banned': False,
+  'profile': {
+    'firstName': 'Firstname',
+    'lastName': 'Lastname',
+    'bdate': '1990-01-01',
+    'sex': 'Men',
+    'role': 'Student'
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.put(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('User upserted successfully:')
+  print(f"Is created: {result['isCreated']}")
+  print(json.dumps(result, indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success - User Created
+{
+  "isCreated": true,
+  "user": {
+    "id": 123,
+    "uuid": "550e8400-e29b-41d4-a716-446655440000",
+    "active": true,
+    "activated": true,
+    "banned": false,
+    "tgId": null,
+    "domain": null,
+    "email": "user@example.com",
+    "phone": "+79001234567",
+    "language": null,
+    "timezone": null,
+    "lastOnlineAt": null,
+    "starsBalance": 0,
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": "2024-01-15T10:30:00Z",
+    "profile": {
+      "id": 456,
+      "firstName": "Firstname",
+      "lastName": "Lastname",
+      "bdate": "1990-01-01",
+      "sex": "Male",
+      "role": "Student",
+      "createdAt": "2024-01-15T10:30:00Z",
+      "updatedAt": "2024-01-15T10:30:00Z"
+    }
+  }
+}
+```
+```json Success - User Updated
+{
+  "isCreated": false,
+  "user": {
+    "id": 123,
+    "uuid": "550e8400-e29b-41d4-a716-446655440000",
+    "active": true,
+    "activated": true,
+    "banned": false,
+    "tgId": null,
+    "domain": null,
+    "email": "updated@example.com",
+    "phone": "+79001234567",
+    "language": null,
+    "timezone": null,
+    "lastOnlineAt": null,
+    "starsBalance": 0,
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": "2024-01-15T11:45:00Z",
+    "profile": {
+      "id": 456,
+      "firstName": "UpdatedFirstname",
+      "lastName": "UpdatedLastname",
+      "bdate": "1990-01-01",
+      "sex": "Male",
+      "role": "Student",
+      "createdAt": "2024-01-15T10:30:00Z",
+      "updatedAt": "2024-01-15T11:45:00Z"
+    }
+  }
+}
+```
+```json Error - Email Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "EmailIsBusy",
+  "message": "Email is busy",
+  "error": "Email is busy"
+}
+```
+```json Error - Phone Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "PhoneIsBusy",
+  "message": "Phone is busy",
+  "error": "Phone is busy"
+}
+```
+```json Error - Telegram ID Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "TgIdIsBusy",
+  "message": "Telegram ID is busy",
+  "error": "Telegram ID is busy"
+}
+```
+```json Error - Invalid Email
+{
+  "code": 400,
+  "success": false,
+  "cause": "InvalidEmail",
+  "message": "Email must be a valid email address",
+  "error": "Email must be a valid email address"
+}
+```
+```json Error - Invalid Phone
+{
+  "code": 400,
+  "success": false,
+  "cause": "InvalidPhone",
+  "message": "Phone must be a valid phone number",
+  "error": "Phone must be a valid phone number"
+}
+```
+```json Error - Invalid First Name
+{
+  "code": 400,
+  "success": false,
+  "cause": "InvalidFirstName",
+  "message": "First name must match required format",
+  "error": "First name must match required format"
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+Для создания или обновления пользователя требуется **право на управление пользователями школы**.
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>
+
+<Info>
+  При установке статуса `banned: true` все активные сессии пользователя **автоматически завершаются** — это
+  реализовано для обеспечения безопасности.
+</Info>
+
