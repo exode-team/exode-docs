@@ -111,7 +111,7 @@ const updateUser = async (userId) => {
       }
     });
 
-    console.log('User updated:', response.data);
+    console.log('User updated:', response.data.payload);
   } catch (error) {
     console.error('Error:', error.response?.data || error.message);
   }
@@ -160,7 +160,7 @@ curl_close($ch);
 if ($httpCode === 200) {
   $result = json_decode($response, true);
   echo "User updated successfully\n";
-  print_r($result);
+  print_r($result['payload']);
 } else {
   echo "Error: HTTP $httpCode\n";
   echo $response;
@@ -202,7 +202,7 @@ try:
 
   result = response.json()
   print('User updated successfully:')
-  print(json.dumps(result, indent=2, ensure_ascii=False))
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
 
 except requests.exceptions.RequestException as e:
   print(f'Error: {e}')
@@ -214,30 +214,34 @@ except requests.exceptions.RequestException as e:
 <ResponseExample>
 ```json Success
 {
-  "id": 123,
-  "uuid": "550e8400-e29b-41d4-a716-446655440000",
-  "active": true,
-  "activated": true,
-  "banned": false,
-  "tgId": null,
-  "domain": null,
-  "email": "updated@example.com",
-  "phone": "+79001234567",
-  "language": null,
-  "timezone": null,
-  "lastOnlineAt": null,
-  "starsBalance": 0,
-  "createdAt": "2024-01-15T10:30:00Z",
-  "updatedAt": "2024-01-15T11:45:00Z",
-  "profile": {
-    "id": 456,
-    "firstName": "UpdatedFirstname",
-    "lastName": "UpdatedLastname",
-    "bdate": "1990-01-01",
-    "sex": "Male",
-    "role": "Student",
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 123,
+    "uuid": "550e8400-e29b-41d4-a716-446655440000",
+    "active": true,
+    "activated": true,
+    "banned": false,
+    "tgId": null,
+    "domain": null,
+    "email": "updated@example.com",
+    "phone": "+79001234567",
+    "language": null,
+    "timezone": null,
+    "lastOnlineAt": null,
+    "starsBalance": 0,
     "createdAt": "2024-01-15T10:30:00Z",
-    "updatedAt": "2024-01-15T11:45:00Z"
+    "updatedAt": "2024-01-15T11:45:00Z",
+    "profile": {
+      "id": 456,
+      "firstName": "UpdatedFirstname",
+      "lastName": "UpdatedLastname",
+      "bdate": "1990-01-01",
+      "sex": "Male",
+      "role": "Student",
+      "createdAt": "2024-01-15T10:30:00Z",
+      "updatedAt": "2024-01-15T11:45:00Z"
+    }
   }
 }
 ```

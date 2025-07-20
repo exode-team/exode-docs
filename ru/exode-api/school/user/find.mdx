@@ -1,0 +1,211 @@
+---
+title: "Поиск пользователя"
+description: "Поиск пользователя в школе по логину или Telegram ID"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## Параметры запроса
+
+##### Для поиска пользователя передайте один из ниже перечисленных параметров
+
+<Info>
+  Поиск осуществляется по логину (email или телефон) или Telegram ID. Если пользователь не найден — возвращается `null`.
+</Info>
+
+<ParamField query="login" type="string" required={false}>
+  Логин пользователя. Может быть email адресом, номером телефона в международном формате или `id12345...` — если вы знаете ID пользователя в системе exode.
+</ParamField>
+
+<ParamField query="tgId" type="integer" required={false}>
+  Telegram ID пользователя. Целое число.
+</ParamField>
+
+<Info>
+  **Логином** пользователя может быть:
+  - Email адрес (например: `user@example.com`)
+  - Номер телефона в международном формате (например: `+9876543210`)
+  - Домен пользователя (например, `id12345`)
+</Info>
+
+<Warning>
+  Необходимо передать **хотя бы один** из параметров. Если передать оба — приоритет отдается `login`.
+</Warning>
+
+<RequestExample>
+```bash cURL
+curl --location --request GET 'https://api.exode.biz/saas/v2/user/find?login=user@example.com' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const findUser = async () => {
+  try {
+    const response = await axios.get('https://api.exode.biz/saas/v2/user/find', {
+      params: {
+        login: 'user@example.com'
+      },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('User found:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+findUser();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/user/find';
+$params = [
+  'login' => 'user@example.com'
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url . '?' . http_build_query($params));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  if ($result['payload']) {
+    echo "User found successfully\n";
+    print_r($result['payload']);
+  } else {
+    echo "User not found\n";
+  }
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/user/find'
+
+params = {
+  'login': 'user@example.com'
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.get(url, params=params, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  if result['payload']:
+    print('User found successfully:')
+    print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+  else:
+    print('User not found')
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success - User Found
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 27,
+    "createdAt": "2024-08-09T14:08:12.641Z",
+    "updatedAt": "2024-08-20T13:36:11.456Z",
+    "deletedAt": null,
+    "archivedAt": null,
+    "uuid": "kCJG2XswaaIv",
+    "active": true,
+    "activated": true,
+    "banned": false,
+    "tgId": 987654321,
+    "email": "user@example.com",
+    "phone": null,
+    "permissions": [],
+    "language": "Uz",
+    "timezone": 5,
+    "lastOnlineAt": "2024-08-20T13:36:11.446Z",
+    "starsBalance": 0,
+    "currentTime": "2025-07-20T10:37:39-05:00",
+    "isSleepingNow": false
+  }
+}
+```
+```json Success - User Not Found
+{
+  "success": true,
+  "code": 200,
+  "payload": null
+}
+```
+```json Error - Invalid Login
+{
+  "code": 400,
+  "success": false,
+  "cause": "InvalidLogin",
+  "message": "Login must be a valid email or phone number",
+  "error": "Login must be a valid email or phone number"
+}
+```
+```json Error - Invalid Telegram ID
+{
+  "code": 400,
+  "success": false,
+  "cause": "InvalidTgId",
+  "message": "Telegram ID must be a valid integer",
+  "error": "Telegram ID must be a valid integer"
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+Для поиска пользователя требуется **право на управление пользователями школы**.
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>
+
+<Info>
+  Поиск осуществляется только в рамках указанной школы. Пользователи из других школ не будут найдены.
+</Info>
+
