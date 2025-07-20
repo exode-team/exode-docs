@@ -1,0 +1,340 @@
+---
+title: "Добавление участников"
+description: "Добавление нескольких пользователей в группу школы"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<Tip>
+    Это операция добавления нескольких пользователей в группу одновременно. Если пользователь уже
+    является участником группы, он не будет добавлен повторно.
+</Tip>
+
+<Info>
+    При добавлении пользователей в группу автоматически создаются связанные записи участников и доступов. Если пользователь уже
+    является участником группы, он не будет добавлен повторно.
+</Info>
+
+<HeaderParamFields/>
+
+## Параметры запроса
+
+<Tip>
+    Максимальное количество пользователей, которое можно добавить за один запрос — 100. Для добавления большего
+    количества пользователей используйте несколько запросов.
+</Tip>
+
+<ParamField body="userIds" type="array" required>
+    Массив идентификаторов пользователей для добавления в группу. Максимум 100 пользователей за один запрос.
+</ParamField>
+
+<Info>
+    Если пользователь уже является участником группы, он не будет добавлен повторно. В ответе будет указано, какие
+    пользователи уже существуют в группе, а какие были добавлены.
+</Info>
+
+<RequestExample>
+```bash cURL
+curl --location --request POST 'https://api.exode.biz/saas/v2/group/{{ groupId }}/member/create-many' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "userIds": [8, 15, 23]
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const addMembersToGroup = async () => {
+  try {
+    const response = await axios.post(
+      'https://api.exode.biz/saas/v2/group/{{ groupId }}/member/create-many',
+      {
+        userIds: [8, 15, 23]
+      },
+      {
+        headers: {
+          'Seller-Id': '{{ sellerId }}',
+          'School-Id': '{{ schoolId }}',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer YOUR_TOKEN'
+        }
+      }
+    );
+
+    console.log('Members added:', response.data.payload.created);
+    console.log('Existing members:', response.data.payload.exist);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+addMembersToGroup();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/group/{{ groupId }}/member/create-many';
+$data = [
+  'userIds' => [8, 15, 23]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Members added successfully\n";
+  echo "Created: " . count($result['payload']['created']) . "\n";
+  echo "Existing: " . count($result['payload']['exist']) . "\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/group/{{ groupId }}/member/create-many'
+
+data = {
+  'userIds': [8, 15, 23]
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Members added successfully:')
+  print(f"Created: {len(result['payload']['created'])}")
+  print(f"Existing: {len(result['payload']['exist'])}")
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success - New Members Added
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "exist": [],
+    "created": [
+      {
+        "id": 1227,
+        "createdAt": "2025-07-19T15:45:51.212Z",
+        "updatedAt": "2025-07-19T15:45:51.212Z",
+        "deletedAt": null,
+        "archivedAt": null,
+        "active": true,
+        "blockedUntil": null,
+        "user": {
+          "id": 15,
+          "uuid": "YRnh3REH1Wbd",
+          "active": true,
+          "activated": true,
+          "verified": false,
+          "banned": false,
+          "email": "user@example.com",
+          "phone": "+79001234567",
+          "language": "Ru",
+          "timezone": 5,
+          "lastOnlineAt": "2025-07-20T19:14:03.972Z",
+          "starsBalance": 0
+        }
+      }
+    ]
+  }
+}
+```
+```json Success - Some Members Already Exist
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "exist": [
+      {
+        "id": 1226,
+        "createdAt": "2025-07-19T15:45:51.212Z",
+        "updatedAt": "2025-07-19T15:45:51.212Z",
+        "deletedAt": null,
+        "archivedAt": null,
+        "active": true,
+        "blockedUntil": null,
+        "user": {
+          "id": 8,
+          "uuid": "YRnh3REH1Wbd",
+          "active": true,
+          "activated": true,
+          "verified": false,
+          "banned": false,
+          "email": "test+school+omar@exode.ru",
+          "phone": null,
+          "language": "Ru",
+          "timezone": 5,
+          "lastOnlineAt": "2025-07-20T19:14:03.972Z",
+          "starsBalance": 12
+        }
+      }
+    ],
+    "created": []
+  }
+}
+```
+```json Error - Group Not Found
+{
+  "code": 404,
+  "success": false,
+  "cause": "GroupNotFound",
+  "message": "Group not found",
+  "error": "Group not found"
+}
+```
+```json Error - User Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "UserNotFound",
+  "message": "One or more users not found",
+  "error": "One or more users not found"
+}
+```
+```json Error - Too Many Users
+{
+  "code": 400,
+  "success": false,
+  "cause": "TooManyUsers",
+  "message": "Maximum 100 users allowed per request",
+  "error": "Maximum 100 users allowed per request"
+}
+```
+```json Error - Access Denied
+{
+  "code": 403,
+  "success": false,
+  "cause": "AccessDenied",
+  "message": "Access denied",
+  "error": "Access denied"
+}
+```
+</ResponseExample>
+
+## Параметры ответа
+
+<ResponseField name="exist" type="array">
+    Массив пользователей, которые уже являются участниками группы.
+
+    <Expandable title="Свойства участника">
+        <ResponseField name="id" type="integer" required>
+            Уникальный идентификатор участника группы.
+        </ResponseField>
+
+        <ResponseField name="createdAt" type="timestamp" required>
+            Дата и время создания записи участника.
+        </ResponseField>
+
+        <ResponseField name="updatedAt" type="timestamp" required>
+            Дата и время последнего обновления записи участника.
+        </ResponseField>
+
+        <ResponseField name="active" type="boolean" required>
+            Статус активности участника в группе.
+        </ResponseField>
+
+        <ResponseField name="user" type="object" required>
+            Объект пользователя.
+
+            <Expandable title="Свойства пользователя">
+                <ResponseField name="id" type="integer" required>
+                    Уникальный идентификатор пользователя.
+                </ResponseField>
+
+                <ResponseField name="uuid" type="string" required>
+                    UUID пользователя.
+                </ResponseField>
+
+                <ResponseField name="email" type="string">
+                    Email адрес пользователя.
+                </ResponseField>
+
+                <ResponseField name="phone" type="string">
+                    Номер телефона пользователя.
+                </ResponseField>
+            </Expandable>
+        </ResponseField>
+    </Expandable>
+</ResponseField>
+
+<ResponseField name="created" type="array">
+    Массив пользователей, которые были добавлены в группу.
+
+    <Expandable title="Свойства созданного участника">
+        <ResponseField name="id" type="integer" required>
+            Уникальный идентификатор участника группы.
+        </ResponseField>
+
+        <ResponseField name="createdAt" type="timestamp" required>
+            Дата и время создания записи участника.
+        </ResponseField>
+
+        <ResponseField name="updatedAt" type="timestamp" required>
+            Дата и время последнего обновления записи участника.
+        </ResponseField>
+
+        <ResponseField name="active" type="boolean" required>
+            Статус активности участника в группе.
+        </ResponseField>
+
+        <ResponseField name="user" type="object" required>
+            Объект пользователя с теми же свойствами, что и в массиве `exist`.
+        </ResponseField>
+    </Expandable>
+</ResponseField>
+
+## Требования к правам доступа
+
+<Check>
+    Для добавления участников в группу требуется **право на управление пользователями школы**.
+</Check>
+
+<Warning>
+    Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+    школе.
+</Warning>
+

@@ -18,19 +18,26 @@
         "tab": "Exode API",
         "groups": [
           {
-            "group": "Exode API",
+            "group": "Работа с API",
             "pages": [
               "ru/welcome",
               "ru/exode-api/setup"
             ]
           },
           {
-            "group": "School API",
+            "group": "Пользователи",
             "pages": [
               "ru/exode-api/school/user/create",
               "ru/exode-api/school/user/update",
               "ru/exode-api/school/user/upsert",
               "ru/exode-api/school/user/find"
+            ]
+          },
+          {
+            "group": "Группы",
+            "pages": [
+              "ru/exode-api/school/group-member/create-many",
+              "ru/exode-api/school/group-member/delete-many"
             ]
           }
         ]
