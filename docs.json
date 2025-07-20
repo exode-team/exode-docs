@@ -27,7 +27,8 @@
           {
             "group": "School API",
             "pages": [
-              "ru/exode-api/school/user/create"
+              "ru/exode-api/school/user/create",
+              "ru/exode-api/school/user/update"
             ]
           }
         ]

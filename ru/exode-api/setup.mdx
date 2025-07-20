@@ -2,6 +2,7 @@
 title: 'Запросы к API'
 description: 'Аутентификация через API токен и структура запросов'
 ---
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 ### API токены
 - Все запросы идут только через API токены
@@ -48,19 +49,7 @@ description: 'Аутентификация через API токен и стру
 
 Любой запрос к API в рамках данной документации необходимо выполнять с передачей обязательных заголовков для точной идентификации пользователя и авторизации.
 
-### Обязательные заголовки
-
-<ParamField header="Authorization" type="string" required>
-  API токен сервисного пользователя в формате Bearer. Получите токен в панели администратора школы.
-</ParamField>
-
-<ParamField header="Seller-Id" type="integer" required>
-  Уникальный идентификатор продавца в системе. Используется для разграничения доступа между разными продавцами.
-</ParamField>
-
-<ParamField header="School-Id" type="integer" required>
-  Уникальный идентификатор школы в системе. Определяет контекст выполнения операции.
-</ParamField>
+<HeaderParamFields/>
 
 <Warning>
   Все заголовки обязательны. Отсутствие любого из них приведет к ошибке 401 Unauthorized.
