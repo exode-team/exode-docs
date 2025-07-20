@@ -23,6 +23,12 @@
               "ru/welcome",
               "ru/exode-api/setup"
             ]
+          },
+          {
+            "group": "School API",
+            "pages": [
+              "ru/exode-api/school/user/create"
+            ]
           }
         ]
       }
