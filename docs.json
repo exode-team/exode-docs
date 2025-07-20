@@ -7,7 +7,7 @@
     "light": "#3a9cfc",
     "dark": "#0e32cf"
   },
-  "favicon": "/logo/icon.png",
+  "favicon": "/favicon.ico",
   "logo": {
     "light": "/logo/exode-tech-light.svg",
     "dark": "/logo/exode-tech-dark.svg"
@@ -15,46 +15,13 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "School API",
+        "tab": "Exode API",
         "groups": [
           {
-            "group": "School API",
+            "group": "Exode API",
             "pages": [
-              "ru/introduction",
-              "ru/quickstart",
-              "ru/development"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "Exode Pay API",
-        "groups": [
-          {
-            "group": "Exode Pay API",
-            "pages": [
-              "ru/essentials/markdown",
-              "ru/essentials/code",
-              "ru/essentials/images",
-              "ru/essentials/settings",
-              "ru/essentials/navigation",
-              "ru/essentials/reusable-snippets"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "Sales API",
-        "groups": [
-          {
-            "group": "Sales API",
-            "pages": [
-              "ru/essentials/markdown",
-              "ru/essentials/code",
-              "ru/essentials/images",
-              "ru/essentials/settings",
-              "ru/essentials/navigation",
-              "ru/essentials/reusable-snippets"
+              "ru/welcome",
+              "ru/exode-api/setup"
             ]
           }
         ]

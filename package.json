@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "mint:dev": "mint dev --port 3333"
+  },
+  "dependencies": {
+    "lucide-react": "^0.525.0"
+  }
+}

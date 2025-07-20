@@ -1,0 +1,378 @@
+---
+title: 'Запросы к API'
+description: 'Аутентификация через API токен и структура запросов'
+---
+
+### API токены
+- Все запросы идут только через API токены
+- Токены живут вечно, отозвать можно в любой момент
+
+### Сервисные пользователи
+- Все запросы идут через сервисных пользователей
+- Сервисный пользователь - это такой же сотрудник школы с настроенными вами правами
+- Чтобы создать API ключ - необходимо создать сотрудника (сервисного пользователя), указать права и скопировать его API token
+
+### Создание сервисного пользователя
+
+1. **Создайте сотрудника** - В панели администратора школы создайте нового сотрудника с нужными правами доступа.
+
+2. **Настройте права** - Укажите необходимые права для сервисного пользователя в зависимости от задач интеграции.
+
+3. **Получите API токен** - Скопируйте API токен созданного сервисного пользователя для использования в запросах.
+
+### Использование API токена
+
+Для аутентификации используйте заголовок `Authorization` с префиксом `Bearer` и API токеном сервисного пользователя.
+
+### Безопасность хранение токенов
+- Никогда не храните API токены в коде приложения
+- Используйте переменные окружения
+- Не коммитьте токены в репозиторий
+
+### Управление сервисными пользователями
+- Создавайте отдельных сервисных пользователей для разных задач
+- Регулярно проверяйте права доступа
+- Отзывайте токены при необходимости
+
+### Обработка ошибок
+- Всегда проверяйте статус ответа
+- Логируйте ошибки аутентификации
+- Реализуйте retry логику для временных ошибок
+
+> **⚠️ Важно:** API токен предоставляет доступ к данным школы. Храните его в безопасном месте и не передавайте третьим лицам.
+
+Для получения дополнительной помощи по настройке аутентификации обратитесь в нашу [техническую поддержку](https://t.me/exode_biz_support).
+
+
+## Структура запроса
+
+Любой запрос к API в рамках данной документации необходимо выполнять с передачей обязательных заголовков для точной идентификации пользователя и авторизации.
+
+### Обязательные заголовки
+
+<ParamField header="Authorization" type="string" required>
+  API токен сервисного пользователя в формате Bearer. Получите токен в панели администратора школы.
+</ParamField>
+
+<ParamField header="Seller-Id" type="integer" required>
+  Уникальный идентификатор продавца в системе. Используется для разграничения доступа между разными продавцами.
+</ParamField>
+
+<ParamField header="School-Id" type="integer" required>
+  Уникальный идентификатор школы в системе. Определяет контекст выполнения операции.
+</ParamField>
+
+<Warning>
+  Все заголовки обязательны. Отсутствие любого из них приведет к ошибке 401 Unauthorized.
+</Warning>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/user/create' \
+--header 'Seller-Id: {{ sellerId }}' \
+--header 'School-Id: {{ schoolId }}' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer {{ token }}' \
+--data-raw '{
+  "email": "example@gmail.com",
+  "phone": "+1234567890",
+  "tgId": 123456789,
+  "profile": {
+    "firstName": "Firstname",
+    "lastName": "LastName"
+  }
+}'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const createUser = async () => {
+  try {
+    const response = await axios.post(
+      'https://api.exode.biz/saas/v2/user/create',
+      {
+        email: 'example@gmail.com',
+        phone: '+1234567890',
+        tgId: 123456789,
+        profile: {
+          firstName: 'Firstname',
+          lastName: 'LastName'
+        }
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.EXODE_TOKEN}`,
+          'Seller-Id': process.env.SELLER_ID,
+          'School-Id': process.env.SCHOOL_ID,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('Пользователь создан:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка создания пользователя:', error.response?.data);
+    throw error;
+  }
+};
+
+createUser();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/user/create';
+$data = [
+  'email' => 'example@gmail.com',
+  'phone' => '+1234567890',
+  'tgId' => 123456789,
+  'profile' => [
+    'firstName' => 'Firstname',
+    'lastName' => 'LastName'
+  ]
+];
+
+$headers = [
+  'Authorization: Bearer ' . $_ENV['EXODE_TOKEN'],
+  'Seller-Id: ' . $_ENV['SELLER_ID'],
+  'School-Id: ' . $_ENV['SCHOOL_ID'],
+  'Content-Type: application/json'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  echo "Пользователь создан: " . json_encode($result, JSON_PRETTY_PRINT);
+} else {
+  echo "Ошибка создания пользователя: " . $response;
+}
+?>
+```
+
+```python Python
+import requests
+import os
+import json
+
+def create_user():
+  url = 'https://api.exode.biz/saas/v2/user/create'
+
+  headers = {
+    'Authorization': f'Bearer {os.getenv("EXODE_TOKEN")}',
+    'Seller-Id': os.getenv('SELLER_ID'),
+    'School-Id': os.getenv('SCHOOL_ID'),
+    'Content-Type': 'application/json'
+  }
+
+  data = {
+    'email': 'example@gmail.com',
+    'phone': '+1234567890',
+    'tgId': 123456789,
+    'profile': {
+      'firstName': 'Firstname',
+      'lastName': 'LastName'
+    }
+  }
+
+  try:
+    response = requests.post(url, headers=headers, json=data)
+    response.raise_for_status()
+
+    result = response.json()
+    print(f"Пользователь создан: {json.dumps(result, indent=2)}")
+    return result
+
+  except requests.exceptions.RequestException as e:
+    print(f"Ошибка создания пользователя: {e}")
+    if hasattr(e, 'response') and e.response is not None:
+      print(f"Детали ошибки: {e.response.text}")
+    raise
+
+if __name__ == "__main__":
+  create_user()
+```
+</RequestExample>
+
+### Примеры ответов
+
+<CodeGroup>
+    ```json Успешный ответ (201)
+    {
+        "success": true,
+        "code": 201,
+        "payload": {
+            "id": 1,
+            "activated": true,
+            "tgId": null,
+            "email": "example@gmail.com",
+            "phone": null,
+            "createdAt": "2025-01-01T10:30:00Z",
+            "status": "active",
+            "profile": {
+                "firstName": "FirstName",
+                "lastName": "LastName"
+            },
+        }
+    }
+    ```
+
+    ```json Ошибка валидации (400)
+    {
+        "code": 400,
+        "success": false,
+        "cause": "EmailIsBusy",
+        "message": "Email is busy",
+        "error": "Email is busy"
+    }
+    ```
+
+    ```json Ошибка аутентификации (401)
+    {
+        "code": 401,
+        "success": false,
+        "cause": "Unauthorized",
+        "message": "Invalid API token",
+        "error": "Invalid API token"
+    }
+    ```
+
+    ```json Ошибка доступа (403)
+    {
+        "code": 403,
+        "success": false,
+        "cause": "Forbidden",
+        "message": "Insufficient permissions",
+        "error": "Insufficient permissions"
+    }
+    ```
+</CodeGroup>
+
+### Структура ответа
+
+##### **Успешный ответ**
+
+<ResponseField name="success" type="boolean" required>
+  Статус операции. Всегда `true` для успешных запросов.
+</ResponseField>
+
+<ResponseField name="code" type="integer" required>
+  HTTP код ответа. `201` для успешного создания пользователя.
+</ResponseField>
+
+<ResponseField name="payload" type="object" required>
+  **Например**: Данные созданного пользователя.
+
+  <Expandable title="Пример структура объекта payload">
+    <ResponseField name="id" type="integer" required>
+      Уникальный идентификатор пользователя в системе.
+    </ResponseField>
+
+    <ResponseField name="activated" type="boolean" required>
+      Статус активации пользователя. `true` если пользователь активен.
+    </ResponseField>
+
+    <ResponseField name="tgId" type="integer | null">
+      Telegram ID пользователя. `null` если не указан.
+    </ResponseField>
+
+    <ResponseField name="email" type="string" required>
+      Email адрес пользователя.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+##### **Ошибка**
+
+<ResponseField name="success" type="boolean" required>
+  Статус операции. Всегда `false` для ошибок.
+</ResponseField>
+
+<ResponseField name="code" type="integer" required>
+  HTTP код ошибки. Например: `400`, `401`, `403`, `404`.
+</ResponseField>
+
+<ResponseField name="cause" type="string" required>
+  Код причины ошибки. Например: `EmailIsBusy`, `Unauthorized`, `Forbidden`.
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Человекочитаемое сообщение об ошибке.
+</ResponseField>
+
+<ResponseField name="error" type="string" required>
+  Техническое описание ошибки для разработчиков.
+</ResponseField>
+
+### Обработка ошибок
+
+<Tabs>
+    <Tab title="Node.js">
+        ```javascript
+        try {
+            const response = await axios.post(url, data, { headers });
+            console.log('Успех:', response.data);
+        } catch (error) {
+            if (error.response?.status === 401) {
+                console.error('Ошибка аутентификации - проверьте токен');
+            } else if (error.response?.status === 400) {
+                console.error('Ошибка валидации:', error.response.data.error.details);
+            } else {
+                console.error('Неизвестная ошибка:', error.message);
+            }
+        }
+        ```
+    </Tab>
+
+    <Tab title="PHP">
+        ```php
+        if ($httpCode === 200) {
+            $result = json_decode($response, true);
+            echo "Успех: " . json_encode($result, JSON_PRETTY_PRINT);
+        } elseif ($httpCode === 401) {
+            echo "Ошибка аутентификации - проверьте токен";
+        } elseif ($httpCode === 400) {
+            $error = json_decode($response, true);
+            echo "Ошибка валидации: " . json_encode($error['error']['details']);
+        } else {
+            echo "Неизвестная ошибка: HTTP $httpCode";
+        }
+        ```
+    </Tab>
+
+    <Tab title="Python">
+        ```python
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            result = response.json()
+            print(f"Успех: {json.dumps(result, indent=2)}")
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                print("Ошибка аутентификации - проверьте токен")
+            elif e.response.status_code == 400:
+                error_data = e.response.json()
+                print(f"Ошибка валидации: {error_data['error']['details']}")
+            else:
+                print(f"Неизвестная ошибка: {e}")
+        ```
+    </Tab>
+</Tabs>
+
+<Tip>
+    Всегда обрабатывайте ошибки в своем коде. Это поможет быстро диагностировать проблемы и улучшить пользовательский
+    опыт.
+</Tip>
+
