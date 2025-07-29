@@ -30,7 +30,8 @@
               "ru/exode-api/school/user/create",
               "ru/exode-api/school/user/update",
               "ru/exode-api/school/user/upsert",
-              "ru/exode-api/school/user/find"
+              "ru/exode-api/school/user/find",
+              "ru/exode-api/school/user/session/auth-token"
             ]
           },
           {

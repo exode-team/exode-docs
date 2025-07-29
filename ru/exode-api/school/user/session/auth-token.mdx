@@ -1,0 +1,273 @@
+---
+title: "Создание токена сессии"
+description: "Создание или получение активного токена сессии для пользователя школы"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## Параметры запроса
+
+<ParamField body="userId" type="integer" required>
+  ID пользователя в системе Exode. Целое число.
+</ParamField>
+
+<ParamField body="forceCreate" type="boolean" required={false} default="false">
+  Принудительное создание новой сессии. Если `true` — всегда создается новая сессия, даже если у пользователя уже есть активная.
+    Если `false` или не указан — возвращается существующая активная сессия (или создается новая, если существующей нет).
+</ParamField>
+
+<Info>
+  Метод создает новую сессию для пользователя или возвращает существующую активную сессию. Токен сессии используется для аутентификации пользователя в системе. Флаг `isCreated` в ответе указывает, была ли создана новая сессия или возвращена существующая.
+</Info>
+
+<Warning>
+  Пользователи с правами администратора или менеджера школы не могут создавать сессии через этот метод.
+</Warning>
+
+<RequestExample>
+```bash cURL
+curl --location --request POST 'https://api.exode.biz/saas/v2/user/session/auth-token' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "userId": 123,
+    "forceCreate": false
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const createSessionToken = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/user/session/auth-token', {
+      userId: 123,
+      forceCreate: false
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Session token created:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+createSessionToken();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/user/session/auth-token';
+$data = [
+  'userId' => 123,
+  'forceCreate' => false
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Session token created successfully\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/user/session/auth-token'
+
+data = {
+  'userId': 123,
+  'forceCreate': False
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Session token created successfully:')
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success - New Session Created
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "isCreated": true,
+    "session": {
+      "id": 3537,
+      "createdAt": "2025-07-29T10:26:19.037Z",
+      "updatedAt": "2025-07-29T10:26:19.917Z",
+      "deletedAt": null,
+      "uuid": "a65aa524-f822-4f89-9608-4fb5d4425877",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "alive": true,
+      "isOnline": false,
+      "location": {},
+      "launcher": "Web",
+      "lastActivityAt": "2025-07-29T10:26:19.037Z",
+      "timezone": null,
+      "expireAt": "2027-07-29T10:26:18.823Z"
+    }
+  }
+}
+```
+```json Success - Existing Session Returned
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "isCreated": false,
+    "session": {
+      "id": 3536,
+      "createdAt": "2025-07-29T09:15:30.123Z",
+      "updatedAt": "2025-07-29T10:20:45.789Z",
+      "deletedAt": null,
+      "uuid": "b45bb635-g933-5g90-0719-5gc6e5536988",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "alive": true,
+      "isOnline": true,
+      "location": {
+        "ip": "192.168.1.100",
+        "country": "UZ"
+      },
+      "launcher": "Web",
+      "lastActivityAt": "2025-07-29T10:20:45.789Z",
+      "timezone": 5,
+      "expireAt": "2027-07-29T09:15:29.823Z"
+    }
+  }
+}
+```
+```json Error - User Not Found
+{
+  "code": 404,
+  "success": false,
+  "cause": "NotFound",
+  "message": "User not found",
+  "error": "User not found"
+}
+```
+```json Error - User Is Admin
+{
+  "code": 403,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "User is school admin or manager",
+  "error": "User is school admin or manager"
+}
+```
+```json Error - Invalid User ID
+{
+  "code": 400,
+  "success": false,
+  "cause": "InvalidUserId",
+  "message": "User ID must be a valid integer",
+  "error": "User ID must be a valid integer"
+}
+```
+</ResponseExample>
+
+## Параметры ответа
+
+<ResponseField name="session" type="object" required>
+  Объект сессии пользователя.
+
+  <Expandable title="Свойства сессии">
+    <ResponseField name="id" type="integer" required>
+      Уникальный идентификатор сессии.
+    </ResponseField>
+
+    <ResponseField name="token" type="string" required>
+      JWT токен для аутентификации пользователя.
+    </ResponseField>
+
+    <ResponseField name="expireAt" type="timestamp" required>
+      Время истечения сессии в формате ISO 8601.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="isCreated" type="boolean" required>
+  Флаг, указывающий была ли создана новая сессия. `true` — сессия была создана, `false` — возвращена существующая активная сессия.
+</ResponseField>
+
+## Требования к правам доступа
+
+<Check>
+Для создания токена сессии пользователя требуется **право на управление пользователями школы**.
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной школе.
+</Warning>
+
+## Использование токена
+<Info>
+  Токен сессии имеет ограниченный срок действия (обычно 2 года). После истечения срока действия пользователю необходимо создать новую сессию.
+</Info>
+
+<Tip>
+  **Автоматическая авторизация пользователя:**
+
+  Для автоматического входа пользователя в приложение используйте GET параметр `___uat` в URL:
+
+  ```
+  https://my-school.com/education?___uat=TOKEN_FROM_SESSION
+  ```
+
+  Где `TOKEN_FROM_SESSION` — значение поля `token` из ответа этого API метода.
+
+  <Check>
+  Пользователь будет автоматически авторизован при переходе по такой ссылке.
+  </Check>
+</Tip>
