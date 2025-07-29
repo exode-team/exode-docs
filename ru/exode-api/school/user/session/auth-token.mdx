@@ -34,9 +34,9 @@ curl --location --request POST 'https://api.exode.biz/saas/v2/user/session/auth-
   --header 'Content-Type: application/json' \
   --header 'Authorization: Bearer YOUR_TOKEN' \
   --data-raw '{
-    "userId": 123,
-    "forceCreate": false
-  }'
+  "userId": 123,
+  "forceCreate": false
+}'
 ```
 
 ```javascript Node.js
@@ -258,15 +258,15 @@ except requests.exceptions.RequestException as e:
 
 <Tip>
   **Автоматическая авторизация пользователя:**
-
+  
   Для автоматического входа пользователя в приложение используйте GET параметр `___uat` в URL:
-
+  
   ```
   https://my-school.com/education?___uat=TOKEN_FROM_SESSION
   ```
-
+  
   Где `TOKEN_FROM_SESSION` — значение поля `token` из ответа этого API метода.
-
+  
   <Check>
   Пользователь будет автоматически авторизован при переходе по такой ссылке.
   </Check>
