@@ -42,63 +42,49 @@ curl --location --request POST 'https://api.exode.biz/saas/v2/user/session/auth-
 ```javascript Node.js
 const axios = require('axios');
 
-const createSessionToken = async () => {
-  try {
-    const response = await axios.post('https://api.exode.biz/saas/v2/user/session/auth-token', {
-      userId: 123,
-      forceCreate: false
-    }, {
+try {
+  const { data } = await axios.post('https://api.exode.biz/saas/v2/user/session/auth-token', 
+    { userId: 123, forceCreate: false },
+    {
       headers: {
         'Seller-Id': '{{ sellerId }}',
         'School-Id': '{{ schoolId }}',
         'Content-Type': 'application/json',
         'Authorization': 'Bearer YOUR_TOKEN'
       }
-    });
-
-    console.log('Session token created:', response.data.payload);
-  } catch (error) {
-    console.error('Error:', error.response?.data || error.message);
-  }
-};
-
-createSessionToken();
+    }
+  );
+  console.log('Session token created:', data.payload);
+} catch (error) {
+  console.error('Error:', error.response?.data || error.message);
+}
 ```
 
 ```php PHP
 <?php
 
-$url = 'https://api.exode.biz/saas/v2/user/session/auth-token';
-$data = [
-  'userId' => 123,
-  'forceCreate' => false
-];
-
-$headers = [
-  'Seller-Id: {{ sellerId }}',
-  'School-Id: {{ schoolId }}',
-  'Content-Type: application/json',
-  'Authorization: Bearer YOUR_TOKEN'
-];
-
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $url);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$ch = curl_init('https://api.exode.biz/saas/v2/user/session/auth-token');
+curl_setopt_array($ch, [
+  CURLOPT_POST => true,
+  CURLOPT_POSTFIELDS => json_encode(['userId' => 123, 'forceCreate' => false]),
+  CURLOPT_HTTPHEADER => [
+    'Seller-Id: {{ sellerId }}',
+    'School-Id: {{ schoolId }}',
+    'Content-Type: application/json',
+    'Authorization: Bearer YOUR_TOKEN'
+  ],
+  CURLOPT_RETURNTRANSFER => true
+]);
 
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 if ($httpCode === 201) {
-  $result = json_decode($response, true);
   echo "Session token created successfully\n";
-  print_r($result['payload']);
+  print_r(json_decode($response, true)['payload']);
 } else {
-  echo "Error: HTTP $httpCode\n";
-  echo $response;
+  echo "Error: HTTP $httpCode\n$response";
 }
 ?>
 ```
@@ -107,31 +93,25 @@ if ($httpCode === 201) {
 import requests
 import json
 
-url = 'https://api.exode.biz/saas/v2/user/session/auth-token'
-
-data = {
-  'userId': 123,
-  'forceCreate': False
-}
-
-headers = {
-  'Seller-Id': '{{ sellerId }}',
-  'School-Id': '{{ schoolId }}',
-  'Content-Type': 'application/json',
-  'Authorization': 'Bearer YOUR_TOKEN'
-}
-
 try:
-  response = requests.post(url, json=data, headers=headers)
+  response = requests.post(
+    'https://api.exode.biz/saas/v2/user/session/auth-token',
+    json={'userId': 123, 'forceCreate': False},
+    headers={
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN'
+    }
+  )
   response.raise_for_status()
-
-  result = response.json()
+  
   print('Session token created successfully:')
-  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+  print(json.dumps(response.json()['payload'], indent=2, ensure_ascii=False))
 
 except requests.exceptions.RequestException as e:
   print(f'Error: {e}')
-  if hasattr(e, 'response') and e.response is not None:
+  if hasattr(e, 'response') and e.response:
     print(f'Response: {e.response.text}')
 ```
 </RequestExample>
