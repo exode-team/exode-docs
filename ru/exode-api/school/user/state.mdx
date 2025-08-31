@@ -1,0 +1,252 @@
+---
+title: "Состояния пользователя"
+description: "REST-эндпоинты для чтения и записи состояния пользователя по ключу"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+    Состояния пользователя — это ключ-значение записи в базе, связанные с конкретным пользователем.
+    Чтение и запись доступны только для ограниченного списка ключей (whitelist). Для некоторых ключей применяется
+    маскирование при чтении.
+
+    Эндпоинты ниже работают в контексте школы и требуют прав управления пользователями школы.
+</Info>
+
+## Получить состояние по ключу
+
+GET /saas/v2/user/:userId/state/get?key=PersonalInfoFilled
+
+### Параметры
+
+<ParamField path=":userId" type="integer" required>
+ID пользователя в рамках школы.
+</ParamField>
+
+<ParamField query="key" type="string" required>
+Ключ состояния.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="value" type="any" required>
+Значение состояния.
+</ResponseField>
+
+<RequestExample>
+```bash cURL (GET)
+curl --location 'https://api.exode.biz/saas/v2/user/123/state/get?key=PersonalInfoFilled' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js (GET)
+const axios = require('axios');
+
+async function getState() {
+  const { data } = await axios.get(
+    'https://api.exode.biz/saas/v2/user/123/state/get',
+    {
+      params: { key: 'PersonalInfoFilled' },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        Authorization: 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data);
+}
+
+getState();
+```
+
+```php PHP (GET)
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/user/123/state/get?key=PersonalInfoFilled';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPGET, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+echo $response;
+?>
+```
+
+```python Python (GET)
+import requests
+
+url = 'https://api.exode.biz/saas/v2/user/123/state/get'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'key': 'PersonalInfoFilled' }, headers=headers)
+print(response.json())
+```
+
+```bash cURL (SET)
+curl --location --request PUT 'https://api.exode.biz/saas/v2/user/123/state/set?key=PersonalInfoFilled' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "value": true
+  }'
+```
+
+```javascript Node.js (SET)
+const axios = require('axios');
+
+async function setState() {
+  const { data } = await axios.put(
+    'https://api.exode.biz/saas/v2/user/123/state/set',
+    { value: true },
+    {
+      params: { key: 'PersonalInfoFilled' },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data);
+}
+
+setState();
+```
+
+```php PHP (SET)
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/user/123/state/set?key=PersonalInfoFilled';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$payload = json_encode([ 'value' => true ]);
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+echo $response;
+?>
+```
+
+```python Python (SET)
+import requests
+
+url = 'https://api.exode.biz/saas/v2/user/123/state/set'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.put(url, json={ 'value': { 'step': 3 } }, params={ 'key': 'PersonalInfoFilled' }, headers=headers)
+print(response.json())
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "value": { "step": 2 }
+  }
+}
+```
+
+```json Error - Not allowed key
+{
+  "code": 401,
+  "success": false,
+  "cause": "Unauthorized",
+  "message": "Not allowed key VkFriends",
+  "error": "Not allowed key VkFriends"
+}
+```
+
+```json SET Success
+{
+  "success": true,
+  "code": 200,
+  "payload": { "set": true }
+}
+```
+
+```json SET Error - Not allowed key
+{
+  "code": 401,
+  "success": false,
+  "cause": "Unauthorized",
+  "message": "Not allowed key VkToken",
+  "error": "Not allowed key VkToken"
+}
+```
+</ResponseExample>
+
+## Установить состояние по ключу
+
+PUT /saas/v2/user/:userId/state/set?key=PersonalInfoFilled
+
+### Параметры
+
+<ParamField path=":userId" type="integer" required>
+ID пользователя в рамках школы.
+</ParamField>
+
+<ParamField query="key" type="string" required>
+Ключ состояния.
+</ParamField>
+
+<ParamField body="value" type="any" required>
+Значение, записываемое в состояние. Тип зависит от ключа.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="set" type="boolean" required>
+Флаг успешной записи состояния.
+</ResponseField>
+
+## Требования к правам доступа
+
+<Check>
+Требуется аутентификация по токену и право управления пользователями школы (SchoolManageUsers).
+</Check>
+
