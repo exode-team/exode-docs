@@ -181,23 +181,23 @@ print(response.json())
 </RequestExample>
 
 <ResponseExample>
-```json Success
+```json GET Success
 {
   "success": true,
   "code": 200,
   "payload": {
-    "value": { "step": 2 }
+    "value": true
   }
 }
 ```
 
-```json Error - Not allowed key
+```json GET Error - Not allowed key
 {
   "code": 401,
   "success": false,
   "cause": "Unauthorized",
-  "message": "Not allowed key VkFriends",
-  "error": "Not allowed key VkFriends"
+  "message": "Not allowed key KeyName",
+  "error": "Not allowed key KeyName"
 }
 ```
 
@@ -214,8 +214,8 @@ print(response.json())
   "code": 401,
   "success": false,
   "cause": "Unauthorized",
-  "message": "Not allowed key VkToken",
-  "error": "Not allowed key VkToken"
+  "message": "Not allowed key KeyName",
+  "error": "Not allowed key KeyName"
 }
 ```
 </ResponseExample>
