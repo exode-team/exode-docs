@@ -217,30 +217,32 @@ except requests.exceptions.RequestException as e:
   "success": true,
   "code": 200,
   "payload": {
-    "id": 123,
-    "uuid": "550e8400-e29b-41d4-a716-446655440000",
-    "active": true,
-    "activated": true,
-    "banned": false,
-    "tgId": null,
-    "domain": null,
-    "email": "updated@example.com",
-    "phone": "+987654321",
-    "language": null,
-    "timezone": null,
-    "lastOnlineAt": null,
-    "starsBalance": 0,
-    "createdAt": "2024-01-15T10:30:00Z",
-    "updatedAt": "2024-01-15T11:45:00Z",
-    "profile": {
-      "id": 456,
-      "firstName": "UpdatedFirstname",
-      "lastName": "UpdatedLastname",
-      "bdate": "1990-01-01",
-      "sex": "Male",
-      "role": "Student",
+    "user": {
+      "id": 123,
+      "uuid": "550e8400-e29b-41d4-a716-446655440000",
+      "active": true,
+      "activated": true,
+      "banned": false,
+      "tgId": null,
+      "domain": null,
+      "email": "updated@example.com",
+      "phone": "+987654321",
+      "language": null,
+      "timezone": null,
+      "lastOnlineAt": null,
+      "starsBalance": 0,
       "createdAt": "2024-01-15T10:30:00Z",
-      "updatedAt": "2024-01-15T11:45:00Z"
+      "updatedAt": "2024-01-15T11:45:00Z",
+      "profile": {
+        "id": 456,
+        "firstName": "UpdatedFirstname",
+        "lastName": "UpdatedLastname",
+        "bdate": "1990-01-01",
+        "sex": "Male",
+        "role": "Student",
+        "createdAt": "2024-01-15T10:30:00Z",
+        "updatedAt": "2024-01-15T11:45:00Z"
+      }
     }
   }
 }
