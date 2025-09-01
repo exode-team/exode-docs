@@ -54,7 +54,7 @@ async function getState() {
       headers: {
         'Seller-Id': '{{ sellerId }}',
         'School-Id': '{{ schoolId }}',
-        Authorization: 'Bearer YOUR_TOKEN',
+        'Authorization': 'Bearer YOUR_TOKEN',
       },
     }
   );
@@ -126,7 +126,7 @@ async function setState() {
         'Seller-Id': '{{ sellerId }}',
         'School-Id': '{{ schoolId }}',
         'Content-Type': 'application/json',
-        Authorization: 'Bearer YOUR_TOKEN',
+        'Authorization': 'Bearer YOUR_TOKEN',
       },
     }
   );
