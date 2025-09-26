@@ -49,6 +49,11 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Status",
+        "icon": "activity",
+        "href": "https://exode.instatus.com/"
       }
     ]
   },
