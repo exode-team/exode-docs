@@ -41,6 +41,12 @@
               "ru/exode-api/school/group-member/create-many",
               "ru/exode-api/school/group-member/delete-many"
             ]
+          },
+          {
+            "group": "Нет нужного метода?",
+            "pages": [
+              "ru/exode-api/common/request-new-method"
+            ]
           }
         ]
       }
