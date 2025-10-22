@@ -15,6 +15,79 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
     Эндпоинты ниже работают в контексте школы и требуют прав управления пользователями школы.
 </Info>
 
+## Список поддерживаемых ключей
+
+<AccordionGroup>
+<Accordion title="UtmSignupParams">
+  - Тип: object.
+  - GET/SET: да/да.
+  - Маскирование: нет.
+  - Назначение: UTM/реферальные параметры первичного визита/регистрации.
+
+  - UtmSignupParams хранится как объект произвольных строковых пар ключ-значение (например, utm_source, utm_medium, fbclid).
+
+  ```json Success (GET UtmSignupParams)
+  {
+    "success": true,
+    "code": 200,
+    "payload": {
+      "value": {
+        "fbclid": "PAaWdyZANlnAhleHRuA2FlbQEwAGFkaWQBqylixyTuLgGnBtNuf0XY6faDb9k0gwv7iJjZVYuqYTfr6WNxnrC0wDrq7nfXTPyiPcIGqI8_aem_vPIEvPcOevWmARGMfIP45g",
+        "utm_term": "120235317751070190",
+        "utm_medium": "paid",
+        "utm_source": "ig",
+        "utm_content": "120235319196930190",
+        "utm_campaign": "120235317745230190"
+      }
+    }
+  }
+  ```
+
+  ```json Body (SET UtmSignupParams)
+  {
+    "value": {
+      "utm_source": "ig",
+      "utm_medium": "paid",
+      "utm_campaign": "120235317745230190",
+      "utm_content": "120235319196930190",
+      "utm_term": "120235317751070190",
+      "fbclid": "PAaWdyZANlnAhleHRuA2FlbQEwAGFkaWQBqylixyTuLgGnBtNuf0XY6faDb9k0gwv7iJjZVYuqYTfr6WNxnrC0wDrq7nfXTPyiPcIGqI8_aem_vPIEvPcOevWmARGMfIP45g"
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="PersonalInfoFilled">
+  - Тип: boolean.
+  - GET/SET: да/да.
+  - Маскирование: нет.
+  - Назначение: Флаг заполнения персональных данных.
+
+  - PersonalInfoFilled — булево значение true или false, отражающее факт заполнения персональных данных.
+
+  ```json Success (GET PersonalInfoFilled)
+  {
+    "success": true,
+    "code": 200,
+    "payload": {
+      "value": true
+    }
+  }
+  ```
+
+  ```json Body (SET PersonalInfoFilled)
+  {
+    "value": true
+  }
+  ```
+</Accordion>
+</AccordionGroup>
+
+## Типы и бизнес-логика
+- Установка значения через PUT полностью замещает предыдущее значение ключа. Частичных обновлений (merge) через REST нет.
+- UtmSignupParams хранится как объект произвольных строковых пар ключ-значение (например, utm_source, utm_medium, fbclid). Рекомендуется записывать только достоверные параметры первичного захода/регистрации.
+- PersonalInfoFilled — булево значение true или false, отражающее факт заполнения персональных данных.
+
 ## Получить состояние по ключу
 
 GET /saas/v2/user/:userId/state/get?key=PersonalInfoFilled
@@ -249,4 +322,115 @@ ID пользователя в рамках школы.
 <Check>
 Требуется аутентификация по токену и право управления пользователями школы (SchoolManageUsers).
 </Check>
+
+## Примеры по ключам
+
+### UtmSignupParams
+
+Тип: object.
+
+Пример значения при чтении:
+
+<ResponseExample>
+```json Success (GET UtmSignupParams)
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "value": {
+      "fbclid": "PAaWdyZANlnAhleHRuA2FlbQEwAGFkaWQBqylixyTuLgGnBtNuf0XY6faDb9k0gwv7iJjZVYuqYTfr6WNxnrC0wDrq7nfXTPyiPcIGqI8_aem_vPIEvPcOevWmARGMfIP45g",
+      "utm_term": "120235317751070190",
+      "utm_medium": "paid",
+      "utm_source": "ig",
+      "utm_content": "120235319196930190",
+      "utm_campaign": "120235317745230190"
+    }
+  }
+}
+```
+</ResponseExample>
+
+<RequestExample>
+```bash cURL (SET UtmSignupParams)
+curl --location --request PUT 'https://api.exode.biz/saas/v2/user/123/state/set?key=UtmSignupParams' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "value": {
+      "utm_source": "ig",
+      "utm_medium": "paid",
+      "utm_campaign": "120235317745230190",
+      "utm_content": "120235319196930190",
+      "utm_term": "120235317751070190",
+      "fbclid": "PAaWdyZANlnAhleHRuA2FlbQEwAGFkaWQBqylixyTuLgGnBtNuf0XY6faDb9k0gwv7iJjZVYuqYTfr6WNxnrC0wDrq7nfXTPyiPcIGqI8_aem_vPIEvPcOevWmARGMfIP45g"
+    }
+  }'
+```
+
+```javascript Node.js (SET UtmSignupParams)
+const axios = require('axios');
+
+async function setUtm() {
+  const { data } = await axios.put(
+    'https://api.exode.biz/saas/v2/user/123/state/set',
+    {
+      value: {
+        utm_source: 'ig',
+        utm_medium: 'paid',
+        utm_campaign: '120235317745230190',
+        utm_content: '120235319196930190',
+        utm_term: '120235317751070190',
+        fbclid: 'PAaWdyZANlnAhleHRuA2FlbQEwAGFkaWQBqylixyTuLgGnBtNuf0XY6faDb9k0gwv7iJjZVYuqYTfr6WNxnrC0wDrq7nfXTPyiPcIGqI8_aem_vPIEvPcOevWmARGMfIP45g'
+      }
+    },
+    {
+      params: { key: 'UtmSignupParams' },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data);
+}
+
+setUtm();
+```
+
+```python Python (SET UtmSignupParams)
+import requests
+
+url = 'https://api.exode.biz/saas/v2/user/123/state/set'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+payload = {
+  'value': {
+    'utm_source': 'ig',
+    'utm_medium': 'paid',
+    'utm_campaign': '120235317745230190',
+    'utm_content': '120235319196930190',
+    'utm_term': '120235317751070190',
+    'fbclid': 'PAaWdyZANlnAhleHRuA2FlbQEwAGFkaWQBqylixyTuLgGnBtNuf0XY6faDb9k0gwv7iJjZVYuqYTfr6WNxnrC0wDrq7nfXTPyiPcIGqI8_aem_vPIEvPcOevWmARGMfIP45g'
+  }
+}
+
+response = requests.put(url, json=payload, params={ 'key': 'UtmSignupParams' }, headers=headers)
+print(response.json())
+```
+</RequestExample>
+
+### PersonalInfoFilled
+
+Тип: boolean.
+
+Примеры значений: true / false.
 
