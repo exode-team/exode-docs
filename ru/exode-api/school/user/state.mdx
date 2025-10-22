@@ -13,6 +13,9 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
     маскирование при чтении.
 
     Эндпоинты ниже работают в контексте школы и требуют прав управления пользователями школы.
+
+    Установка значения через PUT <u>полностью замещает предыдущее значение ключа</u>.
+    Частичных обновлений (merge) нет.
 </Info>
 
 ## Список поддерживаемых ключей
@@ -24,7 +27,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
   - Маскирование: нет.
   - Назначение: UTM/реферальные параметры первичного визита/регистрации.
 
-  - UtmSignupParams хранится как объект произвольных строковых пар ключ-значение (например, utm_source, utm_medium, fbclid).
+  - <code>UtmSignupParams</code> хранится как объект произвольных строковых пар ключ-значение (например, utm_source, utm_medium, fbclid).
 
   ```json Success (GET UtmSignupParams)
   {
@@ -62,8 +65,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
   - GET/SET: да/да.
   - Маскирование: нет.
   - Назначение: Флаг заполнения персональных данных.
-
-  - PersonalInfoFilled — булево значение true или false, отражающее факт заполнения персональных данных.
+  - <code>PersonalInfoFilled</code> — булево значение <code>true / false</code>, отражающее факт заполнения персональных данных.
 
   ```json Success (GET PersonalInfoFilled)
   {
@@ -82,11 +84,6 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
   ```
 </Accordion>
 </AccordionGroup>
-
-## Типы и бизнес-логика
-- Установка значения через PUT полностью замещает предыдущее значение ключа. Частичных обновлений (merge) через REST нет.
-- UtmSignupParams хранится как объект произвольных строковых пар ключ-значение (например, utm_source, utm_medium, fbclid). Рекомендуется записывать только достоверные параметры первичного захода/регистрации.
-- PersonalInfoFilled — булево значение true или false, отражающее факт заполнения персональных данных.
 
 ## Получить состояние по ключу
 
