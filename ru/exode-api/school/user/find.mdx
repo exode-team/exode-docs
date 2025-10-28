@@ -1,6 +1,6 @@
 ---
 title: "Поиск пользователя"
-description: "Поиск пользователя в школе по логину или Telegram ID"
+description: "Поиск пользователя в школе по логину, Telegram ID или внешнему extId"
 ---
 
 import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
@@ -12,7 +12,8 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 ##### Для поиска пользователя передайте один из ниже перечисленных параметров
 
 <Info>
-  Поиск осуществляется по логину (email или телефон) или Telegram ID. Если пользователь не найден — возвращается `null`.
+  Поиск осуществляется по логину (email/телефон/домен), затем по Telegram ID, затем по внешнему идентификатору `extId`. Приоритет: `login` → `tgId` → `extId`. Если пользователь не найден — возвращается `null`.
+  Если переданы несколько параметров — используется параметр с наивысшим приоритетом.
 </Info>
 
 <ParamField query="login" type="string" required={false}>
@@ -23,6 +24,10 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
   Telegram ID пользователя. Целое число.
 </ParamField>
 
+<ParamField query="extId" type="string" required={false}>
+  Внешний идентификатор пользователя из вашей системы.
+</ParamField>
+
 <Info>
   **Логином** пользователя может быть:
   - Email адрес (например: `user@example.com`)
@@ -31,12 +36,13 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 </Info>
 
 <Warning>
-  Необходимо передать **хотя бы один** из параметров. Если передать оба — приоритет отдается `login`.
+  Необходимо передать **хотя бы один** из параметров. Приоритет выбора: `login` → `tgId` → `extId`.
+  Если указаны все три — будет использован `login`.
 </Warning>
 
 <RequestExample>
 ```bash cURL
-curl --location --request GET 'https://api.exode.biz/saas/v2/user/find?login=user@example.com' \
+curl --location --request GET 'https://api.exode.biz/saas/v2/user/find?extId=crm_12345' \
   --header 'Seller-Id: {{ sellerId }}' \
   --header 'School-Id: {{ schoolId }}' \
   --header 'Authorization: Bearer YOUR_TOKEN'
@@ -48,9 +54,7 @@ const axios = require('axios');
 const findUser = async () => {
   try {
     const response = await axios.get('https://api.exode.biz/saas/v2/user/find', {
-      params: {
-        login: 'user@example.com'
-      },
+      params: { extId: 'crm_12345' },
       headers: {
         'Seller-Id': '{{ sellerId }}',
         'School-Id': '{{ schoolId }}',
@@ -71,9 +75,7 @@ findUser();
 <?php
 
 $url = 'https://api.exode.biz/saas/v2/user/find';
-$params = [
-  'login' => 'user@example.com'
-];
+$params = [ 'extId' => 'crm_12345' ];
 
 $headers = [
   'Seller-Id: {{ sellerId }}',
@@ -111,9 +113,7 @@ import json
 
 url = 'https://api.exode.biz/saas/v2/user/find'
 
-params = {
-  'login': 'user@example.com'
-}
+params = { 'extId': 'crm_12345' }
 
 headers = {
   'Seller-Id': '{{ sellerId }}',

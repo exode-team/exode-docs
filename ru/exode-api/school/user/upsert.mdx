@@ -6,9 +6,8 @@ description: "Создание нового пользователя или об
 import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <Tip>
-    **Upsert** — это операция "создать или обновить". Если пользователь с указанным email, телефоном или Telegram ID уже
-    существует,
-    то его данные будут обновлены. Если пользователя нет — он будет создан.
+    **Upsert** — это операция "создать или обновить". Если пользователь с указанным email, телефоном, Telegram ID или
+    внешним идентификатором `extId` уже существует — его данные будут обновлены. Если пользователя нет — он будет создан.
 </Tip>
 
 <HeaderParamFields/>
@@ -33,6 +32,10 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <ParamField body="tgId" type="integer" required={false}>
   Telegram ID пользователя. Целое число или `null`.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  Внешний идентификатор пользователя из вашей системы. Строка или `null`.
 </ParamField>
 
 ### Параметры профиля
@@ -80,6 +83,7 @@ curl --location --request PUT 'https://api.exode.biz/saas/v2/user/upsert' \
   --data-raw '{
     "email": "user@example.com",
     "phone": "+9876543210",
+    "extId": "crm_12345",
     "tgId": null,
     "banned": false,
     "profile": {
@@ -100,6 +104,7 @@ const upsertUser = async () => {
     const response = await axios.put('https://api.exode.biz/saas/v2/user/upsert', {
       email: 'user@example.com',
       phone: '+9876543210',
+      extId: 'crm_12345',
       tgId: null,
       banned: false,
       profile: {
@@ -135,6 +140,7 @@ $url = 'https://api.exode.biz/saas/v2/user/upsert';
 $data = [
   'email' => 'user@example.com',
   'phone' => '+9876543210',
+  'extId' => 'crm_12345',
   'tgId' => null,
   'banned' => false,
   'profile' => [
@@ -185,6 +191,7 @@ url = 'https://api.exode.biz/saas/v2/user/upsert'
 data = {
   'email': 'user@example.com',
   'phone': '+9876543210',
+  'extId': 'crm_12345',
   'tgId': None,
   'banned': False,
   'profile': {

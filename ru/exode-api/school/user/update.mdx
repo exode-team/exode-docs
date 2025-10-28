@@ -24,6 +24,10 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
   Telegram ID пользователя. Целое число или `null`.
 </ParamField>
 
+<ParamField body="extId" type="string" required={false}>
+  Внешний идентификатор пользователя из вашей системы. Строка или `null`.
+</ParamField>
+
 <ParamField body="banned" type="boolean" required={false}>
   Статус блокировки пользователя. При установке `true` все активные сессии пользователя будут завершены.
 </ParamField>
@@ -73,6 +77,7 @@ curl --location --request PUT 'https://api.exode.biz/saas/v2/user/123/update' \
   --data-raw '{
     "email": "updated@example.com",
     "phone": "+9876543210",
+    "extId": "crm_12345",
     "tgId": null,
     "banned": false,
     "profile": {
@@ -93,6 +98,7 @@ const updateUser = async (userId) => {
     const response = await axios.put(`https://api.exode.biz/saas/v2/user/${userId}/update`, {
       email: 'updated@example.com',
       phone: '+9876543210',
+      extId: 'crm_12345',
       tgId: null,
       banned: false,
       profile: {
@@ -128,6 +134,7 @@ $url = "https://api.exode.biz/saas/v2/user/{$userId}/update";
 $data = [
   'email' => 'updated@example.com',
   'phone' => '+9876543210',
+  'extId' => 'crm_12345',
   'tgId' => null,
   'banned' => false,
   'profile' => [
@@ -178,6 +185,7 @@ url = f'https://api.exode.biz/saas/v2/user/{user_id}/update'
 data = {
   'email': 'updated@example.com',
   'phone': '+9876543210',
+  'extId': 'crm_12345',
   'tgId': None,
   'banned': False,
   'profile': {

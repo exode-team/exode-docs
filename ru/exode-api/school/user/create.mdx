@@ -35,6 +35,10 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
   Telegram ID пользователя. Целое число или `null`.
 </ParamField>
 
+<ParamField body="extId" type="string" required={false}>
+  Внешний идентификатор пользователя из вашей системы. Строка или `null`.
+</ParamField>
+
 ### Параметры профиля
 
 <ParamField body="profile" type="object" required={false}>
@@ -80,6 +84,7 @@ curl --location 'https://api.exode.biz/saas/v2/user/create' \
   --data-raw '{
     "email": "user@example.com",
     "phone": "+9876543210",
+    "extId": "crm_12345",
     "tgId": null,
     "profile": {
       "firstName": "Firstname",
@@ -99,6 +104,7 @@ const createUser = async () => {
     const response = await axios.post('https://api.exode.biz/saas/v2/user/create', {
       email: 'user@example.com',
       phone: '+9876543210',
+      extId: 'crm_12345',
       tgId: null,
       profile: {
         firstName: 'Firstname',
@@ -132,6 +138,7 @@ $url = 'https://api.exode.biz/saas/v2/user/create';
 $data = [
   'email' => 'user@example.com',
   'phone' => '+9876543210',
+  'extId' => 'crm_12345',
   'tgId' => null,
   'profile' => [
     'firstName' => 'Firstname',
@@ -180,6 +187,7 @@ url = 'https://api.exode.biz/saas/v2/user/create'
 data = {
   'email': 'user@example.com',
   'phone': '+9876543210',
+  'extId': 'crm_12345',
   'tgId': None,
   'profile': {
     'firstName': 'Firstname',
