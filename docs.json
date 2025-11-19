@@ -21,7 +21,8 @@
             "group": "Работа с API",
             "pages": [
               "ru/welcome",
-              "ru/exode-api/setup"
+              "ru/exode-api/setup",
+              "ru/exode-api/webhooks/about"
             ]
           },
           {

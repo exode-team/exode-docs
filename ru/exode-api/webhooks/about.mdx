@@ -1,0 +1,211 @@
+---
+title: "Вебхуки"
+description: "Реагируйте на события пользователей, курсов, продуктов и платежей Exode в своих сервисах"
+---
+
+<Info>
+  Вебхуки Exode доставляют подтверждённые события в ваши внешние сервисы почти в реальном времени и используют повторные попытки с экспоненциальной задержкой (11 → 22 → 44 → 88 → 176 минут), поэтому приёмщик должен быть идемпотентным и быстро отвечать кодами 200-202.
+</Info>
+
+## Как Exode доставляет вебхуки
+
+<Steps>
+<Step title="Фиксация события">
+  События `UserSignedUp`, `PaymentCompleted` и другие генерируются ядром Exode и попадают в очередь Bull с таймстэмпом и параметрами инициатора.
+</Step>
+
+<Step title="Поиск активных эндпоинтов">
+  Затем ядро Exode ищет до пяти активных эндпоинтов в рамках школы/продавца, фильтруя их по выбранному событию.
+</Step>
+
+<Step title="Сбор полезной нагрузки">
+  Для каждого события собираются связанные сущности (пользователь, платеж, доступ и т.д.), формируется `data`, общий `idempotencyKey` и `timestamp`.
+</Step>
+
+<Step title="Отправка и повторные попытки">
+  Тело отправляется POST-запросом с заголовком `signature` (HMAC-SHA256) и повторяется до пяти раз, если приёмник не ответил 200-202.
+
+  <Check>
+    Чтобы остановить доставку, установите `active = false` у эндпоинта или удалите его.
+  </Check>
+</Step>
+</Steps>
+
+## Ограничения и требования
+
+- Для одного продавца/школы можно создать не более пяти эндпоинтов, каждый со своим набором событий.
+- Url должен поддерживать HTTPS, принимать `Content-Type: application/json` и возвращать ответ не позднее 15 секунд.
+- Секретный ключ генерируется автоматически при создании и хранится в зашифрованном виде.
+- Всегда проверяйте `idempotencyKey`, чтобы отфильтровать дубликаты при повторной доставке.
+- Используйте разные эндпоинты для независимых систем, чтобы изолировать сбои и управлять разными наборами событий.
+
+## Формат webhook-сообщения
+
+<ResponseField name="event" type="string" required>
+  Имя события. Используйте значения из раздела «Поддерживаемые события».
+</ResponseField>
+
+<ResponseField name="timestamp" type="timestamp" required>
+  Момент возникновения события в ISO 8601 UTC.
+</ResponseField>
+
+<ResponseField name="idempotencyKey" type="string" required>
+  Общий ключ для всех попыток доставки конкретного события. Сохраняйте его, чтобы выполнять идемпотентную обработку.
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+  Объект с доменными сущностями. Состав зависит от события и описан ниже.
+</ResponseField>
+
+<ResponseExample>
+```json PaymentCompleted
+{
+  "event": "PaymentCompleted",
+  "timestamp": "2025-01-18T12:44:55.812Z",
+  "idempotencyKey": "7qqQL3bE0o8R8d3X",
+  "data": {
+    "payment": {
+      "id": 98214,
+      "uuid": "4ff8f2b2-2c18-4c8c-8106-620c46cb50ab",
+      "status": "Completed",
+      "type": "OneTime",
+      "paidAt": "2025-01-18T12:43:27.101Z",
+      "invoice": {
+        "id": 77102,
+        "user": {
+          "id": 5562,
+          "uuid": "3fPYNkV2Y8Lz",
+          "email": "student@example.com",
+          "phone": "+79991234567",
+          "profile": {
+            "firstName": "Ирина",
+            "lastName": "Соколова",
+            "role": "Student"
+          },
+          "school": {
+            "id": 91,
+            "seller": { "id": 11 }
+          }
+        }
+      },
+      "acquiring": {
+        "provider": { "id": "ClickAcquiringUz" }
+      },
+      "paymentMethod": {
+        "id": 128,
+        "cardMask": "4300•••••••9201"
+      }
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Поддерживаемые события
+
+<AccordionGroup>
+<Accordion title="UserSignedUp">
+  Триггер: новый пользователь самостоятельно завершил регистрацию. `data.user` содержит полный профиль, `data.profile` — карточку профиля, `data.states.utmSignupParams` — исходные UTM-метки.
+</Accordion>
+
+<Accordion title="UserAcquainted">
+  Триггер: пользователь прошёл онбординг в приложении. Полезная нагрузка идентична `UserSignedUp`.
+</Accordion>
+
+<Accordion title="UserTgConnected">
+  Триггер: пользователь связал Telegram. `data.user` и `data.profile` содержат текущие данные, `data.prevTgId` помогает отследить перепривязку.
+</Accordion>
+
+<Accordion title="CourseProgressChanged">
+  Триггер: изменился статус урока. `data.user` дополнен профилем, `data.course` включает продукт и продавца. Событие содержит идентификаторы урока и статус (`CourseProgressLessonStatus`).
+</Accordion>
+
+<Accordion title="CourseCompleted">
+  Триггер: пользователь завершил курс. Набор данных тот же, что и для `CourseProgressChanged`.
+</Accordion>
+
+<Accordion title="PaymentCompleted">
+  Триггер: оплата успешно списана. `data.payment` содержит платеж, инвойс, пользователя, продукты, скидки и способ оплаты.
+</Accordion>
+
+<Accordion title="ProductEnrolledToFree">
+  Триггер: пользователю выдан бесплатный доступ. `data.access` описывает доступ, `data.product` и `data.course` — продукт и курс, `data.user` и `data.profile` — пользователя.
+</Accordion>
+
+</AccordionGroup>
+
+## Проверка подписи
+
+Подпись передаётся в заголовке `signature` и формируется как HMAC-SHA256 от полного JSON тела вебхука и секретного ключа эндпоинта.
+
+<CodeGroup>
+```javascript Node.js
+import crypto from 'crypto';
+
+const verifySignature = (
+  payload,
+  secretKey,
+  receivedSignature,
+) => {
+  const signedPayload = typeof payload === 'string'
+    ? payload
+    : JSON.stringify(payload);
+
+  const signature = crypto
+    .createHmac('sha256', secretKey)
+    .update(signedPayload)
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(receivedSignature),
+  );
+};
+```
+
+```php PHP
+<?php
+function verifySignature(array $payload, string $secretKey, string $receivedSignature): bool {
+  $body = json_encode($payload, JSON_UNESCAPED_UNICODE);
+  $signature = hash_hmac('sha256', $body, $secretKey);
+
+  return hash_equals($signature, $receivedSignature);
+}
+```
+
+```python Python
+import hashlib
+import hmac
+import json
+
+def verify_signature(payload: dict, secret_key: str, received_signature: str) -> bool:
+  body = json.dumps(payload, ensure_ascii=False, separators=(',', ':'))
+  signature = hmac.new(
+    secret_key.encode('utf-8'),
+    body.encode('utf-8'),
+    hashlib.sha256,
+  ).hexdigest()
+  return hmac.compare_digest(signature, received_signature)
+```
+</CodeGroup>
+
+<Warning>
+  Используйте оригинальное тело запроса для расчёта HMAC. Нельзя переупорядочивать поля или менять форматирование перед проверкой.
+</Warning>
+
+## Диагностика и повторные попытки
+
+<AccordionGroup>
+<Accordion title="Повторные попытки">
+  Каждая попытка использует ту же нагрузку и `idempotencyKey`. Если все пять попыток завершаются ошибкой, задача помечается как failed и отображается в очереди Bull (раздел Monitoring). Отправьте успешный ответ, чтобы остановить дальнейшие попытки.
+</Accordion>
+
+<Accordion title="Временное отключение">
+  Чтобы сохранить конфигурацию, установите `active = false`. События будут игнорироваться до повторного включения, но секретный ключ и статистика останутся.
+</Accordion>
+
+<Accordion title="Трассировка">
+  Добавляйте логирование прихода события с `event`, `timestamp`, `idempotencyKey` и статусом проверки подписи. Это поможет быстро сопоставить ваши логи с внутренними логами Exode.
+</Accordion>
+</AccordionGroup>
+
