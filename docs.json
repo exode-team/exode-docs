@@ -44,6 +44,12 @@
             ]
           },
           {
+            "group": "Интеграции",
+            "pages": [
+              "ru/exode-api/school/iframe/tg-mini-app"
+            ]
+          },
+          {
             "group": "Нет нужного метода?",
             "pages": [
               "ru/exode-api/common/request-new-method"
