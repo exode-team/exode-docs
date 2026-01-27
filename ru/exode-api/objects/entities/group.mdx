@@ -1,0 +1,143 @@
+---
+title: "Группа"
+description: "Структура объекта группы, используемого в API Exode для управления учебными и продуктовыми группами"
+---
+
+Объект `group` описывает учебную или продуктовую группу в школе Exode. Группа связывает пользователей, продукты и расписание, а также определяет правила доступа к контенту.
+
+## Поля группы
+
+### Основные поля
+
+<ParamField body="id" type="integer" required>
+  Уникальный идентификатор группы.
+</ParamField>
+
+<ParamField body="uuid" type="string" required>
+  UUID группы, используется для внешних интеграций.
+</ParamField>
+
+<ParamField body="user" type="User" required>
+  Владелец или создатель группы (объект пользователя).
+</ParamField>
+
+<ParamField body="product" type="object | null" required={false}>
+  Продукт, к которому привязана группа (если есть).
+</ParamField>
+
+<ParamField body="launch" type="object | null" required={false}>
+  Запуск продукта (поток/набор), если группа создана под конкретный запуск.
+</ParamField>
+
+<ParamField body="channel" type="object | null" required={false}>
+  Связанный канал чата (в системе exode).
+</ParamField>
+
+<ParamField body="groupChat" type="object | null" required={false}>
+  Связанный групповой чат (в системе exode).
+</ParamField>
+
+<ParamField body="name" type="string" required>
+  Название группы.
+</ParamField>
+
+### Ограничения и настройки
+
+<ParamField body="communication" type="object" required>
+  Настройки коммуникаций в группе (Telegram‑канал, групповой чат, режимы подключения и т.п.).
+</ParamField>
+
+<ParamField body="accessLimitation" type="object" required>
+  Ограничения по доступу: тип старта (`GroupAccessStartPointType`), общая дата старта, длительность и т.п.
+</ParamField>
+
+<ParamField body="scheduleLimitation" type="object" required>
+  Ограничения по расписанию: окно доступа по дням/часам, ограничения по датам и т.п.
+</ParamField>
+
+<ParamField body="contentLimitation" type="object" required>
+  Ограничения по контенту: правила доступа к урокам/модулям, зависимости от выполнения заданий и др.
+</ParamField>
+
+### Вычисляемые поля
+
+<ParamField body="isTgConnected" type="boolean" required>
+  Есть ли активная связь группы с Telegram (каналом или групповым чатом).
+</ParamField>
+
+<ParamField body="tgConnectionMode" type="string" required>
+  Режим подключения Telegram: `Disconnected`, `Connected`, `Required` (обязательный Telegram ID).
+</ParamField>
+
+### Системные поля аудита
+
+<ParamField body="createdAt" type="string" required>
+  Дата и время создания группы (ISO 8601).
+</ParamField>
+
+<ParamField body="updatedAt" type="string" required>
+  Дата и время последнего обновления.
+</ParamField>
+
+## Пример объекта `group`
+
+```json
+{
+  "id": 101,
+  "createdAt": "2025-01-10T09:00:00Z",
+  "updatedAt": "2025-01-15T12:30:00Z",
+  "uuid": "8b8b2b0e-6a27-4c3c-b5a5-9f4f0e3f1c01",
+  "user": {
+    "id": 15,
+    "uuid": "YRnh3REH1Wbd",
+    "active": true,
+    "activated": true,
+    "banned": false,
+    "email": "owner@example.com",
+    "phone": "+987654321",
+    "language": "Ru",
+    "timezone": 5,
+    "lastOnlineAt": "2025-01-15T12:00:00Z",
+    "starsBalance": 0
+  },
+  "product": {
+    "id": 42,
+    "name": "Курс по математике"
+  },
+  "launch": {
+    "id": 7,
+    "name": "Зимний набор 2025"
+  },
+  "channel": null,
+  "groupChat": null,
+  "space": "Education",
+  "name": "Группа 7А — Математика",
+  "order": 10,
+  "maxMembers": 30,
+  "communication": {
+    "tgChannelId": null,
+    "tgGroupChatId": null,
+    "tgIdRequiredOnEnrollment": false
+  },
+  "accessLimitation": {
+    "active": true,
+    "startPointType": "CommonDate",
+    "durationInMinutes": 43200,
+    "commonDateStartAt": "2025-02-01T00:00:00Z"
+  },
+  "scheduleLimitation": {
+    "active": false
+  },
+  "contentLimitation": {
+    "active": false
+  },
+  "isTgConnected": false,
+  "tgConnectionMode": "Disconnected"
+}
+```
+
+## Связанные объекты
+
+- У группы есть массив участников `members`, каждый элемент — объект [`GroupMember`](./group-member).
+- Во многих REST-ответах Exode вместо полной структуры группы может возвращаться только подмножество полей (ID, название, UUID). Полная структура описана на этой странице для понимания интеграции.
+

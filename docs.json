@@ -22,7 +22,8 @@
             "pages": [
               "ru/welcome",
               "ru/exode-api/setup",
-              "ru/exode-api/webhooks/about"
+              "ru/exode-api/webhooks/about",
+              "ru/exode-api/objects/entities/index"
             ]
           },
           {
@@ -53,6 +54,14 @@
             "group": "Нет нужного метода?",
             "pages": [
               "ru/exode-api/common/request-new-method"
+            ]
+          },
+          {
+            "group": "Все объекты",
+            "pages": [
+              "ru/exode-api/objects/entities/user",
+              "ru/exode-api/objects/entities/group",
+              "ru/exode-api/objects/entities/group-member"
             ]
           }
         ]

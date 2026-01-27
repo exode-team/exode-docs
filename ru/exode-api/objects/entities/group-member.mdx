@@ -1,0 +1,116 @@
+---
+title: "Участник группы"
+description: "Структура объекта участника группы, возвращаемого в методах работы с группами"
+---
+
+Объект `groupMember` описывает связь пользователя с конкретной группой: статус участия, блокировки и метаданные по интеграции с Telegram.
+
+Этот объект возвращается, например, в методе `group/{groupId}/member/create-many` и других эндпоинтах работы с участниками групп.
+
+## Поля участника группы (структурно)
+
+### Основные поля
+
+<ParamField body="id" type="integer" required>
+  Уникальный идентификатор участника группы.
+</ParamField>
+
+<ParamField body="group" type="Group" required>
+  Объект группы, к которой относится участник (может возвращаться как объект или как ссылка по ID).
+</ParamField>
+
+<ParamField body="user" type="User" required>
+  Объект пользователя, который является участником группы.
+</ParamField>
+
+<ParamField body="inviter" type="User | null" required={false}>
+  Пользователь, который пригласил участника в группу (если применимо).
+</ParamField>
+
+<ParamField body="active" type="boolean" required>
+  Активен ли участник в группе: `true` — активен, `false` — деактивирован в рамках этой группы.
+</ParamField>
+
+<ParamField body="blockedUntil" type="string | null" required={false}>
+  Дата и время, до которых участник заблокирован в группе. `null`, если блокировки нет.
+</ParamField>
+
+<ParamField body="blockedBy" type="User | null" required={false}>
+  Пользователь, который заблокировал участника.
+</ParamField>
+
+<ParamField body="deletedBy" type="User | null" required={false}>
+  Пользователь, который удалил участника из группы (при мягком удалении).
+</ParamField>
+
+<ParamField body="tgChannelMeta" type="object" required>
+  Метаданные по добавлению участника в Telegram-канал (ссылка-приглашение, статус добавления и т.д.).
+</ParamField>
+
+<ParamField body="tgGroupChatMeta" type="object" required>
+  Метаданные по добавлению участника в Telegram-групповой чат.
+</ParamField>
+
+### Вычисляемые поля (структурно)
+
+<ParamField body="isAddedToTg" type="boolean" required>
+  Участник успешно добавлен хотя бы в один Telegram-чат/канал (`tgChannelMeta.chatInviteLink` или `tgGroupChatMeta.chatInviteLink`).
+</ParamField>
+
+### Системные поля аудита (структурно)
+
+<ParamField body="createdAt" type="string" required>
+  Дата и время создания записи участника (ISO 8601).
+</ParamField>
+
+<ParamField body="updatedAt" type="string" required>
+  Дата и время последнего обновления.
+</ParamField>
+
+## Пример объекта `groupMember`
+
+```json
+{
+  "id": 1227,
+  "createdAt": "2025-07-19T15:45:51.212Z",
+  "updatedAt": "2025-07-19T15:45:51.212Z",
+  "group": {
+    "id": 101,
+    "uuid": "8b8b2b0e-6a27-4c3c-b5a5-9f4f0e3f1c01",
+    "name": "Группа 7А — Математика"
+  },
+  "user": {
+    "id": 15,
+    "uuid": "YRnh3REH1Wbd",
+    "active": true,
+    "activated": true,
+    "banned": false,
+    "email": "user@example.com",
+    "phone": "+987654321",
+    "language": "Ru",
+    "timezone": 5,
+    "lastOnlineAt": "2025-07-20T19:14:03.972Z",
+    "starsBalance": 0
+  },
+  "inviter": null,
+  "active": true,
+  "blockedUntil": null,
+  "blockedBy": null,
+  "deletedBy": null,
+  "tgChannelMeta": {
+    "chatInviteLink": null,
+    "joined": false
+  },
+  "tgGroupChatMeta": {
+    "chatInviteLink": null,
+    "joined": false
+  },
+  "isAddedToTg": false
+}
+```
+
+## Связанные объекты
+
+- Поле `user` — это объект [`User`](./user), описанный на отдельной странице.
+- Поле `group` — это объект [`Group`](./group).
+

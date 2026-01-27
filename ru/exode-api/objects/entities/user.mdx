@@ -1,0 +1,146 @@
+---
+title: "Пользователь"
+description: "Структура объекта пользователя, возвращаемого во всех методах Exode API для школ"
+---
+
+Объект `user` описывает учетную запись пользователя в школе Exode: логины, контакты, статус, язык, часовой пояс и технические поля для интеграций (например, внешний идентификатор `extId`).
+
+Этот объект используется:
+
+- в ответах методов `user/create`, `user/update`, `user/upsert`, `user/find`;
+- во вложенных полях (например, участник группы, сессии и др.).
+
+## Поля пользователя
+
+### Основные поля
+
+<ParamField body="id" type="integer" required>
+  Уникальный ID пользователя в системе Exode.
+</ParamField>
+
+<ParamField body="uuid" type="string" required>
+  Строковый UUID пользователя.
+</ParamField>
+
+<ParamField body="active" type="boolean" required>
+  Флаг активности пользователя в системе (не отключен администратором).
+</ParamField>
+
+<ParamField body="activated" type="boolean" required>
+  Пользователь подтвердил вход (через код/оплату).
+</ParamField>
+
+<ParamField body="banned" type="boolean" required>
+  Пользователь заблокирован и не может входить в систему.
+</ParamField>
+
+<ParamField body="vkId" type="integer | null" required={false}>
+  VK ID пользователя, если он авторизован через VK.
+</ParamField>
+
+<ParamField body="tgId" type="integer | null" required={false}>
+  Telegram ID пользователя.
+</ParamField>
+
+<ParamField body="extId" type="string | null" required={false}>
+  Внешний идентификатор пользователя в вашей системе (CRM, LMS и т.п.). Используется для связки Exode ↔ ваша база.
+</ParamField>
+
+<ParamField body="appleId" type="string | null" required={false}>
+  Идентификатор Apple ID, если пользователь авторизован через Apple.
+</ParamField>
+
+<ParamField body="domain" type="string | null" required={false}>
+  Доменный логин вида `id12345`, который может использоваться как логин.
+</ParamField>
+
+<ParamField body="email" type="string | null" required={false}>
+  Email пользователя.
+</ParamField>
+
+<ParamField body="phone" type="string | null" required={false}>
+  Номер телефона пользователя в международном формате.
+</ParamField>
+
+<ParamField body="language" type='"Ru" | "Uz" | "En" | "Qa" | null' required={false}>
+  Язык интерфейса пользователя.
+</ParamField>
+
+<ParamField body="timezone" type="number | null" required={false}>
+  Смещение часового пояса пользователя относительно UTC в часах (например, `5` для UTC+5).
+</ParamField>
+
+<ParamField body="lastOnlineAt" type="string | null" required={false}>
+  Дата и время последней активности пользователя в формате ISO 8601.
+</ParamField>
+
+<ParamField body="starsBalance" type="integer" required>
+  Баланс «звезд» пользователя в системе геймификации (общий по всем курсам).
+</ParamField>
+
+### Системные поля аудита
+
+<ParamField body="createdAt" type="string" required>
+  Дата и время создания пользователя (ISO 8601).
+</ParamField>
+
+<ParamField body="updatedAt" type="string" required>
+  Дата и время последнего обновления.
+</ParamField>
+
+### Вычисляемые поля (GraphQL/REST)
+
+<ParamField body="alive" type="boolean" required>
+  Пользователь «живой» с точки зрения доступа (`active === true` и `banned === false`).
+</ParamField>
+
+<ParamField body="login" type="string" required>
+  Текущий приоритетный логин (обычно телефон, затем email, затем домен).
+</ParamField>
+
+<ParamField body="currentTime" type="string" required>
+  Текущее локальное время пользователя с учетом его часового пояса.
+</ParamField>
+
+<ParamField body="isSleepingNow" type="boolean" required>
+  Эвристика: сейчас «ночное» время для пользователя (обычно 22:00–08:00).
+</ParamField>
+
+## Пример объекта `user`
+
+```json
+{
+  "id": 123,
+  "createdAt": "2024-01-15T10:30:00Z",
+  "updatedAt": "2024-01-15T11:45:00Z",
+  "deletedAt": null,
+  "archivedAt": null,
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "active": true,
+  "activated": true,
+  "banned": false,
+  "vkId": null,
+  "tgId": 987654321,
+  "extId": "crm_12345",
+  "appleId": null,
+  "domain": null,
+  "email": "user@example.com",
+  "phone": "+9876543210",
+  "language": "Ru",
+  "timezone": 5,
+  "lastOnlineAt": "2024-01-15T11:40:00Z",
+  "starsBalance": 0,
+  "metadata": {},
+  "alive": true,
+  "login": "user@example.com",
+  "currentTime": "2025-07-20T10:37:39-05:00",
+  "isSleepingNow": false
+}
+```
+
+## Где используется `extId`
+
+- в методах `user/create`, `user/update`, `user/upsert` — передается в теле запроса и сохраняется в поле `extId`;
+- в методе `user/find` — используется для поиска пользователя по внешнему идентификатору;
+- в других ответах, где возвращается объект `user`, поле `extId` помогает вам однозначно связать пользователя Exode с записью в вашей CRM/LMS.
+
