@@ -1,0 +1,231 @@
+---
+title: "Получение результата"
+description: "Получение прогресса и результата сгенерированного отчета"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## Получение результата отчета
+
+```
+GET /saas/v2/workflow-execution/:executionUuid/result
+```
+
+Используйте `uuid`, полученный при [создании задачи на генерацию](/ru/exode-api/school/query-export/generate). Отправляйте запрос периодически (polling), пока `status` не станет `Completed`.
+
+### Параметры пути
+
+<ParamField path="executionUuid" type="string" required>
+  UUID задачи генерации, полученный из ответа `POST /generate`.
+</ParamField>
+
+### Поля ответа
+
+<ResponseField name="total" type="number">
+  Общий прогресс (всегда `100` — режим процентов).
+</ResponseField>
+
+<ResponseField name="completed" type="number">
+  Текущий прогресс от `0` до `100`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Статус выполнения:
+
+  - `Processing` — отчет генерируется
+  - `Completed` — отчет готов, поле `result` содержит ссылку на файл
+  - `Failed` — ошибка при генерации
+  - `Canceled` — задача отменена
+</ResponseField>
+
+<ResponseField name="result" type="object">
+  Результат генерации (доступен только при `status: Completed`).
+
+  <Expandable title="Свойства result">
+    <ResponseField name="fileUrl" type="string">
+      URL для скачивания сгенерированного файла.
+    </ResponseField>
+
+    <ResponseField name="fileName" type="string">
+      Имя файла (например, `56722091-6175-46ab-852d-801b8414699c.xlsx`).
+    </ResponseField>
+
+    <ResponseField name="fileSize" type="number">
+      Размер файла в байтах.
+    </ResponseField>
+
+      <ResponseField name="result" type="object">
+          Внутренний результат задачи.
+
+          <Expandable title="Свойства result.result">
+              <ResponseField name="taskId" type="string">
+                  UUID задачи генерации.
+              </ResponseField>
+
+              <ResponseField name="status" type="number">
+                  Числовой статус задачи. `4` — завершена успешно, `5` — ошибка, `6` — отменена.
+              </ResponseField>
+
+              <ResponseField name="error" type="object | null">
+                  Информация об ошибке. `null` при успешном выполнении.
+              </ResponseField>
+
+              <ResponseField name="startedAtMs" type="number">
+                  Время начала выполнения (Unix timestamp в миллисекундах).
+              </ResponseField>
+
+              <ResponseField name="completedAtMs" type="number">
+                  Время завершения выполнения (Unix timestamp в миллисекундах).
+              </ResponseField>
+          </Expandable>
+      </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<Warning>
+  Результат хранится в кеше **24 часа** после генерации. После этого файл и данные о прогрессе становятся недоступны.
+</Warning>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/workflow-execution/550e8400-e29b-41d4-a716-446655440000/result' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const pollResult = async (executionUuid) => {
+  const url = `https://api.exode.biz/saas/v2/workflow-execution/${executionUuid}/result`;
+
+  const headers = {
+    'Seller-Id': '{{ sellerId }}',
+    'School-Id': '{{ schoolId }}',
+    'Authorization': 'Bearer YOUR_TOKEN'
+  };
+
+  while (true) {
+    const { data } = await axios.get(url, { headers });
+
+    console.log(`Progress: ${data.completed}/${data.total} — ${data.status}`);
+
+    if (data.status === 'Completed') {
+      console.log('File URL:', data.result.fileUrl);
+      return data.result;
+    }
+
+    if (data.status === 'Failed' || data.status === 'Canceled') {
+      throw new Error(`Export ${data.status}`);
+    }
+
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+};
+
+pollResult('550e8400-e29b-41d4-a716-446655440000');
+```
+
+```php PHP
+<?php
+
+$executionUuid = '550e8400-e29b-41d4-a716-446655440000';
+$url = "https://api.exode.biz/saas/v2/workflow-execution/$executionUuid/result";
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+while (true) {
+  $ch = curl_init();
+  curl_setopt($ch, CURLOPT_URL, $url);
+  curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+  $response = curl_exec($ch);
+  curl_close($ch);
+
+  $data = json_decode($response, true);
+  echo "Progress: {$data['completed']}/{$data['total']} — {$data['status']}\n";
+
+  if ($data['status'] === 'Completed') {
+    echo "File URL: " . $data['result']['fileUrl'] . "\n";
+    break;
+  }
+
+  if (in_array($data['status'], ['Failed', 'Canceled'])) {
+    echo "Error: Export {$data['status']}\n";
+    break;
+  }
+
+  sleep(2);
+}
+?>
+```
+
+```python Python
+import requests
+import time
+
+execution_uuid = '550e8400-e29b-41d4-a716-446655440000'
+url = f'https://api.exode.biz/saas/v2/workflow-execution/{execution_uuid}/result'
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+while True:
+  response = requests.get(url, headers=headers)
+  data = response.json()
+
+  print(f"Progress: {data['completed']}/{data['total']} — {data['status']}")
+
+  if data['status'] == 'Completed':
+    print(f"File URL: {data['result']['fileUrl']}")
+    break
+
+  if data['status'] in ('Failed', 'Canceled'):
+    print(f"Error: Export {data['status']}")
+    break
+
+  time.sleep(2)
+```
+</RequestExample>
+
+<ResponseExample>
+```json Processing
+{
+  "total": 100,
+  "completed": 45,
+  "status": "Processing",
+  "result": null
+}
+```
+```json Completed
+{
+  "total": 100,
+  "completed": 100,
+  "status": "Completed",
+  "result": {
+    "fileUrl": "https://static.exode.biz/generated/reports/56722091-6175-46ab-852d-801b8414699c.xlsx",
+    "fileName": "56722091-6175-46ab-852d-801b8414699c.xlsx",
+    "fileSize": 6516
+  }
+}
+```
+```json Failed
+{
+  "total": 100,
+  "completed": 30,
+  "status": "Failed",
+  "result": null
+}
+```
+</ResponseExample>

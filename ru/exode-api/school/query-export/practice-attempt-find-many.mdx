@@ -1,0 +1,287 @@
+---
+title: "Попытки практик"
+description: "Выгрузка попыток практических заданий с оценками, статусами и информацией о студенте"
+---
+
+**type:** `CourseLessonPracticeAttemptFindMany`
+
+Выгружает список попыток выполнения практических заданий с оценками, статусами и информацией о студенте.
+
+### Колонки отчета
+
+- Студент
+- Номер телефона
+- ID пользователя
+- Курс
+- Урок
+- Попытка №
+- Статус
+- Правильность %
+- Баллы
+- После дедлайна
+- Куратор
+- Отправлено на проверку
+- Дата создания
+- Последняя активность
+
+### Переменные (`variables`)
+
+<ParamField body="filter" type="object" required>
+  Параметры фильтрации.
+
+  <Expandable title="Свойства filter">
+    <ParamField body="practiceIds" type="integer[]">
+      Фильтр по ID практик.
+    </ParamField>
+
+    <ParamField body="userIds" type="integer[]">
+      Фильтр по ID пользователей.
+    </ParamField>
+
+    <ParamField body="curatorIds" type="integer[]">
+      Фильтр по ID кураторов.
+    </ParamField>
+
+    <ParamField body="courseIds" type="integer[]">
+      Фильтр по ID курсов.
+    </ParamField>
+
+    <ParamField body="productIds" type="integer[]">
+      Фильтр по ID продуктов.
+    </ParamField>
+
+    <ParamField body="lessonIds" type="integer[]">
+      Фильтр по ID уроков.
+    </ParamField>
+
+    <ParamField body="launchIds" type="integer[]">
+      Фильтр по ID запусков.
+    </ParamField>
+
+    <ParamField body="finished" type="boolean">
+      Фильтр по завершенности попытки.
+    </ParamField>
+
+    <ParamField body="statuses" type="string[]">
+      Фильтр по статусам попыток. Массив из значений: `Created`, `OnReview`, `Verified`, `AutoVerified`, `OnCorrection`, `Failed`, `Stacked`.
+    </ParamField>
+
+    <ParamField body="search" type="string">
+      Поиск по тексту (до 50 символов). Ищет по имени студента.
+    </ParamField>
+
+    <ParamField body="updatedAtDateRange" type="object">
+      Фильтр по диапазону дат обновления.
+
+      <Expandable title="Свойства updatedAtDateRange">
+        <ParamField body="from" type="string">
+          Начало диапазона в формате ISO 8601 (например, `2025-01-01T00:00:00Z`).
+        </ParamField>
+
+        <ParamField body="to" type="string">
+          Конец диапазона в формате ISO 8601 (например, `2025-12-31T23:59:59Z`).
+        </ParamField>
+      </Expandable>
+    </ParamField>
+
+    <ParamField body="sentToReviewAtDateRange" type="object">
+      Фильтр по диапазону дат отправки на проверку.
+
+      <Expandable title="Свойства sentToReviewAtDateRange">
+        <ParamField body="from" type="string">
+          Начало диапазона в формате ISO 8601.
+        </ParamField>
+
+        <ParamField body="to" type="string">
+          Конец диапазона в формате ISO 8601.
+        </ParamField>
+      </Expandable>
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="sort" type="object">
+  Параметры сортировки. Значения: `ASC` (по возрастанию) или `DESC` (по убыванию).
+
+  <Expandable title="Свойства sort">
+    <ParamField body="id" type="string">
+      Сортировка по ID. `ASC` | `DESC`.
+    </ParamField>
+
+    <ParamField body="createdAt" type="string">
+      Сортировка по дате создания. `ASC` | `DESC`.
+    </ParamField>
+
+    <ParamField body="updatedAt" type="string">
+      Сортировка по дате обновления. `ASC` | `DESC`.
+    </ParamField>
+
+    <ParamField body="sentToReviewAt" type="string">
+      Сортировка по дате отправки на проверку. `ASC` | `DESC`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/query-export/generate' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data '{
+    "type": "CourseLessonPracticeAttemptFindMany",
+    "variables": {
+      "filter": {
+        "courseIds": [5],
+        "statuses": ["OnReview", "Verified"],
+        "sentToReviewAtDateRange": {
+          "from": "2025-01-01T00:00:00Z",
+          "to": "2025-06-30T23:59:59Z"
+        }
+      },
+      "sort": {
+        "sentToReviewAt": "DESC"
+      }
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const exportPracticeAttempts = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/query-export/generate', {
+      type: 'CourseLessonPracticeAttemptFindMany',
+      variables: {
+        filter: {
+          courseIds: [5],
+          statuses: ['OnReview', 'Verified'],
+          sentToReviewAtDateRange: {
+            from: '2025-01-01T00:00:00Z',
+            to: '2025-06-30T23:59:59Z'
+          }
+        },
+        sort: {
+          sentToReviewAt: 'DESC'
+        }
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    const { uuid } = response.data;
+    console.log('Execution UUID:', uuid);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+exportPracticeAttempts();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/query-export/generate';
+$data = [
+  'type' => 'CourseLessonPracticeAttemptFindMany',
+  'variables' => [
+    'filter' => [
+      'courseIds' => [5],
+      'statuses' => ['OnReview', 'Verified'],
+      'sentToReviewAtDateRange' => [
+        'from' => '2025-01-01T00:00:00Z',
+        'to' => '2025-06-30T23:59:59Z'
+      ]
+    ],
+    'sort' => [
+      'sentToReviewAt' => 'DESC'
+    ]
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200 || $httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Execution UUID: " . $result['uuid'] . "\n";
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/query-export/generate'
+
+data = {
+  'type': 'CourseLessonPracticeAttemptFindMany',
+  'variables': {
+    'filter': {
+      'courseIds': [5],
+      'statuses': ['OnReview', 'Verified'],
+      'sentToReviewAtDateRange': {
+        'from': '2025-01-01T00:00:00Z',
+        'to': '2025-06-30T23:59:59Z'
+      }
+    },
+    'sort': {
+      'sentToReviewAt': 'DESC'
+    }
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print(f"Execution UUID: {result['uuid']}")
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "id": 42,
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "Processing"
+}
+```
+</ResponseExample>

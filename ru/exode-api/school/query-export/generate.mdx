@@ -1,0 +1,197 @@
+---
+title: "Запрос на генерацию"
+description: "Создание запроса на выгрузку данных в формате XLSX, CSV или JSON"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## Как это работает
+
+Генерация отчета выполняется через асинхронный workflow. Процесс состоит из двух шагов:
+
+<Steps>
+    <Step title="Создание задачи на генерацию">
+        Отправьте `POST` запрос на `/saas/v2/query-export/generate` с указанием типа отчета, переменных фильтрации и
+        формата.
+        В ответ вы получите объект `WorkflowExecution` с полем `uuid` — идентификатор для отслеживания результата.
+    </Step>
+
+    <Step title="Получение результата">
+        Отправляйте `GET` запрос
+        на <br/>[`/saas/v2/workflow-execution/:executionUuid/result`](/ru/exode-api/school/query-export/result), <br/>подставив
+        `uuid` из первого шага.
+        Повторяйте запрос до тех пор, пока `status` не станет `Completed` (или `Failed`).
+    </Step>
+</Steps>
+
+---
+
+## Создание запроса на выгрузку
+
+```
+POST /saas/v2/query-export/generate
+```
+
+<Info>
+  Rate limit: **100 запросов в час**.
+</Info>
+
+### Параметры запроса
+
+<ParamField body="type" type="string" required>
+  Тип отчета. Определяет, какие данные будут выгружены. Доступные значения:
+
+  - `GroupMemberFindMany` — [участники группы](/ru/exode-api/school/query-export/group-member-find-many)
+  - `CourseLessonPracticeAttemptFindMany` — [попытки практических заданий](/ru/exode-api/school/query-export/practice-attempt-find-many)
+</ParamField>
+
+<ParamField body="variables" type="object" required>
+  Переменные для запроса: фильтры и сортировка. Структура зависит от выбранного `type`.
+  Подробнее — на странице конкретного [типа отчета](/ru/exode-api/school/query-export/group-member-find-many).
+</ParamField>
+
+<ParamField body="format" type="string">
+  Формат выходного файла. По умолчанию — `Xlsx`.
+
+  - `Xlsx` — Excel (.xlsx)
+  - `Csv` — CSV (.csv)
+  - `Json` — JSON (.json)
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/query-export/generate' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data '{
+    "type": "GroupMemberFindMany",
+    "variables": {
+      "filter": { "groupIds": [1, 2, 3] }
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const generateReport = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/query-export/generate', {
+      type: 'GroupMemberFindMany',
+      variables: {
+        filter: { groupIds: [1, 2, 3] }
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    const { uuid } = response.data;
+    console.log('Execution UUID:', uuid);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+generateReport();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/query-export/generate';
+$data = [
+  'type' => 'GroupMemberFindMany',
+  'variables' => [
+    'filter' => ['groupIds' => [1, 2, 3]]
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200 || $httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Execution UUID: " . $result['uuid'] . "\n";
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/query-export/generate'
+
+data = {
+  'type': 'GroupMemberFindMany',
+  'variables': {
+    'filter': {'groupIds': [1, 2, 3]}
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print(f"Execution UUID: {result['uuid']}")
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "id": 42,
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "Processing"
+}
+```
+</ResponseExample>
+
+---
+
+## Требования к правам доступа
+
+<Check>
+  Для генерации отчетов требуется **авторизация** и **доступ к SaaS API** школы.
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной школе.
+</Warning>

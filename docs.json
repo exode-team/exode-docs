@@ -45,6 +45,15 @@
             ]
           },
           {
+            "group": "Отчеты и выгрузки",
+            "pages": [
+              "ru/exode-api/school/query-export/generate",
+              "ru/exode-api/school/query-export/result",
+              "ru/exode-api/school/query-export/group-member-find-many",
+              "ru/exode-api/school/query-export/practice-attempt-find-many"
+            ]
+          },
+          {
             "group": "Интеграции",
             "pages": [
               "ru/exode-api/school/iframe/tg-mini-app"

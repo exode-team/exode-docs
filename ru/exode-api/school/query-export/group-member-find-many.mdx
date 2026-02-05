@@ -1,0 +1,220 @@
+---
+title: "Участники группы"
+description: "Выгрузка участников групп с прогрессом по курсу, кураторами и тарифами"
+---
+
+**type:** `GroupMemberFindMany`
+
+Выгружает список участников групп с информацией о прогрессе по курсу, кураторе, тарифе и активности.
+
+### Колонки отчета
+
+- Студент
+- Номер телефона
+- ID пользователя
+- Статус доступа
+- Курс
+- Прогресс %
+- Пройдено уроков
+- Всего уроков
+- Куратор
+- Текущий урок
+- Тариф
+- Дата создания доступа
+- Последняя активность
+
+---
+
+### Переменные (`variables`)
+
+<ParamField body="filter" type="object" required>
+  Параметры фильтрации.
+
+  <Expandable title="Свойства filter">
+    <ParamField body="memberIds" type="integer[]">
+      Фильтр по ID участников группы.
+    </ParamField>
+
+    <ParamField body="groupIds" type="integer[]">
+      Фильтр по ID групп.
+    </ParamField>
+
+    <ParamField body="productIds" type="integer[]">
+      Фильтр по ID продуктов.
+    </ParamField>
+
+    <ParamField body="userIds" type="integer[]">
+      Фильтр по ID пользователей.
+    </ParamField>
+
+    <ParamField body="active" type="boolean">
+      Фильтр по статусу доступа. `true` — только активные, `false` — только деактивированные.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="sort" type="object">
+  Параметры сортировки. Значения: `ASC` (по возрастанию) или `DESC` (по убыванию).
+
+  <Expandable title="Свойства sort">
+    <ParamField body="id" type="string">
+      Сортировка по ID. `ASC` | `DESC`.
+    </ParamField>
+
+    <ParamField body="createdAt" type="string">
+      Сортировка по дате создания. `ASC` | `DESC`.
+    </ParamField>
+
+    <ParamField body="updatedAt" type="string">
+      Сортировка по дате обновления. `ASC` | `DESC`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/query-export/generate' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data '{
+    "type": "GroupMemberFindMany",
+    "variables": {
+      "filter": {
+        "groupIds": [10, 20],
+        "active": true
+      },
+      "sort": {
+        "createdAt": "DESC"
+      }
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const exportGroupMembers = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/query-export/generate', {
+      type: 'GroupMemberFindMany',
+      variables: {
+        filter: {
+          groupIds: [10, 20],
+          active: true
+        },
+        sort: {
+          createdAt: 'DESC'
+        }
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    const { uuid } = response.data;
+    console.log('Execution UUID:', uuid);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+exportGroupMembers();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/query-export/generate';
+$data = [
+  'type' => 'GroupMemberFindMany',
+  'variables' => [
+    'filter' => [
+      'groupIds' => [10, 20],
+      'active' => true
+    ],
+    'sort' => [
+      'createdAt' => 'DESC'
+    ]
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200 || $httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Execution UUID: " . $result['uuid'] . "\n";
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/query-export/generate'
+
+data = {
+  'type': 'GroupMemberFindMany',
+  'variables': {
+    'filter': {
+      'groupIds': [10, 20],
+      'active': True
+    },
+    'sort': {
+      'createdAt': 'DESC'
+    }
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print(f"Execution UUID: {result['uuid']}")
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "id": 42,
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "Processing"
+}
+```
+</ResponseExample>
