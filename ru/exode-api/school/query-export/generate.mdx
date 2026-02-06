@@ -15,7 +15,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
     <Step title="Создание задачи на генерацию">
         Отправьте `POST` запрос на `/saas/v2/query-export/generate` с указанием типа отчета, переменных фильтрации и
         формата.
-        В ответ вы получите объект `WorkflowExecution` с полем `uuid` — идентификатор для отслеживания результата.
+        В ответ вы получите объект с полем `payload`, содержащим `uuid` — идентификатор для отслеживания результата.
     </Step>
 
     <Step title="Получение результата">
@@ -60,6 +60,54 @@ POST /saas/v2/query-export/generate
   - `Json` — JSON (.json)
 </ParamField>
 
+### Поля ответа
+
+<ResponseField name="success" type="boolean">
+  Результат выполнения запроса.
+</ResponseField>
+
+<ResponseField name="code" type="number">
+  HTTP-код ответа (например, `201`).
+</ResponseField>
+
+<ResponseField name="payload" type="object">
+  Объект задачи генерации.
+
+  <Expandable title="Свойства payload">
+    <ResponseField name="id" type="number">
+      Числовой идентификатор задачи.
+    </ResponseField>
+
+    <ResponseField name="uuid" type="string">
+      UUID задачи — используется для [получения результата](/ru/exode-api/school/query-export/result).
+    </ResponseField>
+
+    <ResponseField name="status" type="string">
+      Статус задачи. При создании — `Processing`.
+    </ResponseField>
+
+    <ResponseField name="isCompleted" type="boolean">
+      Флаг завершения задачи. При создании — `false`.
+    </ResponseField>
+
+    <ResponseField name="createdAt" type="string">
+      Дата создания задачи (ISO 8601).
+    </ResponseField>
+
+    <ResponseField name="updatedAt" type="string">
+      Дата последнего обновления задачи (ISO 8601).
+    </ResponseField>
+
+    <ResponseField name="deletedAt" type="string | null">
+      Дата удаления задачи. `null`, если задача не удалена.
+    </ResponseField>
+
+    <ResponseField name="archivedAt" type="string | null">
+      Дата архивации задачи. `null`, если задача не архивирована.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
 <RequestExample>
 ```bash cURL
 curl --location 'https://api.exode.biz/saas/v2/query-export/generate' \
@@ -94,7 +142,7 @@ const generateReport = async () => {
       }
     });
 
-    const { uuid } = response.data;
+    const { uuid } = response.data.payload;
     console.log('Execution UUID:', uuid);
   } catch (error) {
     console.error('Error:', error.response?.data || error.message);
@@ -135,7 +183,7 @@ curl_close($ch);
 
 if ($httpCode === 200 || $httpCode === 201) {
   $result = json_decode($response, true);
-  echo "Execution UUID: " . $result['uuid'] . "\n";
+  echo "Execution UUID: " . $result['payload']['uuid'] . "\n";
 } else {
   echo "Error: HTTP $httpCode\n";
   echo $response;
@@ -167,7 +215,7 @@ try:
   response.raise_for_status()
 
   result = response.json()
-  print(f"Execution UUID: {result['uuid']}")
+  print(f"Execution UUID: {result['payload']['uuid']}")
 
 except requests.exceptions.RequestException as e:
   print(f'Error: {e}')
@@ -177,9 +225,14 @@ except requests.exceptions.RequestException as e:
 <ResponseExample>
 ```json Success
 {
-  "id": 42,
-  "uuid": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "Processing"
+  "success": true,
+  "payload": {
+    "id": 282,
+    "uuid": "ac4140c9-12d3-4c1f-a7aa-d12f16c7bbdd",
+    "status": "Processing",
+    "isCompleted": false
+  },
+  "code": 201
 }
 ```
 </ResponseExample>

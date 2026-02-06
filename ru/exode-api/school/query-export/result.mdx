@@ -23,64 +23,52 @@ GET /saas/v2/workflow-execution/:executionUuid/result
 
 ### Поля ответа
 
-<ResponseField name="total" type="number">
-  Общий прогресс (всегда `100` — режим процентов).
+<ResponseField name="success" type="boolean">
+  Результат выполнения запроса.
 </ResponseField>
 
-<ResponseField name="completed" type="number">
-  Текущий прогресс от `0` до `100`.
+<ResponseField name="code" type="number">
+  HTTP-код ответа (например, `200`).
 </ResponseField>
 
-<ResponseField name="status" type="string">
-  Статус выполнения:
+<ResponseField name="payload" type="object">
+  Данные о прогрессе и результате генерации.
 
-  - `Processing` — отчет генерируется
-  - `Completed` — отчет готов, поле `result` содержит ссылку на файл
-  - `Failed` — ошибка при генерации
-  - `Canceled` — задача отменена
-</ResponseField>
-
-<ResponseField name="result" type="object">
-  Результат генерации (доступен только при `status: Completed`).
-
-  <Expandable title="Свойства result">
-    <ResponseField name="fileUrl" type="string">
-      URL для скачивания сгенерированного файла.
+  <Expandable title="Свойства payload">
+    <ResponseField name="total" type="number">
+      Общий прогресс (всегда `100` — режим процентов).
     </ResponseField>
 
-    <ResponseField name="fileName" type="string">
-      Имя файла (например, `56722091-6175-46ab-852d-801b8414699c.xlsx`).
+    <ResponseField name="completed" type="number">
+      Текущий прогресс от `0` до `100`.
     </ResponseField>
 
-    <ResponseField name="fileSize" type="number">
-      Размер файла в байтах.
+    <ResponseField name="status" type="string">
+      Статус выполнения:
+
+      - `Processing` — отчет генерируется
+      - `Completed` — отчет готов, поле `result` содержит ссылку на файл
+      - `Failed` — ошибка при генерации
+      - `Canceled` — задача отменена
     </ResponseField>
 
-      <ResponseField name="result" type="object">
-          Внутренний результат задачи.
+    <ResponseField name="result" type="object | null">
+      Результат генерации (доступен только при `status: Completed`). `null` во время обработки.
 
-          <Expandable title="Свойства result.result">
-              <ResponseField name="taskId" type="string">
-                  UUID задачи генерации.
-              </ResponseField>
+      <Expandable title="Свойства result">
+        <ResponseField name="fileUrl" type="string">
+          URL для скачивания сгенерированного файла.
+        </ResponseField>
 
-              <ResponseField name="status" type="number">
-                  Числовой статус задачи. `4` — завершена успешно, `5` — ошибка, `6` — отменена.
-              </ResponseField>
+        <ResponseField name="fileName" type="string">
+          Имя файла (например, `79d46a97-a149-432b-bac7-45f6732b9115.xlsx`).
+        </ResponseField>
 
-              <ResponseField name="error" type="object | null">
-                  Информация об ошибке. `null` при успешном выполнении.
-              </ResponseField>
-
-              <ResponseField name="startedAtMs" type="number">
-                  Время начала выполнения (Unix timestamp в миллисекундах).
-              </ResponseField>
-
-              <ResponseField name="completedAtMs" type="number">
-                  Время завершения выполнения (Unix timestamp в миллисекундах).
-              </ResponseField>
-          </Expandable>
-      </ResponseField>
+        <ResponseField name="fileSize" type="number">
+          Размер файла в байтах.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
   </Expandable>
 </ResponseField>
 
@@ -110,16 +98,17 @@ const pollResult = async (executionUuid) => {
 
   while (true) {
     const { data } = await axios.get(url, { headers });
+    const { payload } = data;
 
-    console.log(`Progress: ${data.completed}/${data.total} — ${data.status}`);
+    console.log(`Progress: ${payload.completed}/${payload.total} — ${payload.status}`);
 
-    if (data.status === 'Completed') {
-      console.log('File URL:', data.result.fileUrl);
-      return data.result;
+    if (payload.status === 'Completed') {
+      console.log('File URL:', payload.result.fileUrl);
+      return payload.result;
     }
 
-    if (data.status === 'Failed' || data.status === 'Canceled') {
-      throw new Error(`Export ${data.status}`);
+    if (payload.status === 'Failed' || payload.status === 'Canceled') {
+      throw new Error(`Export ${payload.status}`);
     }
 
     await new Promise((r) => setTimeout(r, 2000));
@@ -151,15 +140,16 @@ while (true) {
   curl_close($ch);
 
   $data = json_decode($response, true);
-  echo "Progress: {$data['completed']}/{$data['total']} — {$data['status']}\n";
+  $payload = $data['payload'];
+  echo "Progress: {$payload['completed']}/{$payload['total']} — {$payload['status']}\n";
 
-  if ($data['status'] === 'Completed') {
-    echo "File URL: " . $data['result']['fileUrl'] . "\n";
+  if ($payload['status'] === 'Completed') {
+    echo "File URL: " . $payload['result']['fileUrl'] . "\n";
     break;
   }
 
-  if (in_array($data['status'], ['Failed', 'Canceled'])) {
-    echo "Error: Export {$data['status']}\n";
+  if (in_array($payload['status'], ['Failed', 'Canceled'])) {
+    echo "Error: Export {$payload['status']}\n";
     break;
   }
 
@@ -184,15 +174,16 @@ headers = {
 while True:
   response = requests.get(url, headers=headers)
   data = response.json()
+  payload = data['payload']
 
-  print(f"Progress: {data['completed']}/{data['total']} — {data['status']}")
+  print(f"Progress: {payload['completed']}/{payload['total']} — {payload['status']}")
 
-  if data['status'] == 'Completed':
-    print(f"File URL: {data['result']['fileUrl']}")
+  if payload['status'] == 'Completed':
+    print(f"File URL: {payload['result']['fileUrl']}")
     break
 
-  if data['status'] in ('Failed', 'Canceled'):
-    print(f"Error: Export {data['status']}")
+  if payload['status'] in ('Failed', 'Canceled'):
+    print(f"Error: Export {payload['status']}")
     break
 
   time.sleep(2)
@@ -202,30 +193,42 @@ while True:
 <ResponseExample>
 ```json Processing
 {
-  "total": 100,
-  "completed": 45,
-  "status": "Processing",
-  "result": null
+  "success": true,
+  "payload": {
+    "total": 100,
+    "completed": 45,
+    "status": "Processing",
+    "result": null
+  },
+  "code": 200
 }
 ```
 ```json Completed
 {
-  "total": 100,
-  "completed": 100,
-  "status": "Completed",
-  "result": {
-    "fileUrl": "https://static.exode.biz/generated/reports/56722091-6175-46ab-852d-801b8414699c.xlsx",
-    "fileName": "56722091-6175-46ab-852d-801b8414699c.xlsx",
-    "fileSize": 6516
-  }
+  "success": true,
+  "payload": {
+    "total": 100,
+    "completed": 100,
+    "status": "Completed",
+    "result": {
+      "fileUrl": "https://static.exode.biz/generated/reports/79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
+      "fileName": "79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
+      "fileSize": 6748
+    }
+  },
+  "code": 200
 }
 ```
 ```json Failed
 {
-  "total": 100,
-  "completed": 30,
-  "status": "Failed",
-  "result": null
+  "success": true,
+  "payload": {
+    "total": 100,
+    "completed": 30,
+    "status": "Failed",
+    "result": null
+  },
+  "code": 200
 }
 ```
 </ResponseExample>
