@@ -212,9 +212,18 @@ except requests.exceptions.RequestException as e:
 <ResponseExample>
 ```json Success
 {
-  "id": 42,
-  "uuid": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "Processing"
+  "success": true,
+  "payload": {
+    "total": 100,
+    "completed": 100,
+    "status": "Completed",
+    "result": {
+      "fileUrl": "https://static.exode.biz/generated/reports/79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
+      "fileName": "79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
+      "fileSize": 6748
+    }
+  },
+  "code": 200
 }
 ```
 </ResponseExample>
