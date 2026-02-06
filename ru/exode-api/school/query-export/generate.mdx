@@ -43,8 +43,8 @@ POST /saas/v2/query-export/generate
 <ParamField body="type" type="string" required>
   Тип отчета. Определяет, какие данные будут выгружены. Доступные значения:
 
-  - `GroupMemberFindMany` — [участники группы](/ru/exode-api/school/query-export/group-member-find-many)
-  - `CourseLessonPracticeAttemptFindMany` — [попытки практических заданий](/ru/exode-api/school/query-export/practice-attempt-find-many)
+  - `QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY` — [участники группы](/ru/exode-api/school/query-export/group-member-find-many)
+  - `QUERY_EXPORT_TYPE_COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY` — [попытки практических заданий](/ru/exode-api/school/query-export/practice-attempt-find-many)
 </ParamField>
 
 <ParamField body="variables" type="object" required>
@@ -68,7 +68,7 @@ curl --location 'https://api.exode.biz/saas/v2/query-export/generate' \
   --header 'Content-Type: application/json' \
   --header 'Authorization: Bearer YOUR_TOKEN' \
   --data '{
-    "type": "GroupMemberFindMany",
+    "type": "QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY",
     "variables": {
       "filter": { "groupIds": [1, 2, 3] }
     }
@@ -81,7 +81,7 @@ const axios = require('axios');
 const generateReport = async () => {
   try {
     const response = await axios.post('https://api.exode.biz/saas/v2/query-export/generate', {
-      type: 'GroupMemberFindMany',
+      type: 'QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY',
       variables: {
         filter: { groupIds: [1, 2, 3] }
       }
@@ -109,7 +109,7 @@ generateReport();
 
 $url = 'https://api.exode.biz/saas/v2/query-export/generate';
 $data = [
-  'type' => 'GroupMemberFindMany',
+  'type' => 'QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY',
   'variables' => [
     'filter' => ['groupIds' => [1, 2, 3]]
   ]
@@ -149,7 +149,7 @@ import requests
 url = 'https://api.exode.biz/saas/v2/query-export/generate'
 
 data = {
-  'type': 'GroupMemberFindMany',
+  'type': 'QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY',
   'variables': {
     'filter': {'groupIds': [1, 2, 3]}
   }
