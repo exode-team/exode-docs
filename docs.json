@@ -56,7 +56,8 @@
           {
             "group": "Интеграции",
             "pages": [
-              "ru/exode-api/school/iframe/tg-mini-app"
+              "ru/exode-api/school/iframe/tg-mini-app",
+              "ru/exode-api/school/custom-code/js-config"
             ]
           },
           {
