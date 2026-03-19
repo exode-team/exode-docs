@@ -1,0 +1,156 @@
+---
+title: "Удаление макета формы"
+description: "Мягкое удаление макета формы по его ID"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## Параметры пути
+
+<ParamField path="layoutId" type="integer" required={true}>
+  ID макета формы, который нужно удалить. Макет должен принадлежать текущей школе.
+</ParamField>
+
+<Info>
+  Удаление является **мягким** (soft delete) — макет помечается как удалённый, но не удаляется физически из базы данных. Связанные поля и значения остаются без изменений.
+</Info>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/form/layout/5/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const deleteLayout = async () => {
+  const layoutId = 5;
+
+  try {
+    const response = await axios.delete(`https://api.exode.biz/saas/v2/form/layout/${layoutId}/delete`, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Layout deleted:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+deleteLayout();
+```
+
+```php PHP
+<?php
+
+$layoutId = 5;
+$url = "https://api.exode.biz/saas/v2/form/layout/{$layoutId}/delete";
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  echo "Layout deleted successfully\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+layout_id = 5
+url = f'https://api.exode.biz/saas/v2/form/layout/{layout_id}/delete'
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.delete(url, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Layout deleted successfully:')
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+```json Error - Layout Not Found
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 0
+  }
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "ForbiddenSellerResource",
+  "message": "Forbidden seller resource - permissions FormManage",
+  "error": "Forbidden seller resource - permissions FormManage"
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+  Для удаления макета формы требуется **право FormManage** у сервисного пользователя.
+</Check>
+
+<Check>
+  Макет должен принадлежать текущей школе (проверяется через `SellerGuard`).
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>

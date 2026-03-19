@@ -1,0 +1,314 @@
+---
+title: "Получение значений полей"
+description: "Получение значений кастомных полей пользователей школы с фильтрацией и пагинацией"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## Параметры запроса
+
+<Info>
+  Все параметры фильтрации являются необязательными. Если не передать ни одного фильтра — будут возвращены все доступные значения кастомных полей в рамках школы.
+</Info>
+
+<Info>
+  Параметры-массивы передаются через повторение параметра в строке запроса: `userIds=1&userIds=2&userIds=3`.
+</Info>
+
+### Пагинация
+
+<ParamField query="skip" type="integer" required={false}>
+  Количество записей, которые нужно пропустить. По умолчанию `0`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+  Количество записей на странице. По умолчанию `20`.
+</ParamField>
+
+### Сортировка
+
+<ParamField query="id" type="enum" required={false}>
+  Сортировка по ID записи. Возможные значения: `ASC`, `DESC`.
+</ParamField>
+
+<ParamField query="createdAt" type="enum" required={false}>
+  Сортировка по дате создания. Возможные значения: `ASC`, `DESC`.
+</ParamField>
+
+<ParamField query="updatedAt" type="enum" required={false}>
+  Сортировка по дате обновления. Возможные значения: `ASC`, `DESC`.
+</ParamField>
+
+### Фильтрация
+
+<ParamField query="userIds" type="integer[]" required={false}>
+  Массив ID пользователей. Возвращает значения полей только для указанных пользователей.
+</ParamField>
+
+<ParamField query="fieldIds" type="integer[]" required={false}>
+  Массив ID полей. Возвращает значения только указанных полей.
+</ParamField>
+
+<ParamField query="fieldSlugs" type="string[]" required={false}>
+  Массив slug-идентификаторов полей. Альтернатива `fieldIds` для фильтрации по символьным кодам.
+</ParamField>
+
+<ParamField query="fillIds" type="integer[]" required={false}>
+  Массив ID заполнений формы. Возвращает значения, привязанные к конкретным заполнениям.
+</ParamField>
+
+<ParamField query="layoutUuids" type="string[]" required={false}>
+  Массив UUID макетов формы.
+</ParamField>
+
+<ParamField query="layoutSlugs" type="string[]" required={false}>
+  Массив slug-идентификаторов макетов формы.
+</ParamField>
+
+<ParamField query="layoutModes" type="enum[]" required={false}>
+  Массив режимов макета. Возможные значения: `Custom`, `Form`, `Signup`, `Welcome`, `Participant`.
+</ParamField>
+
+<ParamField query="productIds" type="integer[]" required={false}>
+  Массив ID продуктов. Возвращает значения, связанные с указанными продуктами.
+</ParamField>
+
+<Warning>
+  Значения полей, для которых в настройках RBAC установлено `api = false`, автоматически исключаются из ответа. Настройки видимости полей задаются в панели управления школы.
+</Warning>
+
+<RequestExample>
+```bash cURL
+curl --location --request GET 'https://api.exode.biz/saas/v2/form/custom-field/value/get?userIds=27&userIds=42&fieldSlugs=city&fieldSlugs=company&createdAt=DESC' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const getCustomFieldValues = async () => {
+  try {
+    const response = await axios.get('https://api.exode.biz/saas/v2/form/custom-field/value/get', {
+      params: {
+        userIds: [ 27, 42 ],
+        fieldSlugs: [ 'city', 'company' ],
+        createdAt: 'DESC'
+      },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Values:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+getCustomFieldValues();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/form/custom-field/value/get';
+$params = http_build_query([
+  'userIds' => [ 27, 42 ],
+  'fieldSlugs' => [ 'city', 'company' ]
+], '', '&', PHP_QUERY_RFC3986);
+
+// Для массивов используйте формат: userIds=27&userIds=42
+$queryString = 'userIds=27&userIds=42&fieldSlugs=city&fieldSlugs=company&createdAt=DESC';
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url . '?' . $queryString);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  echo "Values retrieved successfully\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/form/custom-field/value/get'
+
+params = [
+  ('userIds', 27),
+  ('userIds', 42),
+  ('fieldSlugs', 'city'),
+  ('fieldSlugs', 'company'),
+  ('createdAt', 'DESC')
+]
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.get(url, params=params, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Values retrieved successfully:')
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "items": [
+      {
+        "id": 1,
+        "userId": 27,
+        "fieldId": 10,
+        "fillId": null,
+        "value": "Ташкент",
+        "field": {
+          "id": 10,
+          "slug": "city",
+          "type": "Text",
+          "name": "Город",
+          "order": 0
+        },
+        "createdAt": "2025-03-10T12:00:00.000Z",
+        "updatedAt": "2025-03-10T12:00:00.000Z"
+      },
+      {
+        "id": 2,
+        "userId": 27,
+        "fieldId": 11,
+        "fillId": null,
+        "value": "ООО «Компания»",
+        "field": {
+          "id": 11,
+          "slug": "company",
+          "type": "Text",
+          "name": "Компания",
+          "order": 1
+        },
+        "createdAt": "2025-03-10T12:00:00.000Z",
+        "updatedAt": "2025-03-10T12:00:00.000Z"
+      },
+      {
+        "id": 3,
+        "userId": 42,
+        "fieldId": 10,
+        "fillId": null,
+        "value": "Ташкент",
+        "field": {
+          "id": 10,
+          "slug": "city",
+          "type": "Text",
+          "name": "Город",
+          "order": 0
+        },
+        "createdAt": "2025-03-10T14:30:00.000Z",
+        "updatedAt": "2025-03-10T14:30:00.000Z"
+      }
+    ],
+    "count": 3,
+    "page": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "next": null,
+    "prev": null
+  }
+}
+```
+```json Success - Empty Result
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "items": [],
+    "count": 0,
+    "page": 1,
+    "pages": 0,
+    "isFirst": true,
+    "isLast": true,
+    "next": null,
+    "prev": null
+  }
+}
+```
+```json Error - Unauthorized
+{
+  "code": 401,
+  "success": false,
+  "cause": "Unauthorized",
+  "message": "Unauthorized",
+  "error": "Unauthorized"
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "ForbiddenSellerResource",
+  "message": "Forbidden seller resource - permissions FormManage",
+  "error": "Forbidden seller resource - permissions FormManage"
+}
+```
+</ResponseExample>
+
+## Поля ответа
+
+<Info>
+  Каждый элемент содержит:
+  - `value` — значение поля (строка, число, boolean, дата или JSON-объект в зависимости от типа поля)
+  - `field` — вложенный объект с информацией о поле (`id`, `slug`, `type`, `name`, `order`)
+  - `userId`, `fieldId` — идентификаторы для связи
+</Info>
+
+## Требования к правам доступа
+
+<Check>
+  Для получения значений кастомных полей требуется **право FormManage** у сервисного пользователя.
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>
+
+<Info>
+  Данные возвращаются только в рамках указанной школы. Значения полей пользователей из других школ не будут включены в ответ.
+</Info>

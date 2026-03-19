@@ -1,0 +1,321 @@
+---
+title: "Установка значений полей"
+description: "Создание или обновление значений кастомных полей для пользователя школы"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## Параметры запроса
+
+Доступны два формата передачи значений: **по slug** (рекомендуемый) и **по fieldId** (расширенный).
+
+<ParamField body="userId" type="integer" required={true}>
+  ID пользователя, для которого устанавливаются значения полей. Пользователь должен быть участником указанной школы.
+</ParamField>
+
+<ParamField body="layoutId" type="integer" required={true}>
+  ID макета формы, к которому принадлежат поля. Макет должен принадлежать текущей школе.
+</ParamField>
+
+### Формат 1: По slug (рекомендуемый)
+
+**Эндпоинт:** `POST /saas/v2/form/custom-field/value/set-by-slug`
+
+Упрощённый формат — тип значения определяется автоматически на основе типа поля в макете.
+
+<ParamField body="values" type="object[]" required={true}>
+  Массив значений полей. Минимум 1 элемент.
+
+  <Expandable title="Свойства элемента values">
+    <ParamField body="slug" type="string" required={true}>
+      Символьный код поля.
+    </ParamField>
+
+    <ParamField body="value" type="any" required={false}>
+      Значение поля. Тип должен соответствовать типу поля:
+
+      | Тип поля | Ожидаемый тип `value` | Пример |
+      |---|---|---|
+      | Text, Textarea, Select, Radio | `string` | `"Ташкент"` |
+      | Number | `number` | `25` |
+      | Boolean, Switch, Checkbox | `boolean` | `true` |
+      | Date | `string` (ISO 8601) | `"2025-03-10T12:00:00.000Z"` |
+      | Json, File, Multiselect | `object` | `{"key": "value"}` |
+
+      Передайте `null` для очистки значения.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Формат 2: По fieldId (расширенный)
+
+**Эндпоинт:** `POST /saas/v2/form/custom-field/value/set`
+
+Типизированный формат — вы сами указываете столбец для значения.
+
+<ParamField body="values" type="object[]" required={true}>
+  Массив значений полей. Минимум 1 элемент.
+
+  <Expandable title="Свойства элемента values">
+    <ParamField body="fieldId" type="integer" required={true}>
+      ID поля, для которого устанавливается значение.
+    </ParamField>
+
+    <ParamField body="text" type="string" required={false}>
+      Текстовое значение. Для полей: Text, Select, Radio, Textarea.
+    </ParamField>
+
+    <ParamField body="number" type="number" required={false}>
+      Числовое значение. Для полей: Number.
+    </ParamField>
+
+    <ParamField body="boolean" type="boolean" required={false}>
+      Логическое значение. Для полей: Boolean, Switch, Checkbox.
+    </ParamField>
+
+    <ParamField body="date" type="string" required={false}>
+      Дата в формате ISO 8601. Для полей: Date.
+    </ParamField>
+
+    <ParamField body="json" type="object" required={false}>
+      JSON-объект. Для полей: Json, File, Multiselect.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<Info>
+  Оба метода работают в режиме **upsert** — если значение поля для данного пользователя уже существует, оно будет обновлено. Если не существует — будет создано.
+</Info>
+
+<Warning>
+  Поля, у которых в настройках RBAC установлено `api = false` (доступ через API запрещён), не могут быть записаны через этот метод.
+</Warning>
+
+<RequestExample>
+```bash По slug (cURL)
+curl --location 'https://api.exode.biz/saas/v2/form/custom-field/value/set-by-slug' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "userId": 27,
+    "layoutId": 5,
+    "values": [
+      { "slug": "city", "value": "Ташкент" },
+      { "slug": "age", "value": 25 },
+      { "slug": "is-active", "value": true }
+    ]
+  }'
+```
+
+```bash По fieldId (cURL)
+curl --location 'https://api.exode.biz/saas/v2/form/custom-field/value/set' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "userId": 27,
+    "layoutId": 5,
+    "values": [
+      { "fieldId": 10, "text": "Ташкент" },
+      { "fieldId": 11, "number": 25 },
+      { "fieldId": 12, "boolean": true }
+    ]
+  }'
+```
+
+```javascript Node.js (по slug)
+const axios = require('axios');
+
+const setFieldValues = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/form/custom-field/value/set-by-slug', {
+      userId: 27,
+      layoutId: 5,
+      values: [
+        { slug: 'city', value: 'Ташкент' },
+        { slug: 'age', value: 25 },
+        { slug: 'is-active', value: true }
+      ]
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Values set:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+setFieldValues();
+```
+
+```php PHP (по slug)
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/form/custom-field/value/set-by-slug';
+$data = [
+  'userId' => 27,
+  'layoutId' => 5,
+  'values' => [
+    [ 'slug' => 'city', 'value' => 'Ташкент' ],
+    [ 'slug' => 'age', 'value' => 25 ],
+    [ 'slug' => 'is-active', 'value' => true ]
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  echo "Values set successfully\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python (по slug)
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/form/custom-field/value/set-by-slug'
+
+data = {
+  'userId': 27,
+  'layoutId': 5,
+  'values': [
+    { 'slug': 'city', 'value': 'Ташкент' },
+    { 'slug': 'age', 'value': 25 },
+    { 'slug': 'is-active', 'value': True }
+  ]
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Values set successfully:')
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": [
+    {
+      "id": 1,
+      "userId": 27,
+      "fieldId": 10,
+      "fillId": null,
+      "value": "Ташкент",
+      "createdAt": "2025-03-10T12:00:00.000Z",
+      "updatedAt": "2025-03-10T12:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "userId": 27,
+      "fieldId": 11,
+      "fillId": null,
+      "value": 25,
+      "createdAt": "2025-03-10T12:00:00.000Z",
+      "updatedAt": "2025-03-10T12:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "userId": 27,
+      "fieldId": 12,
+      "fillId": null,
+      "value": true,
+      "createdAt": "2025-03-10T12:00:00.000Z",
+      "updatedAt": "2025-03-10T12:00:00.000Z"
+    }
+  ]
+}
+```
+```json Error - Field Not Found (slug)
+{
+  "code": 400,
+  "success": false,
+  "cause": "FieldNotFound",
+  "message": "Fields not found: unknown-slug",
+  "error": "Fields not found: unknown-slug"
+}
+```
+```json Error - User Not In School
+{
+  "code": 400,
+  "success": false,
+  "cause": "UserNotBelongsToSchool",
+  "message": "User does not belong to this school",
+  "error": "User does not belong to this school"
+}
+```
+```json Error - Write Denied
+{
+  "code": 403,
+  "success": false,
+  "cause": "FieldWritePermissionDenied",
+  "message": "Write access denied for one or more fields",
+  "error": "Write access denied for one or more fields"
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+  Для установки значений кастомных полей требуется **право FormManage** у сервисного пользователя.
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>
+
+<Info>
+  Макет формы (`layoutId`) должен принадлежать текущей школе. Пользователь (`userId`) должен быть участником этой школы.
+</Info>

@@ -1,0 +1,241 @@
+---
+title: "Обновление макета формы"
+description: "Обновление существующего макета формы по его ID"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## Параметры пути
+
+<ParamField path="layoutId" type="integer" required={true}>
+  ID макета формы, который нужно обновить. Макет должен принадлежать текущей школе.
+</ParamField>
+
+## Параметры запроса
+
+<Info>
+  Все параметры тела запроса являются необязательными. Передайте только те поля, которые нужно обновить.
+</Info>
+
+<ParamField body="mode" type="enum" required={false}>
+  Режим макета формы. Возможные значения: `Custom`, `Form`, `Signup`, `Welcome`, `Participant`.
+</ParamField>
+
+<ParamField body="name" type="string" required={false}>
+  Название макета формы. Максимум 255 символов.
+</ParamField>
+
+<ParamField body="internalName" type="string" required={false}>
+  Внутреннее название макета. Максимум 255 символов.
+</ParamField>
+
+<ParamField body="status" type="enum" required={false}>
+  Статус макета. Возможные значения: `Draft`, `Published`.
+</ParamField>
+
+<ParamField body="slug" type="string" required={false}>
+  Символьный код макета. От 1 до 50 символов. Должен быть уникальным в рамках школы.
+</ParamField>
+
+<ParamField body="note" type="string" required={false}>
+  Заметка к макету. Максимум 255 символов.
+</ParamField>
+
+<ParamField body="productIds" type="integer[]" required={false}>
+  Массив ID продуктов, к которым привязан макет. При передаче — полностью заменяет текущий список привязанных продуктов.
+</ParamField>
+
+<ParamField body="config" type="object" required={false}>
+  Настройки макета.
+
+  <Expandable title="Свойства config">
+    <ParamField body="resubmitMode" type="enum" required={false}>
+      Режим повторной отправки формы. Возможные значения: `Overwrite`, `NewFill`, `NotAllowed`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/form/layout/5/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Обновлённое название",
+    "status": "Published",
+    "config": {
+      "resubmitMode": "NotAllowed"
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateLayout = async () => {
+  const layoutId = 5;
+
+  try {
+    const response = await axios.put(`https://api.exode.biz/saas/v2/form/layout/${layoutId}/update`, {
+      name: 'Обновлённое название',
+      status: 'Published',
+      config: {
+        resubmitMode: 'NotAllowed'
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Layout updated:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+updateLayout();
+```
+
+```php PHP
+<?php
+
+$layoutId = 5;
+$url = "https://api.exode.biz/saas/v2/form/layout/{$layoutId}/update";
+$data = [
+  'name' => 'Обновлённое название',
+  'status' => 'Published',
+  'config' => [
+    'resubmitMode' => 'NotAllowed'
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  echo "Layout updated successfully\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+layout_id = 5
+url = f'https://api.exode.biz/saas/v2/form/layout/{layout_id}/update'
+
+data = {
+  'name': 'Обновлённое название',
+  'status': 'Published',
+  'config': {
+    'resubmitMode': 'NotAllowed'
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.put(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Layout updated successfully:')
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 5,
+    "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "mode": "Custom",
+    "status": "Published",
+    "slug": "client-extra",
+    "name": "Обновлённое название",
+    "note": "Дополнительные поля для CRM",
+    "config": {
+      "resubmitMode": "NotAllowed"
+    },
+    "sellerId": 1,
+    "createdAt": "2025-03-10T12:00:00.000Z",
+    "updatedAt": "2025-03-12T09:15:00.000Z"
+  }
+}
+```
+```json Error - Layout Not Found
+{
+  "code": 404,
+  "success": false,
+  "cause": "FormLayoutNotFound",
+  "message": "Form layout not found",
+  "error": "Form layout not found"
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "ForbiddenSellerResource",
+  "message": "Forbidden seller resource - permissions FormManage",
+  "error": "Forbidden seller resource - permissions FormManage"
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+  Для обновления макета формы требуется **право FormManage** у сервисного пользователя.
+</Check>
+
+<Check>
+  Макет должен принадлежать текущей школе (проверяется через `SellerGuard`).
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>

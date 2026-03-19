@@ -1,0 +1,254 @@
+---
+title: "Создание макета формы"
+description: "Создание нового макета формы для школы с настройками режима, статуса и привязки к продуктам"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## Параметры запроса
+
+<ParamField body="mode" type="enum" required={true}>
+  Режим макета формы. Определяет где и как будет использоваться форма.
+
+  Возможные значения:
+  - `Custom` — кастомные поля пользователя
+  - `Form` — заполняемая форма (анкета)
+  - `Signup` — форма при регистрации (уникальная для школы)
+  - `Welcome` — приветственная форма (уникальная для школы)
+  - `Participant` — форма участника продукта
+</ParamField>
+
+<ParamField body="name" type="string" required={true}>
+  Название макета формы. Максимум 255 символов.
+</ParamField>
+
+<ParamField body="internalName" type="string" required={true}>
+  Внутреннее название макета. Максимум 255 символов. Используется для идентификации макета в интерфейсе управления.
+</ParamField>
+
+<ParamField body="status" type="enum" required={false}>
+  Статус макета. Возможные значения: `Draft`, `Published`. По умолчанию `Draft`.
+</ParamField>
+
+<ParamField body="slug" type="string" required={false}>
+  Символьный код макета. От 1 до 50 символов. Должен быть уникальным в рамках школы.
+</ParamField>
+
+<ParamField body="note" type="string" required={false}>
+  Заметка к макету. Максимум 255 символов.
+</ParamField>
+
+<ParamField body="productIds" type="integer[]" required={false}>
+  Массив ID продуктов, к которым привязан макет.
+</ParamField>
+
+<ParamField body="config" type="object" required={false}>
+  Настройки макета.
+
+  <Expandable title="Свойства config">
+    <ParamField body="resubmitMode" type="enum" required={false}>
+      Режим повторной отправки формы. Возможные значения:
+      - `Overwrite` — перезаписать существующее заполнение (по умолчанию)
+      - `NewFill` — создать новое заполнение
+      - `NotAllowed` — повторная отправка запрещена
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<Info>
+  Для режимов `Signup` и `Welcome` допускается только один макет на школу. При попытке создать второй — существующий макет будет обновлён.
+</Info>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/form/layout/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "mode": "Custom",
+    "name": "Доп. данные клиента",
+    "internalName": "CRM доп. поля",
+    "status": "Published",
+    "slug": "client-extra",
+    "note": "Дополнительные поля для CRM",
+    "config": {
+      "resubmitMode": "Overwrite"
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const createLayout = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/form/layout/create', {
+      mode: 'Custom',
+      name: 'Доп. данные клиента',
+      internalName: 'CRM доп. поля',
+      status: 'Published',
+      slug: 'client-extra',
+      note: 'Дополнительные поля для CRM',
+      config: {
+        resubmitMode: 'Overwrite'
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Layout created:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+createLayout();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/form/layout/create';
+$data = [
+  'mode' => 'Custom',
+  'name' => 'Доп. данные клиента',
+  'internalName' => 'CRM доп. поля',
+  'status' => 'Published',
+  'slug' => 'client-extra',
+  'note' => 'Дополнительные поля для CRM',
+  'config' => [
+    'resubmitMode' => 'Overwrite'
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  echo "Layout created successfully\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/form/layout/create'
+
+data = {
+  'mode': 'Custom',
+  'name': 'Доп. данные клиента',
+  'internalName': 'CRM доп. поля',
+  'status': 'Published',
+  'slug': 'client-extra',
+  'note': 'Дополнительные поля для CRM',
+  'config': {
+    'resubmitMode': 'Overwrite'
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Layout created successfully:')
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 5,
+    "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "mode": "Custom",
+    "status": "Published",
+    "slug": "client-extra",
+    "name": "Доп. данные клиента",
+    "internalName": "CRM доп. поля",
+    "note": "Дополнительные поля для CRM",
+    "config": {
+      "resubmitMode": "Overwrite"
+    },
+    "sellerId": 1,
+    "createdAt": "2025-03-10T12:00:00.000Z",
+    "updatedAt": "2025-03-10T12:00:00.000Z"
+  }
+}
+```
+```json Error - Duplicate Slug
+{
+  "code": 400,
+  "success": false,
+  "cause": "QueryFailedError",
+  "message": "duplicate key value violates unique constraint",
+  "error": "duplicate key value violates unique constraint"
+}
+```
+```json Error - Validation
+{
+  "code": 400,
+  "success": false,
+  "cause": "BadRequest",
+  "message": "name must be shorter than or equal to 255 characters",
+  "error": "name must be shorter than or equal to 255 characters"
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+  Для создания макета формы требуется **право FormManage** у сервисного пользователя.
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>

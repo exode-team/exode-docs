@@ -54,6 +54,21 @@
             ]
           },
           {
+            "group": "Кастомные поля",
+            "pages": [
+              "ru/exode-api/school/custom-field/get",
+              "ru/exode-api/school/custom-field/set"
+            ]
+          },
+          {
+            "group": "Формы",
+            "pages": [
+              "ru/exode-api/school/form-layout/create",
+              "ru/exode-api/school/form-layout/update",
+              "ru/exode-api/school/form-layout/delete"
+            ]
+          },
+          {
             "group": "Интеграции",
             "pages": [
               "ru/exode-api/school/iframe/tg-mini-app"
