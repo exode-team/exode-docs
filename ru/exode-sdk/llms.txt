@@ -1,4 +1,4 @@
-# Exode SDK — full context for AI assistants
+# Exode SDK - full context for AI assistants
 
 This file is a self-contained reference for the `@exode-team/sdk` package.
 Feed it to an LLM (ChatGPT, Claude, Copilot, etc.) so the model can write
@@ -24,7 +24,7 @@ for online schools). It ships two independent modules:
 Requirements:
 - Node.js >= 18
 - TypeScript >= 5.7 (optional; types ship with the package)
-- React >= 17 — optional peer dependency, only needed for `miniapp/react`
+- React >= 17 - optional peer dependency, only needed for `miniapp/react`
 
 Install:
 
@@ -39,7 +39,7 @@ Or via CDN (for static pages without a bundler):
 <!-- Global: ExodeMiniAppSDK -->
 ```
 
-Important: there is no root export for `@exode-team/sdk` — always import
+Important: there is no root export for `@exode-team/sdk` - always import
 from a specific subpath.
 
 ---
@@ -87,7 +87,7 @@ exodeApi.request<T>(method: string, path: string, options?: {
 ### 2.3 Resource: `school.user`
 
 ```ts
-// CREATE — at least one login (email/phone/tgId/extId) is required
+// CREATE - at least one login (email/phone/tgId/extId) is required
 exodeApi.school.user.create(params: {
   email?: string | null
   phone?: string | null
@@ -114,18 +114,18 @@ exodeApi.school.user.update(
   params: UserUpdateParams,      // same shape as create
 ): Promise<UserEntity>
 
-// UPSERT — creates or updates by login
+// UPSERT - creates or updates by login
 exodeApi.school.user.upsert(params: UserCreateParams):
   Promise<{ user: UserEntity; isCreated: boolean }>
 
-// FIND — search by login/tgId/extId (sent as query params)
+// FIND - search by login/tgId/extId (sent as query params)
 exodeApi.school.user.find(params: {
   login?: string
   tgId?: number
   extId?: string
 }): Promise<UserEntity | null>
 
-// STATE — arbitrary per-user key-value storage
+// STATE - arbitrary per-user key-value storage
 exodeApi.school.user.getState(
   userId: number,
   key: 'CustomField' | 'UtmSignupParams' | 'PersonalInfoFilled',
@@ -137,7 +137,7 @@ exodeApi.school.user.setState(
   value: unknown,
 ): Promise<{ set: boolean }>
 
-// AUTH TOKEN — creates a session and returns session.token for auto-login
+// AUTH TOKEN - creates a session and returns session.token for auto-login
 exodeApi.school.user.createAuthToken(params: {
   userId: number
   forceCreate?: boolean
@@ -145,7 +145,7 @@ exodeApi.school.user.createAuthToken(params: {
 ```
 
 Use the returned `session.token` as the `?___uat=<token>` query parameter
-on a school URL — Exode will auto-authenticate the user. This is the
+on a school URL - Exode will auto-authenticate the user. This is the
 canonical way to sign a user in from an external system (including
 Telegram Mini Apps).
 
@@ -172,7 +172,7 @@ Async exports: `generate` returns a UUID; poll the result with `getResult`.
 ```ts
 import { QueryExportType, QueryExportFormat } from '@exode-team/sdk/api'
 
-// Start — returns a WorkflowExecutionEntity with uuid
+// Start - returns a WorkflowExecutionEntity with uuid
 const { uuid } = await exodeApi.school.queryExport.generate({
   type: QueryExportType.GroupMemberFindMany,
   format: QueryExportFormat.Csv,
@@ -226,7 +226,7 @@ interface ProfileEntity {
   school: { id: string | null; city: number | null; class: string | null; name: string | null; speciality: string | null }
   official: boolean
   contact: { phone: string | null; email: string | null; messengerUrl: string | null } | null
-  titleState: { /* manual / location / achievement titles — see SDK */ }
+  titleState: { /* manual / location / achievement titles - see SDK */ }
   createdAt: string           // ISO
   updatedAt: string | null
 }
@@ -340,8 +340,8 @@ Exode App (host)      <-- postMessage -->      MiniApp (iframe)
 ```
 
 Roles:
-- **Host** (implemented inside the main Exode app) — sends context, receives commands.
-- **Guest** (this SDK) — receives context, sends commands, listens to events.
+- **Host** (implemented inside the main Exode app) - sends context, receives commands.
+- **Guest** (this SDK) - receives context, sends commands, listens to events.
 
 ### 3.1 ExodeMiniApp constructor
 
@@ -366,7 +366,7 @@ from a top-level window throws an error.
 const ctx: MiniAppContext = await app.init()
 ```
 
-- Must be called exactly once — a second `init()` throws.
+- Must be called exactly once - a second `init()` throws.
 - If the host does not respond within `timeout` ms, the Promise rejects.
 - Resolves with a `MiniAppContext` (see below).
 
@@ -418,7 +418,7 @@ Event map:
 | `visibility:changed` | `{ visible: boolean }` |
 
 `context:updated` is automatically merged into the internal context
-cache — `app.getContext()` always returns the latest snapshot.
+cache - `app.getContext()` always returns the latest snapshot.
 
 ### 3.5 Accessing the context and cleanup
 
@@ -516,7 +516,7 @@ window.addEventListener('beforeunload', () => app.destroy())
 
 ## 4. React hooks (`@exode-team/sdk/miniapp/react`)
 
-A declarative layer on top of `ExodeMiniApp`. All hooks are reactive —
+A declarative layer on top of `ExodeMiniApp`. All hooks are reactive -
 components re-render when host events fire.
 
 ### 4.1 Provider
@@ -599,17 +599,17 @@ export default function App() {
 
 ## 6. Common pitfalls
 
-- Do not import `@exode-team/sdk/api` in browser code — the token will leak.
+- Do not import `@exode-team/sdk/api` in browser code - the token will leak.
 - `ExodeMiniApp.init()` only works inside an iframe; calling it from a
   top-level window throws.
-- Do not call `init()` twice on the same instance — it throws.
+- Do not call `init()` twice on the same instance - it throws.
 - `targetOrigin: '*'` is fine for local development only; in production
   pin the exact origin of the Exode host app.
 - `QueryExportType` and `QueryExportFormat` are prefixed enums
-  (`QUERY_EXPORT_TYPE_...`, `EXPORT_FORMAT_...`) — do not pass raw strings
+  (`QUERY_EXPORT_TYPE_...`, `EXPORT_FORMAT_...`) - do not pass raw strings
   without the prefix.
 - Required request headers: `Seller-Id`, `School-Id`,
-  `Authorization: Bearer <token>` — `ExodeAPI` sets them automatically.
+  `Authorization: Bearer <token>` - `ExodeAPI` sets them automatically.
 
 ## 7. Links
 
