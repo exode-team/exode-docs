@@ -1,0 +1,155 @@
+---
+title: 'Клиент ExodeMiniApp'
+description: 'Ванильный JS API: init, route, ui, события'
+---
+
+`ExodeMiniApp` — основной класс клиента. Один экземпляр на приложение. Все методы типизированы и возвращают `Promise`.
+
+## Создание экземпляра
+
+```ts
+import { ExodeMiniApp } from '@exode-team/sdk/miniapp'
+
+const app = new ExodeMiniApp({
+  appId: 'my-app',        // обязательно
+  targetOrigin: '*',      // по умолчанию '*'
+  timeout: 10_000,        // мс, по умолчанию 10000
+})
+```
+
+### Параметры конфигурации
+
+<ResponseField name="appId" type="string" required>
+  Идентификатор мини-приложения. Передаётся в handshake для валидации на стороне хоста.
+</ResponseField>
+
+<ResponseField name="targetOrigin" type="string">
+  Origin хост-окна. По умолчанию `*`. В проде рекомендуется указывать конкретный origin Exode для безопасности.
+</ResponseField>
+
+<ResponseField name="timeout" type="number">
+  Таймаут handshake и всех команд (мс). По умолчанию `10000`.
+</ResponseField>
+
+<Warning>
+  Клиент должен исполняться **внутри iframe**. Попытка `init()` в top-level окне выбросит ошибку `ExodeMiniApp must be used inside an iframe`.
+</Warning>
+
+## Инициализация
+
+```ts
+const ctx = await app.init()
+
+console.log(ctx.user.firstName)
+console.log(ctx.theme.scheme)
+```
+
+Метод выполняет handshake с хостом и возвращает [`MiniAppContext`](/ru/exode-sdk/miniapp/context). Повторный вызов `init()` выбросит ошибку.
+
+<Info>
+  Если handshake не успел завершиться за `timeout` мс — Promise отклоняется. Проверьте, что iframe открыт внутри Exode и `targetOrigin` корректен.
+</Info>
+
+## Навигация (app.route)
+
+```ts
+// Открыть маршрут основного приложения
+await app.route.navigate('/course/123')
+
+// С параметрами
+await app.route.navigate('/course/123', { tab: 'lessons' })
+
+// Назад по истории хоста
+await app.route.back()
+```
+
+## UI-команды (app.ui)
+
+```ts
+// Snackbar-уведомление
+await app.ui.showSnackbar({
+  message: 'Сохранено!',
+  type: 'success', // 'success' | 'error' | 'info'
+})
+
+// Скрыть / показать нижнюю навигацию хоста
+await app.ui.setTabbarVisible(false)
+
+// Скрыть / показать шапку хоста
+await app.ui.setHeaderVisible(false)
+
+// Закрыть мини-приложение
+await app.ui.close()
+```
+
+## События (app.on)
+
+Подписка на события хоста. Возвращает функцию отписки.
+
+```ts
+const unsubscribe = app.on('theme:changed', (theme) => {
+  document.body.className = theme.scheme
+})
+
+app.on('user:updated', (user) => {
+  console.log('User changed:', user.firstName)
+})
+
+app.on('route:changed', ({ path, params }) => {
+  console.log('Host navigated to:', path)
+})
+
+// Отписка
+unsubscribe()
+```
+
+<Tip>
+  Полный список событий и их payload'ов — в разделе [Контекст и типы](/ru/exode-sdk/miniapp/context).
+</Tip>
+
+## Получение текущего контекста
+
+`init()` возвращает контекст один раз. Для последующего доступа используйте `getContext()` — он всегда актуален, так как bridge автоматически применяет события `context:updated`.
+
+```ts
+const ctx = app.getContext()
+
+if (ctx) {
+  console.log(ctx.user.firstName)
+}
+```
+
+## Уничтожение
+
+```ts
+app.destroy()
+```
+
+Закрывает bridge, отключает слушатели `postMessage`, очищает обработчики событий. Вызывайте при размонтировании приложения.
+
+## Полный пример
+
+```ts
+import { ExodeMiniApp } from '@exode-team/sdk/miniapp'
+
+const app = new ExodeMiniApp({ appId: 'my-app' })
+
+async function start() {
+  const ctx = await app.init()
+
+  document.body.className = ctx.theme.scheme
+  document.getElementById('hello')!.textContent = `Привет, ${ctx.user.firstName}`
+
+  app.on('theme:changed', (theme) => {
+    document.body.className = theme.scheme
+  })
+
+  document.getElementById('btn-save')!.addEventListener('click', async () => {
+    await app.ui.showSnackbar({ message: 'Сохранено!', type: 'success' })
+  })
+}
+
+start().catch(console.error)
+
+window.addEventListener('beforeunload', () => app.destroy())
+```

@@ -92,6 +92,34 @@
         ]
       },
       {
+        "tab": "Exode SDK",
+        "hidden": true,
+        "groups": [
+          {
+            "group": "Начало работы",
+            "pages": [
+              "ru/exode-sdk/overview",
+              "ru/exode-sdk/installation"
+            ]
+          },
+          {
+            "group": "API Client",
+            "pages": [
+              "ru/exode-sdk/api-client"
+            ]
+          },
+          {
+            "group": "MiniApp",
+            "pages": [
+              "ru/exode-sdk/miniapp/introduction",
+              "ru/exode-sdk/miniapp/client",
+              "ru/exode-sdk/miniapp/context",
+              "ru/exode-sdk/miniapp/react"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Status",
         "icon": "activity",
         "href": "https://exode.instatus.com/"

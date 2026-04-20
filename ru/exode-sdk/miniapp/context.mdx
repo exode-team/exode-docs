@@ -1,0 +1,151 @@
+---
+title: 'Контекст и типы'
+description: 'Структура MiniAppContext, события хоста и команды MiniApp'
+---
+
+## MiniAppContext
+
+Полный контекст, который хост передаёт MiniApp при handshake. Возвращается из `app.init()` и доступен через `app.getContext()`.
+
+```ts
+interface MiniAppContext {
+  user: MiniAppUser
+  school: Record<string, unknown>
+  theme: MiniAppTheme
+  platform: Platform
+  config: MiniAppConfig
+}
+```
+
+### MiniAppUser
+
+<ResponseField name="id" type="number" required>
+  Внутренний идентификатор пользователя в Exode.
+</ResponseField>
+
+<ResponseField name="uuid" type="string | null">
+  Публичный UUID пользователя.
+</ResponseField>
+
+<ResponseField name="firstName" type="string | null">
+  Имя пользователя.
+</ResponseField>
+
+<ResponseField name="lastName" type="string | null">
+  Фамилия пользователя.
+</ResponseField>
+
+<ResponseField name="avatar" type="object | null">
+  Аватар в трёх размерах: `small`, `medium`, `maximum`.
+</ResponseField>
+
+<ResponseField name="email" type="string | null">
+  Email пользователя.
+</ResponseField>
+
+<ResponseField name="phone" type="string | null">
+  Телефон пользователя.
+</ResponseField>
+
+<ResponseField name="role" type="string" required>
+  Роль: `Student`, `Tutor`, `Parent` и др.
+</ResponseField>
+
+<ResponseField name="language" type="string | null">
+  Язык интерфейса: `en`, `ru`, `uz`, `qa`.
+</ResponseField>
+
+### MiniAppTheme
+
+```ts
+interface MiniAppTheme {
+  scheme: 'light' | 'dark'
+}
+```
+
+### MiniAppConfig
+
+```ts
+interface MiniAppConfig {
+  isDesktop: boolean
+  isMobile: boolean
+  language: string
+}
+```
+
+### Platform
+
+```ts
+type Platform = 'web' | 'native'
+```
+
+<Info>
+  `native` означает, что Exode запущен внутри нативной оболочки (например, iOS/Android-приложение). В остальных случаях `web`.
+</Info>
+
+### school
+
+Поле `school` — открытый объект `Record<string, unknown>` со всеми данными школы (название, домен, конфиг и т. п.). Структура зависит от конкретной школы; уточняйте нужные поля у хост-приложения.
+
+## События хоста (MiniAppEventMap)
+
+Отправляются хостом при изменении данных. MiniApp подписывается через `app.on(event, handler)`.
+
+| Событие | Payload | Когда срабатывает |
+|---------|---------|-------------------|
+| `theme:changed` | `MiniAppTheme` | Пользователь переключил тему |
+| `user:updated` | `MiniAppUser` | Изменился профиль или сменился аккаунт |
+| `school:updated` | `Record<string, unknown>` | Изменились данные школы |
+| `config:updated` | `MiniAppConfig` | Смена размера окна, языка |
+| `route:changed` | `{ path, params }` | Хост изменил маршрут |
+| `context:updated` | `Partial<MiniAppContext>` | Любое частичное обновление контекста |
+| `visibility:changed` | `{ visible: boolean }` | Iframe стал видимым/невидимым |
+
+<Tip>
+  Событие `context:updated` применяется к внутреннему кэшу автоматически — `app.getContext()` всегда вернёт актуальные данные.
+</Tip>
+
+## Команды MiniApp → хост (MiniAppCommandMap)
+
+Вызываются через namespaces `app.route` и `app.ui`.
+
+| Команда | Payload | Метод SDK |
+|---------|---------|-----------|
+| `navigate` | `{ path, params? }` | `app.route.navigate()` |
+| `navigate:back` | — | `app.route.back()` |
+| `showSnackbar` | `{ message, type? }` | `app.ui.showSnackbar()` |
+| `setTabbarVisible` | `{ visible }` | `app.ui.setTabbarVisible()` |
+| `setHeaderVisible` | `{ visible }` | `app.ui.setHeaderVisible()` |
+| `close` | — | `app.ui.close()` |
+
+## BridgeMessage
+
+Низкоуровневый формат сообщений `postMessage`. Обычно разработчику не нужен, но полезен при отладке.
+
+```ts
+interface BridgeMessage<T = unknown> {
+  type: string
+  requestId?: string
+  payload?: T
+  source: 'exode-host' | 'exode-miniapp'
+}
+```
+
+<Warning>
+  Не отправляйте `postMessage` вручную. Все валидные взаимодействия идут через методы `ExodeMiniApp` — только они гарантируют корректный handshake, requestId и валидацию origin.
+</Warning>
+
+## Импорт типов
+
+```ts
+import type {
+  MiniAppContext,
+  MiniAppUser,
+  MiniAppTheme,
+  MiniAppConfig,
+  MiniAppEventMap,
+  MiniAppCommandMap,
+  BridgeMessage,
+  Platform,
+} from '@exode-team/sdk/miniapp'
+```

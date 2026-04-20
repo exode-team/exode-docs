@@ -1,0 +1,83 @@
+---
+title: 'Введение в MiniApp'
+description: 'Концепция и архитектура встраиваемых мини-приложений в Exode'
+---
+
+MiniApp — это внешнее веб-приложение, которое открывается в `iframe` внутри основного приложения Exode. SDK обеспечивает двустороннюю связь между мини-приложением и хостом через `postMessage`.
+
+## Архитектура
+
+```
+Exode App (host)          ◄── postMessage ──►      MiniApp (iframe)
+• отправляет контекст                                   • получает user, school, theme
+• слушает команды                                       • отправляет команды (navigate, snackbar)
+• пушит обновления                                      • подписывается на события
+```
+
+<Info>
+  Хост-сторона моста реализована внутри основного приложения Exode. Гостевая сторона (то, что подключает разработчик MiniApp) — это и есть `@exode-team/sdk/miniapp`.
+</Info>
+
+## Жизненный цикл
+
+<Steps>
+  <Step title="Загрузка iframe">
+    Основное приложение открывает MiniApp по URL, передавая его в `iframe`.
+  </Step>
+
+  <Step title="Handshake">
+    MiniApp инициализируется, отправляет хосту свой `appId`. Хост валидирует origin и appId, возвращает контекст (пользователь, школа, тема, конфиг).
+  </Step>
+
+  <Step title="Работа">
+    MiniApp отправляет команды (`navigate`, `showSnackbar`, ...). Хост пушит события (`theme:changed`, `user:updated`, ...).
+  </Step>
+
+  <Step title="Уничтожение">
+    При размонтировании MiniApp вызывает `app.destroy()` — bridge закрывает слушатели и очищает ресурсы.
+  </Step>
+</Steps>
+
+## Что доступно MiniApp
+
+<AccordionGroup>
+  <Accordion title="Контекст хоста" icon="database">
+    - Профиль пользователя (имя, аватар, email, роль, язык)
+    - Объект школы
+    - Текущая тема (`light` / `dark`)
+    - Платформа (`web` / `native`) и устройство (`isDesktop` / `isMobile`)
+  </Accordion>
+
+  <Accordion title="Команды к хосту" icon="paper-plane">
+    - Навигация внутри основного приложения
+    - Показ snackbar-уведомлений
+    - Управление видимостью tabbar / header
+    - Закрытие мини-приложения
+  </Accordion>
+
+  <Accordion title="Реактивные события" icon="bolt">
+    - Смена темы, пользователя, школы, конфига
+    - Изменение маршрута хоста
+    - Изменение видимости iframe
+  </Accordion>
+</AccordionGroup>
+
+## Что дальше
+
+<CardGroup cols={2}>
+  <Card title="Клиент ExodeMiniApp" icon="plug" href="/ru/exode-sdk/miniapp/client">
+    Ванильный JS-клиент: init, route, ui, события.
+  </Card>
+
+  <Card title="Контекст и типы" icon="code" href="/ru/exode-sdk/miniapp/context">
+    Структура MiniAppContext, типы событий и команд.
+  </Card>
+
+  <Card title="React-хуки" icon="react" href="/ru/exode-sdk/miniapp/react">
+    Provider и реактивные хуки для React-приложений.
+  </Card>
+
+  <Card title="Telegram Mini App" icon="telegram" href="/ru/exode-api/school/iframe/tg-mini-app">
+    Автоавторизация через параметр `___uat`.
+  </Card>
+</CardGroup>

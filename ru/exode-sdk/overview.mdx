@@ -1,0 +1,51 @@
+---
+title: 'Обзор'
+description: 'Exode SDK — пакет для интеграции с платформой Exode'
+---
+
+`@exode-team/sdk` — официальный npm-пакет Exode, объединяющий два независимых модуля: серверный клиент для School API и клиентский bridge для встраиваемых мини-приложений (MiniApp).
+
+<CardGroup cols={2}>
+  <Card title="API Client" icon="plug" href="/ru/exode-sdk/api-client">
+    Типизированный клиент для REST-эндпоинтов `/saas/v2/*`. Используется на сервере (Node.js) и покрывает пользователей, группы и выгрузки.
+  </Card>
+
+  <Card title="MiniApp Bridge" icon="window-restore" href="/ru/exode-sdk/miniapp/introduction">
+    Клиентский SDK для iframe-приложений: handshake с хостом, навигация, UI-команды, события, React-хуки.
+  </Card>
+</CardGroup>
+
+## Модули пакета
+
+| Импорт | Назначение | Среда |
+|--------|-----------|-------|
+| `@exode-team/sdk/api` | Серверный клиент School API | Node.js ≥18 |
+| `@exode-team/sdk/miniapp` | Bridge для iframe-миниприложений | Браузер |
+| `@exode-team/sdk/miniapp/react` | React-хуки поверх bridge | Браузер + React ≥17 |
+
+<Info>
+  Пакет разбит на независимые subpath-экспорты. Импортируйте только нужный модуль — tree-shaking уберёт остальное из бандла.
+</Info>
+
+## Текущая версия
+
+<Card title="npm: @exode-team/sdk@0.1.0" icon="box" href="https://www.npmjs.com/package/@exode-team/sdk">
+  Актуальная опубликованная версия. Пакет находится в стадии активной разработки — следите за CHANGELOG.
+</Card>
+
+## Что дальше
+
+<Steps>
+  <Step title="Установка">
+    Перейдите в раздел [Установка](/ru/exode-sdk/installation), чтобы подключить пакет через npm или CDN.
+  </Step>
+
+  <Step title="Выберите модуль">
+    - Серверная интеграция → [API Client](/ru/exode-sdk/api-client)
+    - Встраиваемое приложение внутри Exode → [MiniApp](/ru/exode-sdk/miniapp/introduction)
+  </Step>
+
+  <Step title="Поддержка">
+    При возникновении вопросов свяжитесь с [технической поддержкой](https://t.me/exode_support_biz).
+  </Step>
+</Steps>

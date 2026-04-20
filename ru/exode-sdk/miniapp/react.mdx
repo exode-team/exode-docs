@@ -1,0 +1,195 @@
+---
+title: 'React-хуки'
+description: 'Provider и реактивные хуки для MiniApp на React'
+---
+
+Модуль `@exode-team/sdk/miniapp/react` предоставляет декларативный слой над `ExodeMiniApp` для React-приложений. Все хуки реактивные: при событиях хоста компоненты автоматически перерендериваются.
+
+<Info>
+  React — опциональная peer-зависимость. Если в проекте нет React, этот модуль не нужен — используйте [ванильный клиент](/ru/exode-sdk/miniapp/client).
+</Info>
+
+## Provider
+
+Оборачивает приложение, создаёт `ExodeMiniApp`, выполняет handshake и распространяет подписки на события:
+
+```jsx
+import { ExodeMiniAppProvider } from '@exode-team/sdk/miniapp/react'
+
+function App() {
+  return (
+    <ExodeMiniAppProvider config={{ appId: 'my-app' }}>
+      <MyApp />
+    </ExodeMiniAppProvider>
+  )
+}
+```
+
+### Параметры
+
+<ResponseField name="config" type="ExodeMiniAppConfig" required>
+  Конфигурация клиента: `appId`, `targetOrigin?`, `timeout?`.
+</ResponseField>
+
+## useExodeApp
+
+Состояние подключения и низкоуровневый доступ к инстансу `ExodeMiniApp`.
+
+```jsx
+function Status() {
+  const { app, isReady, error } = useExodeApp()
+
+  if (error) return <div>Ошибка подключения: {error.message}</div>
+  if (!isReady) return <div>Соединение с Exode...</div>
+
+  return <div>Подключено</div>
+}
+```
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `app` | `ExodeMiniApp \| null` | Экземпляр клиента (или `null` до handshake) |
+| `isReady` | `boolean` | Handshake завершён |
+| `error` | `Error \| null` | Ошибка инициализации |
+
+## useExodeUser
+
+Текущий пользователь. Обновляется на событии `user:updated`.
+
+```jsx
+function Greeting() {
+  const { user, isLoggedIn } = useExodeUser()
+
+  if (!isLoggedIn) return <div>Не авторизован</div>
+
+  return <div>Привет, {user.firstName}</div>
+}
+```
+
+## useExodeTheme
+
+Текущая тема. Обновляется на событии `theme:changed`.
+
+```jsx
+function ThemedBox() {
+  const { scheme, isDark } = useExodeTheme()
+
+  return (
+    <div style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>
+      Схема: {scheme}
+    </div>
+  )
+}
+```
+
+## useExodeSchool
+
+Данные школы. Обновляется на событии `school:updated`.
+
+```jsx
+function SchoolInfo() {
+  const { school } = useExodeSchool()
+
+  return <div>{school?.name as string}</div>
+}
+```
+
+## useExodeConfig
+
+Конфигурация окружения. Обновляется на событии `config:updated`.
+
+```jsx
+function Layout({ children }) {
+  const { isDesktop, isMobile, language, platform } = useExodeConfig()
+
+  return (
+    <div className={isMobile ? 'layout-compact' : 'layout-wide'} lang={language}>
+      {children}
+    </div>
+  )
+}
+```
+
+## useExodeNavigation
+
+Команды навигации основного приложения.
+
+```jsx
+function NavButtons() {
+  const { navigate, back } = useExodeNavigation()
+
+  return (
+    <>
+      <button onClick={() => navigate('/course/123', { tab: 'lessons' })}>
+        Открыть курс
+      </button>
+      <button onClick={() => back()}>Назад</button>
+    </>
+  )
+}
+```
+
+## useExodeUI
+
+UI-команды к хосту.
+
+```jsx
+function Controls() {
+  const { showSnackbar, setTabbarVisible, setHeaderVisible, close } = useExodeUI()
+
+  return (
+    <>
+      <button onClick={() => showSnackbar({ message: 'Готово!', type: 'success' })}>
+        Уведомление
+      </button>
+      <button onClick={() => setTabbarVisible(false)}>Скрыть tabbar</button>
+      <button onClick={() => close()}>Закрыть приложение</button>
+    </>
+  )
+}
+```
+
+## Требования
+
+<Warning>
+  Все хуки работают только внутри `<ExodeMiniAppProvider>`. Вызов за его пределами выбросит ошибку.
+</Warning>
+
+## Полный пример
+
+```jsx
+import {
+  ExodeMiniAppProvider,
+  useExodeApp,
+  useExodeUser,
+  useExodeTheme,
+  useExodeUI,
+} from '@exode-team/sdk/miniapp/react'
+
+function Content() {
+  const { isReady, error } = useExodeApp()
+  const { user } = useExodeUser()
+  const { isDark } = useExodeTheme()
+  const { showSnackbar } = useExodeUI()
+
+  if (error) return <div>Ошибка: {error.message}</div>
+  if (!isReady) return <div>Загрузка...</div>
+
+  return (
+    <div data-theme={isDark ? 'dark' : 'light'}>
+      <h1>Привет, {user.firstName}</h1>
+      <button onClick={() => showSnackbar({ message: 'Привет!', type: 'info' })}>
+        Показать уведомление
+      </button>
+    </div>
+  )
+}
+
+export default function App() {
+  return (
+    <ExodeMiniAppProvider config={{ appId: 'my-app' }}>
+      <Content />
+    </ExodeMiniAppProvider>
+  )
+}
+```

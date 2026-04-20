@@ -1,0 +1,96 @@
+---
+title: 'Установка'
+description: 'Подключение Exode SDK через npm или CDN'
+---
+
+## Требования
+
+<CardGroup cols={3}>
+  <Card title="Node.js" icon="node-js">
+    ≥ 18.0.0
+  </Card>
+  <Card title="TypeScript" icon="code">
+    ≥ 5.7 (опционально, типы включены)
+  </Card>
+  <Card title="React" icon="react">
+    ≥ 17 (только для `miniapp/react`)
+  </Card>
+</CardGroup>
+
+## Установка через npm
+
+<CodeGroup>
+```bash npm
+npm install @exode-team/sdk
+```
+
+```bash yarn
+yarn add @exode-team/sdk
+```
+
+```bash pnpm
+pnpm add @exode-team/sdk
+```
+</CodeGroup>
+
+<Tip>
+  React — опциональная peer-зависимость. Если проект не использует React, модуль `miniapp/react` не подтянет его и не попадёт в бандл.
+</Tip>
+
+## Импорты
+
+У пакета три subpath-экспорта — импортируйте только нужный:
+
+```ts
+import { ExodeAPI }        from '@exode-team/sdk/api'
+import { ExodeMiniApp }    from '@exode-team/sdk/miniapp'
+import { useExodeUser }    from '@exode-team/sdk/miniapp/react'
+```
+
+<Warning>
+  Не импортируйте из корня (`@exode-team/sdk`) — корневой экспорт не определён, чтобы избежать случайной загрузки серверного и клиентского кода в одном бандле.
+</Warning>
+
+## Подключение через CDN
+
+Для статических страниц без сборки доступен IIFE-бандл MiniApp-модуля:
+
+<CodeGroup>
+```html Конкретная версия (рекомендуется)
+<script src="https://cdn.exode.biz/sdk/v0.1.0/miniapp.global.js"></script>
+```
+
+```html Последняя версия
+<script src="https://cdn.exode.biz/sdk/latest/miniapp.global.js"></script>
+```
+</CodeGroup>
+
+После подключения глобальный объект `ExodeMiniAppSDK` становится доступен:
+
+```html
+<script>
+  const app = new ExodeMiniAppSDK.ExodeMiniApp({ appId: 'my-app' })
+
+  app.init().then((ctx) => {
+    console.log('User:', ctx.user.firstName)
+  })
+</script>
+```
+
+<Info>
+  В проде всегда фиксируйте версию (`v0.1.0`, `v0.2.0` и т. д.). Тег `latest` обновляется автоматически и может внести ломающие изменения.
+</Info>
+
+## TypeScript
+
+Типы поставляются вместе с пакетом, дополнительный `@types/...` не требуется.
+
+```ts
+import type {
+  ExodeAPIConfig,
+  ExodeMiniAppConfig,
+  MiniAppContext,
+  MiniAppUser,
+  Platform,
+} from '@exode-team/sdk/miniapp'
+```
