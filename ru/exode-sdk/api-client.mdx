@@ -94,8 +94,8 @@ const found = await exodeApi.school.user.find({ email: 'student@example.com' })
 await exodeApi.school.user.setState(user.id, 'onboarding', { step: 2 })
 const { value } = await exodeApi.school.user.getState(user.id, 'onboarding')
 
-// Сессия
-const { session } = await exodeApi.school.user.createSession(user.id)
+// Токен автоавторизации
+const { session } = await exodeApi.school.user.createAuthToken({ userId: user.id })
 // session.token → используйте в параметре ___uat для автоавторизации
 ```
 
@@ -106,13 +106,10 @@ const { session } = await exodeApi.school.user.createSession(user.id)
 ## Группы (school.group)
 
 ```ts
-await exodeApi.school.group.addMembers(groupId, {
-  members: [{ userId: 1 }, { userId: 2 }],
-})
+await exodeApi.school.group.addMembers(groupId, [1, 2, 3])
 
-await exodeApi.school.group.removeMembers(groupId, {
-  members: [{ userId: 1 }],
-})
+await exodeApi.school.group.removeMembers(groupId, [1])
+// → { affected: number }
 ```
 
 ## Выгрузки (school.queryExport)
@@ -122,10 +119,10 @@ await exodeApi.school.group.removeMembers(groupId, {
 ```ts
 import { QueryExportType, QueryExportFormat } from '@exode-team/sdk/api'
 
-// 1. Запуск
+// 1. Запуск — возвращает WorkflowExecutionEntity с uuid
 const { uuid } = await exodeApi.school.queryExport.generate({
-  type: QueryExportType.GROUP_MEMBER_FIND_MANY,
-  format: QueryExportFormat.CSV,
+  type: QueryExportType.GroupMemberFindMany,
+  format: QueryExportFormat.Csv,
   filter: { groupId: 42 },
 })
 

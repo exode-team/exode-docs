@@ -1,0 +1,618 @@
+# Exode SDK — полный контекст для AI-ассистента
+
+Этот файл содержит исчерпывающий справочник по пакету `@exode-team/sdk`.
+Скормите его LLM (ChatGPT, Claude, Copilot и т. п.), чтобы модель могла
+писать корректный код интеграции с платформой Exode без дополнительного
+контекста.
+
+Версия пакета: **0.1.0**
+Репозиторий: https://github.com/exode-team/exode-sdk
+npm: https://www.npmjs.com/package/@exode-team/sdk
+
+---
+
+## 1. Обзор пакета
+
+`@exode-team/sdk` — официальный SDK платформы Exode (EdTech SaaS для онлайн-школ).
+Состоит из двух независимых модулей:
+
+| Импорт | Назначение | Где работает |
+|--------|-----------|--------------|
+| `@exode-team/sdk/api` | Серверный REST-клиент `ExodeAPI` для `/saas/v2/*` | Node.js ≥ 18 |
+| `@exode-team/sdk/miniapp` | Клиентский bridge для iframe-миниприложений | Браузер |
+| `@exode-team/sdk/miniapp/react` | React-хуки поверх bridge | Браузер + React ≥ 17 |
+
+Требования:
+- Node.js ≥ 18
+- TypeScript ≥ 5.7 (опционально, типы поставляются)
+- React ≥ 17 — опциональная peer-зависимость, нужна только для `miniapp/react`
+
+Установка:
+
+```bash
+npm install @exode-team/sdk
+```
+
+Или CDN (для статических страниц без сборки):
+
+```html
+<script src="https://cdn.exode.biz/sdk/v0.1.0/miniapp.global.js"></script>
+<!-- Глобальный объект: ExodeMiniAppSDK -->
+```
+
+Важно: корневой импорт `@exode-team/sdk` не определён — импортируйте конкретный subpath.
+
+---
+
+## 2. API Client (`@exode-team/sdk/api`)
+
+Серверный HTTP-клиент для REST-эндпоинтов `/saas/v2/*`.
+Использование только на сервере (токен нельзя выставлять в клиент).
+
+### 2.1 Конструктор
+
+```ts
+import { ExodeAPI, ExodeAPIError } from '@exode-team/sdk/api'
+
+interface ExodeAPIConfig {
+  sellerId: number       // обязательно → заголовок Seller-Id
+  schoolId: number       // обязательно → заголовок School-Id
+  token: string          // обязательно → Authorization: Bearer <token>
+  baseUrl?: string       // по умолчанию 'https://api.exode.biz/saas/v2'
+  timeout?: number       // мс, по умолчанию 30000
+}
+
+const exodeApi = new ExodeAPI({
+  sellerId: 1,
+  schoolId: 1,
+  token: process.env.EXODE_TOKEN!,
+})
+```
+
+Конструктор выбрасывает `Error`, если:
+- не передан `token`
+- не передан `sellerId` или `schoolId`
+
+### 2.2 Общий метод request
+
+Низкоуровневый метод — используется ресурсами, разработчику обычно не нужен:
+
+```ts
+exodeApi.request<T>(method: string, path: string, options?: {
+  body?: unknown
+  query?: Record<string, string | number | undefined>
+}): Promise<T>
+```
+
+### 2.3 Ресурс `school.user`
+
+```ts
+// CREATE — email/phone/tgId/extId — хотя бы один логин обязателен
+exodeApi.school.user.create(params: {
+  email?: string | null
+  phone?: string | null
+  tgId?: number | null
+  extId?: string | null
+  banned?: boolean
+  profile?: {
+    firstName?: string | null
+    lastName?: string | null
+    bdate?: string | null         // ISO
+    sex?: 'Ufo' | 'Women' | 'Men' | null
+    role?: 'Student' | 'Tutor' | 'Parent' | null
+    contact?: {
+      phone?: string | null
+      email?: string | null
+      messengerUrl?: string | null
+    }
+  }
+}): Promise<UserEntity>
+
+// UPDATE
+exodeApi.school.user.update(
+  userId: number,
+  params: UserUpdateParams,      // те же поля, что у create
+): Promise<UserEntity>
+
+// UPSERT — создаёт или обновляет по логину
+exodeApi.school.user.upsert(params: UserCreateParams):
+  Promise<{ user: UserEntity; isCreated: boolean }>
+
+// FIND — поиск по login/tgId/extId (как query-параметры)
+exodeApi.school.user.find(params: {
+  login?: string
+  tgId?: number
+  extId?: string
+}): Promise<UserEntity | null>
+
+// STATE — хранилище произвольных данных пользователя по ключу
+exodeApi.school.user.getState(
+  userId: number,
+  key: 'CustomField' | 'UtmSignupParams' | 'PersonalInfoFilled',
+): Promise<unknown>
+
+exodeApi.school.user.setState(
+  userId: number,
+  key: UserStateKey,
+  value: unknown,
+): Promise<{ set: boolean }>
+
+// AUTH TOKEN — создаёт сессию и возвращает session.token для автологина
+exodeApi.school.user.createAuthToken(params: {
+  userId: number
+  forceCreate?: boolean
+}): Promise<{ session: SessionEntity; isCreated: boolean }>
+```
+
+Полученный `session.token` вставляется в URL школы как `?___uat=<token>` —
+Exode автоматически авторизует пользователя. Это основной способ
+автологина из внешней системы (в т. ч. для Telegram Mini App).
+
+### 2.4 Ресурс `school.group`
+
+```ts
+// Добавить участников группы
+exodeApi.school.group.addMembers(
+  groupId: number,
+  userIds: number[],
+): Promise<GroupMemberCreateResult>
+
+// Удалить участников группы
+exodeApi.school.group.removeMembers(
+  groupId: number,
+  userIds: number[],
+): Promise<{ affected: number }>
+```
+
+### 2.5 Ресурс `school.queryExport`
+
+Асинхронные выгрузки: `generate` возвращает UUID, результат опрашивается через `getResult`.
+
+```ts
+import { QueryExportType, QueryExportFormat } from '@exode-team/sdk/api'
+
+// Запуск
+exodeApi.school.queryExport.generate(params: {
+  type: QueryExportType
+  format: QueryExportFormat
+  filter?: Record<string, unknown>
+  // ...специфичные для типа параметры
+}): Promise<WorkflowExecutionEntity>   // → { uuid, status, ... }
+
+// Опрос результата (polling)
+exodeApi.school.queryExport.getResult(executionUuid: string):
+  Promise<WorkflowExecutionResult>
+```
+
+Enum-значения (именно эти строки уходят в API):
+
+```ts
+enum QueryExportType {
+  GroupMemberFindMany                 = 'QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY',
+  CourseLessonPracticeAttemptFindMany = 'QUERY_EXPORT_TYPE_COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY',
+}
+
+enum QueryExportFormat {
+  Csv  = 'EXPORT_FORMAT_CSV',
+  Xlsx = 'EXPORT_FORMAT_XLSX',
+  Json = 'EXPORT_FORMAT_JSON',
+}
+
+enum WorkflowExecutionStatus {
+  Waiting    = 'Waiting',
+  Processing = 'Processing',
+  Failed     = 'Failed',
+  Canceled   = 'Canceled',
+  Completed  = 'Completed',
+}
+```
+
+### 2.6 Типы сущностей (API)
+
+```ts
+enum Language    { En = 'En', Ru = 'Ru', Uz = 'Uz', Qa = 'Qa' }
+enum UserSex     { Ufo = 'Ufo', Women = 'Women', Men = 'Men' }
+enum ProfileRole { Student = 'Student', Tutor = 'Tutor', Parent = 'Parent' }
+
+interface ProfileEntity {
+  id: number
+  firstName: string | null
+  lastName: string | null
+  avatar: { id: number; small: string | null; medium: string | null; maximum: string | null }
+  bdate: string | null
+  sex: UserSex | null
+  role: ProfileRole
+  country: string | null
+  city: string | null
+  school: { id: string | null; city: number | null; class: string | null; name: string | null; speciality: string | null }
+  official: boolean
+  contact: { phone: string | null; email: string | null; messengerUrl: string | null } | null
+  titleState: { /* manual/location/achievement titles — см. SDK */ }
+  createdAt: string           // ISO
+  updatedAt: string | null
+}
+
+interface UserEntity {
+  id: number
+  uuid: string | null
+  active: boolean
+  activated: boolean
+  banned: boolean
+  domain: string | null
+  email: string | null
+  phone: string | null
+  vkId: number | null
+  tgId: number | null
+  extId: string | null
+  appleId: string | null
+  language: Language | null
+  timezone: number | null
+  starsBalance: number
+  lastOnlineAt: string | null
+  createdAt: string
+  updatedAt: string | null
+  profile: ProfileEntity
+}
+
+interface SessionEntity {
+  id: number
+  uuid: string
+  token: string               // вставлять в URL как ?___uat=<token>
+  alive: boolean
+  isOnline: boolean
+  expireAt: string            // ISO
+  createdAt: string
+  updatedAt: string | null
+}
+
+interface WorkflowExecutionEntity {
+  id: number
+  uuid: string
+  status: WorkflowExecutionStatus
+  isCompleted: boolean
+  createdAt: string
+  updatedAt: string | null
+}
+
+interface WorkflowExecutionResult {
+  total: number
+  completed: number
+  status: WorkflowExecutionStatus
+  result: {
+    fileUrl: string
+    fileName: string
+    fileSize: number
+  } | null
+}
+```
+
+### 2.7 Обработка ошибок API
+
+Все сбои оборачиваются в `ExodeAPIError`:
+
+```ts
+class ExodeAPIError extends Error {
+  readonly code: number          // HTTP-код или 0 (NetworkError) / 408 (Timeout)
+  readonly errorCause: string    // 'EmailIsBusy', 'Unauthorized', 'Timeout', ...
+  readonly details?: string
+}
+
+try {
+  await exodeApi.school.user.create({ email: 'busy@example.com' })
+} catch (e) {
+  if (e instanceof ExodeAPIError) {
+    if (e.errorCause === 'Unauthorized') { /* обновить токен */ }
+    if (e.errorCause === 'EmailIsBusy')  { /* показать пользователю */ }
+  }
+}
+```
+
+Формат ответа об ошибке от API:
+```json
+{ "success": false, "code": 400, "cause": "EmailIsBusy", "message": "...", "error": "..." }
+```
+
+### 2.8 Типичный сценарий: автоавторизация студента
+
+```ts
+// 1. Найти или создать пользователя по telegram id
+const { user, isCreated } = await exodeApi.school.user.upsert({
+  tgId: 123456789,
+  profile: { firstName: 'Ivan', role: 'Student' },
+})
+
+// 2. Получить одноразовый токен сессии
+const { session } = await exodeApi.school.user.createAuthToken({ userId: user.id })
+
+// 3. Сформировать deep-link в школу
+const url = `https://my-school.exode.biz?___uat=${session.token}`
+```
+
+---
+
+## 3. MiniApp Bridge (`@exode-team/sdk/miniapp`)
+
+Клиентский SDK для приложений, встраиваемых в iframe внутри Exode.
+Обеспечивает двустороннюю связь через `postMessage`.
+
+Схема:
+```
+Exode App (host)       ◄── postMessage ──►       MiniApp (iframe)
+```
+
+Роли:
+- **Host** (реализован внутри основного приложения Exode) — передаёт контекст и принимает команды.
+- **Guest** (этот SDK) — получает контекст, шлёт команды, слушает события.
+
+### 3.1 Конструктор ExodeMiniApp
+
+```ts
+import { ExodeMiniApp } from '@exode-team/sdk/miniapp'
+
+interface ExodeMiniAppConfig {
+  appId: string              // обязательно; валидируется хостом в handshake
+  targetOrigin?: string      // по умолчанию '*'; в проде — конкретный origin Exode
+  timeout?: number           // мс, по умолчанию 10000
+}
+
+const app = new ExodeMiniApp({ appId: 'my-app' })
+```
+
+Важно: экземпляр `ExodeMiniApp` должен работать **внутри iframe**.
+Вызов `init()` в top-level окне выбросит ошибку.
+
+### 3.2 Handshake
+
+```ts
+const ctx: MiniAppContext = await app.init()
+```
+
+- Выполняется один раз — повторный `init()` выбросит ошибку.
+- Если хост не ответил за `timeout` мс — Promise отклоняется.
+- Возвращает `MiniAppContext` (см. ниже).
+
+### 3.3 Команды MiniApp → Host
+
+```ts
+// NAVIGATION (namespace route)
+await app.route.navigate(path: string, params?: Record<string, string>)
+await app.route.back()
+
+// UI (namespace ui)
+await app.ui.showSnackbar({
+  message: string,
+  type?: 'success' | 'error' | 'info',
+})
+await app.ui.setTabbarVisible(visible: boolean)
+await app.ui.setHeaderVisible(visible: boolean)
+await app.ui.close()
+```
+
+Все команды возвращают `Promise<void>`. Если bridge не инициализирован —
+выбрасывается ошибка `ExodeMiniApp is not initialized`.
+
+### 3.4 События Host → MiniApp
+
+```ts
+const unsubscribe = app.on<E extends MiniAppEventType>(
+  event: E,
+  handler: (payload: MiniAppEventMap[E]) => void,
+): () => void
+
+// Пример
+const off = app.on('theme:changed', (theme) => {
+  document.body.className = theme.scheme
+})
+off()  // отписаться
+```
+
+Карта событий:
+
+| Событие | Payload |
+|---------|---------|
+| `theme:changed` | `MiniAppTheme` |
+| `user:updated` | `MiniAppUser` |
+| `school:updated` | `Record<string, unknown>` |
+| `config:updated` | `MiniAppConfig` |
+| `route:changed` | `{ path: string; params: Record<string, string> }` |
+| `context:updated` | `Partial<MiniAppContext>` (применяется автоматически) |
+| `visibility:changed` | `{ visible: boolean }` |
+
+Событие `context:updated` мержится в кэш автоматически — `app.getContext()`
+всегда возвращает актуальный контекст.
+
+### 3.5 Доступ к контексту и уничтожение
+
+```ts
+const ctx = app.getContext()   // MiniAppContext | null (до init)
+
+app.destroy()                  // закрывает bridge, снимает слушатели
+```
+
+### 3.6 Типы MiniApp
+
+```ts
+type Platform = 'web' | 'native'
+
+interface MiniAppContext {
+  user: MiniAppUser
+  school: Record<string, unknown>
+  theme: MiniAppTheme
+  platform: Platform
+  config: MiniAppConfig
+}
+
+interface MiniAppUser {
+  id: number
+  uuid: string | null
+  firstName: string | null
+  lastName: string | null
+  avatar: {
+    id: number
+    small: string | null
+    medium: string | null
+    maximum: string | null
+  } | null
+  email: string | null
+  phone: string | null
+  role: string                 // 'Student' | 'Tutor' | 'Parent' | ...
+  language: string | null
+}
+
+interface MiniAppTheme { scheme: 'light' | 'dark' }
+
+interface MiniAppConfig {
+  isDesktop: boolean
+  isMobile: boolean
+  language: string
+}
+
+// Низкоуровневый формат postMessage
+interface BridgeMessage<T = unknown> {
+  type: string
+  requestId?: string
+  payload?: T
+  source: 'exode-host' | 'exode-miniapp'
+}
+```
+
+### 3.7 Полный пример на ванильном JS
+
+```ts
+import { ExodeMiniApp } from '@exode-team/sdk/miniapp'
+
+const app = new ExodeMiniApp({ appId: 'my-app' })
+
+async function bootstrap() {
+  const ctx = await app.init()
+
+  document.body.className = ctx.theme.scheme
+  document.getElementById('hello')!.textContent = `Привет, ${ctx.user.firstName}`
+
+  app.on('theme:changed', (t) => { document.body.className = t.scheme })
+  app.on('user:updated',  (u) => { console.log('user changed', u) })
+
+  document.getElementById('save')!.addEventListener('click', async () => {
+    await app.ui.showSnackbar({ message: 'Сохранено!', type: 'success' })
+  })
+}
+
+bootstrap().catch((e) => console.error('MiniApp init failed', e))
+window.addEventListener('beforeunload', () => app.destroy())
+```
+
+### 3.8 Использование через CDN (без бандлера)
+
+```html
+<script src="https://cdn.exode.biz/sdk/v0.1.0/miniapp.global.js"></script>
+<script>
+  const app = new ExodeMiniAppSDK.ExodeMiniApp({ appId: 'my-app' })
+  app.init().then((ctx) => {
+    document.body.className = ctx.theme.scheme
+  })
+</script>
+```
+
+---
+
+## 4. React-хуки (`@exode-team/sdk/miniapp/react`)
+
+Декларативный слой над `ExodeMiniApp`. Все хуки реактивные —
+компоненты перерендериваются при событиях хоста.
+
+### 4.1 Provider
+
+```tsx
+import { ExodeMiniAppProvider } from '@exode-team/sdk/miniapp/react'
+
+<ExodeMiniAppProvider config={{ appId: 'my-app' }}>
+  <App />
+</ExodeMiniAppProvider>
+```
+
+Создаёт `ExodeMiniApp`, выполняет handshake, подписывается на все события.
+Все хуки ниже обязаны использоваться **внутри** этого Provider'а.
+
+### 4.2 Хуки
+
+```ts
+useExodeApp():        { app: ExodeMiniApp | null; isReady: boolean; error: Error | null }
+useExodeUser():       { user: MiniAppUser; isLoggedIn: boolean }
+useExodeTheme():      { scheme: 'light' | 'dark'; isDark: boolean }
+useExodeSchool():     { school: Record<string, unknown> }
+useExodeConfig():     { isDesktop: boolean; isMobile: boolean; language: string; platform: Platform }
+useExodeNavigation(): { navigate: (path, params?) => Promise<void>; back: () => Promise<void> }
+useExodeUI():         {
+  showSnackbar: (p: { message; type? }) => Promise<void>
+  setTabbarVisible: (v: boolean) => Promise<void>
+  setHeaderVisible: (v: boolean) => Promise<void>
+  close: () => Promise<void>
+}
+```
+
+### 4.3 Полный пример React
+
+```tsx
+import {
+  ExodeMiniAppProvider,
+  useExodeApp, useExodeUser, useExodeTheme, useExodeUI,
+} from '@exode-team/sdk/miniapp/react'
+
+function Content() {
+  const { isReady, error } = useExodeApp()
+  const { user } = useExodeUser()
+  const { isDark } = useExodeTheme()
+  const { showSnackbar } = useExodeUI()
+
+  if (error)    return <div>Ошибка: {error.message}</div>
+  if (!isReady) return <div>Загрузка…</div>
+
+  return (
+    <div data-theme={isDark ? 'dark' : 'light'}>
+      <h1>Привет, {user.firstName}</h1>
+      <button onClick={() => showSnackbar({ message: 'Привет!', type: 'info' })}>
+        Показать уведомление
+      </button>
+    </div>
+  )
+}
+
+export default function App() {
+  return (
+    <ExodeMiniAppProvider config={{ appId: 'my-app' }}>
+      <Content />
+    </ExodeMiniAppProvider>
+  )
+}
+```
+
+---
+
+## 5. Шпаргалка: когда что использовать
+
+| Задача | Импорт | Пример |
+|--------|--------|--------|
+| Создать пользователя со своего сервера | `@exode-team/sdk/api` | `exodeApi.school.user.create({ ... })` |
+| Сделать автологин на школу | `@exode-team/sdk/api` | `createAuthToken` → `?___uat=<token>` |
+| Получить выгрузку участников группы | `@exode-team/sdk/api` | `queryExport.generate` + `getResult` |
+| Написать приложение-виджет внутри Exode | `@exode-team/sdk/miniapp` | `new ExodeMiniApp({ appId })` |
+| То же, на React | `@exode-team/sdk/miniapp/react` | `<ExodeMiniAppProvider>` + хуки |
+
+## 6. Частые ошибки, которые стоит учитывать
+
+- Не импортируйте `@exode-team/sdk/api` в браузерный код — токен утечёт.
+- `ExodeMiniApp.init()` работает только в iframe; в top-level выбросит ошибку.
+- Не вызывайте `init()` повторно на одном экземпляре — получите ошибку.
+- `targetOrigin: '*'` в MiniApp допустим только для разработки; в проде
+  указывайте конкретный origin основного приложения.
+- `QueryExportType` и `QueryExportFormat` — enum'ы с префиксами
+  (`QUERY_EXPORT_TYPE_…`, `EXPORT_FORMAT_…`), не передавайте сырые
+  строки без префикса.
+- Обязательные заголовки запросов: `Seller-Id`, `School-Id`,
+  `Authorization: Bearer <token>` — `ExodeAPI` проставляет их автоматически.
+
+## 7. Ссылки
+
+- Документация: https://docs.exode.biz
+- Exode API (REST): https://docs.exode.biz/ru/exode-api/setup
+- Поддержка: https://t.me/exode_support_biz
