@@ -1,0 +1,314 @@
+---
+title: "Список заказов"
+description: "Выгрузка заказов (инвойсов) школы для аналитики по деньгам"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## Параметры запроса
+
+Эндпоинт возвращает **постраничный** список заказов (инвойсов) школы для аналитики по деньгам.
+
+<Info>
+  Один заказ = одна строка. Суммы (`totalAmount` / `discountAmount`) считаются по позициям этого селлера.
+</Info>
+
+### Фильтры
+
+<ParamField query="types" type="array" required={false}>
+  Фильтр по типам заказа. Массив значений enum типа инвойса (например `Regular`).
+</ParamField>
+
+<ParamField query="createdAtDateRange" type="object" required={false}>
+  Период по дате создания заказа. Объект `{ from, to }`, даты в формате ISO.
+
+  <Expandable title="Свойства createdAtDateRange">
+    <ParamField query="from" type="string">
+      Начало периода. Дата в формате ISO.
+    </ParamField>
+
+    <ParamField query="to" type="string">
+      Конец периода. Дата в формате ISO.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+  Поиск по email, телефону или имени покупателя.
+</ParamField>
+
+### Пагинация
+
+<ParamField query="take" type="integer" required={false}>
+  Количество записей на странице. Максимум `1000`, по умолчанию `100`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+  Номер страницы, начиная с `1`.
+</ParamField>
+
+<ParamField query="skip" type="integer" required={false}>
+  Количество пропускаемых записей. Альтернатива параметру `page`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request GET 'https://api.exode.biz/saas/v2/invoice?types[]=Regular&take=100&page=1' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listInvoices = async () => {
+  try {
+    const response = await axios.get('https://api.exode.biz/saas/v2/invoice', {
+      params: {
+        types: ['Regular'],
+        createdAtDateRange: { from: '2026-05-01T00:00:00Z', to: '2026-05-31T23:59:59Z' },
+        take: 100,
+        page: 1
+      },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Invoices:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+listInvoices();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/invoice';
+$params = [
+  'types' => ['Regular'],
+  'createdAtDateRange' => [
+    'from' => '2026-05-01T00:00:00Z',
+    'to' => '2026-05-31T23:59:59Z'
+  ],
+  'take' => 100,
+  'page' => 1
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url . '?' . http_build_query($params));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/invoice'
+
+params = {
+  'types': ['Regular'],
+  'createdAtDateRange': { 'from': '2026-05-01T00:00:00Z', 'to': '2026-05-31T23:59:59Z' },
+  'take': 100,
+  'page': 1
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.get(url, params=params, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "items": [
+      {
+        "invoiceId": 4321,
+        "uuid": "kCJG2XswaaIv",
+        "type": "Regular",
+        "status": "Active",
+        "totalAmount": 4900,
+        "discountAmount": 100,
+        "currency": "RUB",
+        "createdAt": "2026-05-01T10:00:00Z",
+        "expireAt": null,
+        "user": {
+          "userId": 789,
+          "tgId": 1234567,
+          "login": "+79990000000",
+          "email": "a@ex.com",
+          "phone": "+79990000000",
+          "name": "Иван Иванов"
+        },
+        "products": [
+          {
+            "productId": 56,
+            "courseId": 34,
+            "totalPrice": 5000,
+            "discountAmount": 100
+          }
+        ]
+      }
+    ],
+    "count": 1247,
+    "page": 1,
+    "pages": 13,
+    "isFirst": true,
+    "isLast": false,
+    "next": { "skip": 100, "take": 100, "page": 2 },
+    "prev": { "skip": 0, "take": 100, "page": 1 }
+  }
+}
+```
+</ResponseExample>
+
+## Описание полей
+
+<ResponseField name="invoiceId" type="integer">
+  ID заказа.
+</ResponseField>
+
+<ResponseField name="uuid" type="string">
+  UUID заказа.
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  Тип заказа.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Статус заказа.
+</ResponseField>
+
+<ResponseField name="totalAmount" type="integer">
+  Итоговая сумма заказа по позициям этого селлера.
+</ResponseField>
+
+<ResponseField name="discountAmount" type="integer">
+  Сумма скидки по позициям этого селлера.
+</ResponseField>
+
+<ResponseField name="currency" type="string">
+  Валюта заказа.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  Дата создания заказа в формате ISO.
+</ResponseField>
+
+<ResponseField name="expireAt" type="string | null">
+  Дата истечения заказа в формате ISO. `null`, если срок не задан.
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  Покупатель.
+
+  <Expandable title="Свойства user">
+    <ResponseField name="userId" type="integer">
+      ID пользователя в системе exode.
+    </ResponseField>
+
+    <ResponseField name="tgId" type="integer | null">
+      Telegram ID пользователя.
+    </ResponseField>
+
+    <ResponseField name="login" type="string">
+      Логин пользователя (email, телефон или домен).
+    </ResponseField>
+
+    <ResponseField name="email" type="string | null">
+      Email адрес покупателя.
+    </ResponseField>
+
+    <ResponseField name="phone" type="string | null">
+      Номер телефона покупателя.
+    </ResponseField>
+
+    <ResponseField name="name" type="string">
+      Имя покупателя.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="products" type="object[]">
+  Позиции заказа этого селлера.
+
+  <Expandable title="Свойства products">
+    <ResponseField name="productId" type="integer">
+      ID продукта.
+    </ResponseField>
+
+    <ResponseField name="courseId" type="integer | null">
+      ID курса.
+    </ResponseField>
+
+    <ResponseField name="totalPrice" type="integer">
+      Цена позиции.
+    </ResponseField>
+
+    <ResponseField name="discountAmount" type="integer">
+      Сумма скидки по позиции.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Требования к правам доступа
+
+<Check>
+Для получения списка заказов требуется **право на продажи селлера** (`SellerSales`).
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>
+
+<Info>
+  Возвращаются только заказы в рамках указанной школы. Суммы рассчитываются по позициям текущего селлера.
+</Info>
