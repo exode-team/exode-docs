@@ -33,7 +33,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <RequestExample>
 ```bash cURL
-curl --location --request GET 'https://api.exode.biz/saas/v2/group?search=Поток&take=100&page=1' \
+curl --location --request GET 'https://api.exode.biz/saas/v2/group/list?search=Поток&take=100&page=1' \
   --header 'Seller-Id: {{ sellerId }}' \
   --header 'School-Id: {{ schoolId }}' \
   --header 'Authorization: Bearer YOUR_TOKEN'
@@ -44,7 +44,7 @@ const axios = require('axios');
 
 const listGroups = async () => {
   try {
-    const response = await axios.get('https://api.exode.biz/saas/v2/group', {
+    const response = await axios.get('https://api.exode.biz/saas/v2/group/list', {
       params: { search: 'Поток', take: 100, page: 1 },
       headers: {
         'Seller-Id': '{{ sellerId }}',
@@ -65,7 +65,7 @@ listGroups();
 ```php PHP
 <?php
 
-$url = 'https://api.exode.biz/saas/v2/group';
+$url = 'https://api.exode.biz/saas/v2/group/list';
 $params = [ 'search' => 'Поток', 'take' => 100, 'page' => 1 ];
 
 $headers = [
@@ -97,7 +97,7 @@ if ($httpCode === 200) {
 import requests
 import json
 
-url = 'https://api.exode.biz/saas/v2/group'
+url = 'https://api.exode.biz/saas/v2/group/list'
 
 params = { 'search': 'Поток', 'take': 100, 'page': 1 }
 

@@ -41,7 +41,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <RequestExample>
 ```bash cURL
-curl --location --request GET 'https://api.exode.biz/saas/v2/student?active=true&take=100&page=1' \
+curl --location --request GET 'https://api.exode.biz/saas/v2/student/list?active=true&take=100&page=1' \
   --header 'Seller-Id: {{ sellerId }}' \
   --header 'School-Id: {{ schoolId }}' \
   --header 'Authorization: Bearer YOUR_TOKEN'
@@ -52,7 +52,7 @@ const axios = require('axios');
 
 const listStudents = async () => {
   try {
-    const response = await axios.get('https://api.exode.biz/saas/v2/student', {
+    const response = await axios.get('https://api.exode.biz/saas/v2/student/list', {
       params: { active: true, take: 100, page: 1 },
       headers: {
         'Seller-Id': '{{ sellerId }}',
@@ -73,7 +73,7 @@ listStudents();
 ```php PHP
 <?php
 
-$url = 'https://api.exode.biz/saas/v2/student';
+$url = 'https://api.exode.biz/saas/v2/student/list';
 $params = [ 'active' => 'true', 'take' => 100, 'page' => 1 ];
 
 $headers = [
@@ -105,7 +105,7 @@ if ($httpCode === 200) {
 import requests
 import json
 
-url = 'https://api.exode.biz/saas/v2/student'
+url = 'https://api.exode.biz/saas/v2/student/list'
 
 params = { 'active': 'true', 'take': 100, 'page': 1 }
 

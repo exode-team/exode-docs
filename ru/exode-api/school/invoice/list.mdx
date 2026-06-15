@@ -55,7 +55,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <RequestExample>
 ```bash cURL
-curl --location --request GET 'https://api.exode.biz/saas/v2/invoice?types[]=Regular&take=100&page=1' \
+curl --location --request GET 'https://api.exode.biz/saas/v2/invoice/list?types[]=Regular&take=100&page=1' \
   --header 'Seller-Id: {{ sellerId }}' \
   --header 'School-Id: {{ schoolId }}' \
   --header 'Authorization: Bearer YOUR_TOKEN'
@@ -66,7 +66,7 @@ const axios = require('axios');
 
 const listInvoices = async () => {
   try {
-    const response = await axios.get('https://api.exode.biz/saas/v2/invoice', {
+    const response = await axios.get('https://api.exode.biz/saas/v2/invoice/list', {
       params: {
         types: ['Regular'],
         createdAtDateRange: { from: '2026-05-01T00:00:00Z', to: '2026-05-31T23:59:59Z' },
@@ -92,7 +92,7 @@ listInvoices();
 ```php PHP
 <?php
 
-$url = 'https://api.exode.biz/saas/v2/invoice';
+$url = 'https://api.exode.biz/saas/v2/invoice/list';
 $params = [
   'types' => ['Regular'],
   'createdAtDateRange' => [
@@ -132,7 +132,7 @@ if ($httpCode === 200) {
 import requests
 import json
 
-url = 'https://api.exode.biz/saas/v2/invoice'
+url = 'https://api.exode.biz/saas/v2/invoice/list'
 
 params = {
   'types': ['Regular'],
