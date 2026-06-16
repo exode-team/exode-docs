@@ -40,8 +40,27 @@
           {
             "group": "Группы",
             "pages": [
+              "ru/exode-api/school/group/list",
               "ru/exode-api/school/group-member/create-many",
               "ru/exode-api/school/group-member/delete-many"
+            ]
+          },
+          {
+            "group": "Курсы",
+            "pages": [
+              "ru/exode-api/school/course/list"
+            ]
+          },
+          {
+            "group": "Ученики",
+            "pages": [
+              "ru/exode-api/school/student/list"
+            ]
+          },
+          {
+            "group": "Заказы",
+            "pages": [
+              "ru/exode-api/school/invoice/list"
             ]
           },
           {

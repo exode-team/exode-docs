@@ -1,0 +1,257 @@
+---
+title: "Список учеников"
+description: "Пакетная выгрузка учеников школы с Telegram ID и доступами"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## Параметры запроса
+
+Эндпоинт возвращает **постраничный** список учеников школы вместе с их Telegram ID и доступами к продуктам.
+
+<Info>
+  **Ученик** — это пользователь, у которого есть доступ к продукту школы. Возвращаются **уникальные** ученики: один человек = одна строка, даже если у него несколько курсов.
+</Info>
+
+### Фильтры
+
+<ParamField query="active" type="boolean" required={false}>
+  Фильтр по статусу доступа. `true` — только ученики с активным доступом, `false` — только с неактивным доступом.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+  Поиск по email, телефону или имени ученика.
+</ParamField>
+
+### Пагинация
+
+<ParamField query="take" type="integer" required={false}>
+  Количество записей на странице. Максимум `1000`, по умолчанию `100`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+  Номер страницы, начиная с `1`.
+</ParamField>
+
+<ParamField query="skip" type="integer" required={false}>
+  Количество пропускаемых записей. Альтернатива параметру `page`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request GET 'https://api.exode.biz/saas/v2/student/list?active=true&take=100&page=1' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listStudents = async () => {
+  try {
+    const response = await axios.get('https://api.exode.biz/saas/v2/student/list', {
+      params: { active: true, take: 100, page: 1 },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Students:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+listStudents();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/student/list';
+$params = [ 'active' => 'true', 'take' => 100, 'page' => 1 ];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url . '?' . http_build_query($params));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/student/list'
+
+params = { 'active': 'true', 'take': 100, 'page': 1 }
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.get(url, params=params, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "items": [
+      {
+        "userId": 789,
+        "extId": "crm-001",
+        "tgId": 1234567,
+        "login": "+79990000000",
+        "email": "a@ex.com",
+        "phone": "+79990000000",
+        "name": "Иван Иванов",
+        "accesses": [
+          {
+            "productId": 56,
+            "courseId": 34,
+            "active": true,
+            "expireAt": "2026-12-01T00:00:00Z"
+          }
+        ]
+      },
+      {
+        "userId": 790,
+        "extId": null,
+        "tgId": 7654321,
+        "login": "b@ex.com",
+        "email": "b@ex.com",
+        "phone": null,
+        "name": "Пётр Петров",
+        "accesses": [
+          {
+            "productId": 56,
+            "courseId": 34,
+            "active": true,
+            "expireAt": null
+          },
+          {
+            "productId": 57,
+            "courseId": 35,
+            "active": false,
+            "expireAt": "2026-01-15T00:00:00Z"
+          }
+        ]
+      }
+    ],
+    "count": 1247,
+    "page": 1,
+    "pages": 13,
+    "isFirst": true,
+    "isLast": false,
+    "next": { "skip": 100, "take": 100, "page": 2 },
+    "prev": { "skip": 0, "take": 100, "page": 1 }
+  }
+}
+```
+</ResponseExample>
+
+## Описание полей
+
+<ResponseField name="userId" type="integer">
+  ID пользователя в системе exode.
+</ResponseField>
+
+<ResponseField name="extId" type="string | null">
+  Внешний идентификатор пользователя из вашей системы.
+</ResponseField>
+
+<ResponseField name="tgId" type="integer | null">
+  Telegram ID пользователя. Нужен для рассылки в Telegram.
+</ResponseField>
+
+<ResponseField name="login" type="string">
+  Логин пользователя (email, телефон или домен).
+</ResponseField>
+
+<ResponseField name="email" type="string | null">
+  Email адрес ученика.
+</ResponseField>
+
+<ResponseField name="phone" type="string | null">
+  Номер телефона ученика.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Имя ученика.
+</ResponseField>
+
+<ResponseField name="accesses" type="object[]">
+  Массив доступов ученика (продукт / курс).
+
+  <Expandable title="Свойства accesses">
+    <ResponseField name="productId" type="integer">
+      ID продукта.
+    </ResponseField>
+
+    <ResponseField name="courseId" type="integer | null">
+      ID курса.
+    </ResponseField>
+
+    <ResponseField name="active" type="boolean">
+      Активен ли доступ.
+    </ResponseField>
+
+    <ResponseField name="expireAt" type="string | null">
+      Дата окончания доступа в формате ISO. `null`, если доступ бессрочный.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Требования к правам доступа
+
+<Check>
+Для получения списка учеников требуется **право на управление пользователями школы** (`SchoolManageUsers`) или **право на управление учениками курса** (`CourseStudentManage`).
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>
+
+<Info>
+  Возвращаются только ученики в рамках указанной школы.
+</Info>

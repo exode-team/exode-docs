@@ -1,0 +1,187 @@
+---
+title: "Список групп"
+description: "Список групп школы с их курсом"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## Параметры запроса
+
+Эндпоинт возвращает **постраничный** список групп школы. Каждая группа содержит привязанный курс (если он есть).
+
+### Фильтры
+
+<ParamField query="search" type="string" required={false}>
+  Поиск по названию группы.
+</ParamField>
+
+### Пагинация
+
+<ParamField query="take" type="integer" required={false}>
+  Количество записей на странице. Максимум `1000`, по умолчанию `100`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+  Номер страницы, начиная с `1`.
+</ParamField>
+
+<ParamField query="skip" type="integer" required={false}>
+  Количество пропускаемых записей. Альтернатива параметру `page`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request GET 'https://api.exode.biz/saas/v2/group/list?search=Поток&take=100&page=1' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listGroups = async () => {
+  try {
+    const response = await axios.get('https://api.exode.biz/saas/v2/group/list', {
+      params: { search: 'Поток', take: 100, page: 1 },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Groups:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+listGroups();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/group/list';
+$params = [ 'search' => 'Поток', 'take' => 100, 'page' => 1 ];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url . '?' . http_build_query($params));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/group/list'
+
+params = { 'search': 'Поток', 'take': 100, 'page': 1 }
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.get(url, params=params, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "items": [
+      {
+        "groupId": 12,
+        "name": "Поток 1",
+        "courseId": 34,
+        "courseName": "Python с нуля"
+      },
+      {
+        "groupId": 13,
+        "name": "Поток 2",
+        "courseId": null,
+        "courseName": null
+      }
+    ],
+    "count": 1247,
+    "page": 1,
+    "pages": 13,
+    "isFirst": true,
+    "isLast": false,
+    "next": { "skip": 100, "take": 100, "page": 2 },
+    "prev": { "skip": 0, "take": 100, "page": 1 }
+  }
+}
+```
+</ResponseExample>
+
+## Описание полей
+
+<ResponseField name="groupId" type="integer">
+  ID группы.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Название группы.
+</ResponseField>
+
+<ResponseField name="courseId" type="integer | null">
+  ID курса, к которому привязана группа. `null`, если у группы нет курса.
+</ResponseField>
+
+<ResponseField name="courseName" type="string | null">
+  Название курса. `null`, если у группы нет курса.
+</ResponseField>
+
+## Требования к правам доступа
+
+<Check>
+Для получения списка групп требуется **право на управление пользователями школы** (`SchoolManageUsers`).
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>
+
+<Info>
+  Возвращаются только группы в рамках указанной школы.
+</Info>
