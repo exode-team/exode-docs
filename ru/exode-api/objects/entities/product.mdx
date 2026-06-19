@@ -59,6 +59,7 @@ description: "Структуры объектов продукта, доступ
 <ResponseField name="hidden" type="boolean" required>Цена скрыта.</ResponseField>
 <ResponseField name="activeFrom" type="string | null">Активна с (ISO 8601).</ResponseField>
 <ResponseField name="activeTo" type="string | null">Активна по (ISO 8601).</ResponseField>
+<ResponseField name="meta" type="object" required>Служебные метаданные цены (произвольный объект).</ResponseField>
 <ResponseField name="installmentConfig" type="object | null">Конфигурация рассрочки.</ResponseField>
 <ResponseField name="subscriptionConfig" type="object | null">Конфигурация подписки.</ResponseField>
 <ResponseField name="isDemo" type="boolean | null">Демо-цена.</ResponseField>
