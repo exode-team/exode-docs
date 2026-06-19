@@ -27,8 +27,15 @@ function App() {
 
 ### Параметры
 
-<ResponseField name="config" type="ExodeMiniAppConfig" required>
-  Конфигурация клиента: `appId`, `targetOrigin?`, `timeout?`.
+<ResponseField name="config" type="ExodeMiniAppProviderConfig" required>
+  Конфигурация клиента: `appId`, `targetOrigin?`, `timeout?` плюс `renderMode?`.
+
+  <Expandable title="renderMode">
+    Режим рендеринга детей:
+    - `'defer'` (по умолчанию) — дети монтируются только после handshake (обратная совместимость).
+    - `'immediate'` — дети монтируются с первого рендера (в т.ч. при SSR); до готовности хуки возвращают
+      значения по умолчанию (`scheme: 'light'`, `user: null` и т.п.).
+  </Expandable>
 </ResponseField>
 
 ## useExodeApp

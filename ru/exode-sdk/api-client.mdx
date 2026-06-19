@@ -1,12 +1,15 @@
 ---
 title: 'API Client'
-description: 'Серверный клиент ExodeAPI для работы с School API'
+description: 'Серверный клиент ExodeAPI для работы с SaaS API'
 ---
 
-`ExodeAPI` — типизированный HTTP-клиент, покрывающий эндпоинты `/saas/v2/*`. Предназначен для использования на сервере (Node.js) и инкапсулирует аутентификацию, сериализацию, обработку ошибок.
+`ExodeAPI` — типизированный HTTP-клиент, покрывающий эндпоинты `/saas/v2/*`. Предназначен для сервера (Node.js),
+инкапсулирует аутентификацию, сериализацию query/тела, обработку ошибок и (опционально) валидацию ответов по
+zod-схемам.
 
 <Info>
-  Полная REST-спецификация эндпоинтов (request/response schemas, коды ошибок) находится в разделе [Exode API](/ru/exode-api/setup). SDK — типизированная обёртка над тем же контрактом.
+  Полная REST-спецификация (request/response, коды ошибок) — в разделе [Exode API](/ru/exode-api/setup).
+  SDK — типизированная обёртка над тем же контрактом; типы выведены из тех же серверных zod-схем.
 </Info>
 
 ## Инициализация
@@ -20,6 +23,7 @@ const exodeApi = new ExodeAPI({
   token: process.env.EXODE_TOKEN!,
   baseUrl: 'https://api.exode.biz/saas/v2', // по умолчанию
   timeout: 30_000,                           // по умолчанию 30s
+  validate: false,                           // по умолчанию false
 })
 ```
 
@@ -42,94 +46,152 @@ const exodeApi = new ExodeAPI({
 </ResponseField>
 
 <ResponseField name="timeout" type="number">
-  Таймаут запроса в миллисекундах. По умолчанию `30000`.
+  Таймаут запроса в миллисекундах. По умолчанию `30000`. При превышении — `ExodeAPIError` с `cause: "Timeout"` (code 408).
+</ResponseField>
+
+<ResponseField name="validate" type="boolean">
+  Проверять каждый ответ по zod-схеме (`safeParse`). По умолчанию `false` — payload возвращается как есть
+  (типизированный через `z.infer`), без рантайм-парсинга. Можно переопределить на конкретный запрос.
 </ResponseField>
 
 <Warning>
-  Храните токен в переменных окружения. Никогда не коммитьте токены в репозиторий и не передавайте на клиент — `ExodeAPI` работает только на сервере.
+  Храните токен в переменных окружения. Никогда не коммитьте токены и не передавайте на клиент — `ExodeAPI`
+  работает только на сервере.
 </Warning>
 
 ## Доступные ресурсы
 
-Клиент предоставляет namespace `school` с тремя ресурсами:
+Клиент предоставляет namespace `school` с семью ресурсами:
 
-<CardGroup cols={3}>
-  <Card title="school.user" icon="user">
-    CRUD пользователей, состояние (state), сессии и токены авторизации.
-  </Card>
-
-  <Card title="school.group" icon="users">
-    Управление членством в группах: массовое добавление/удаление.
-  </Card>
-
-  <Card title="school.queryExport" icon="file-export">
-    Генерация и опрос результата выгрузок (члены группы, попытки практик).
-  </Card>
+<CardGroup cols={2}>
+  <Card title="school.user" icon="user">CRUD пользователей, состояние (state), удаление, токены авторизации.</Card>
+  <Card title="school.group" icon="users">Список групп, массовое добавление/удаление участников.</Card>
+  <Card title="school.course" icon="graduation-cap">Список курсов и прогресс участников по курсу.</Card>
+  <Card title="school.productAccess" icon="box">Список доступов к продуктам.</Card>
+  <Card title="school.invoice" icon="receipt">Список счетов.</Card>
+  <Card title="school.form" icon="list-check">Макеты форм и значения кастомных полей.</Card>
+  <Card title="school.queryExport" icon="file-export">Генерация и опрос результата выгрузок.</Card>
 </CardGroup>
 
-## Пользователи (school.user)
+## Пользователи (`school.user`)
 
 ```ts
-// Создание
-const { user } = await exodeApi.school.user.create({
+import { UserStateKey } from '@exode-team/sdk/api'
+
+// Создание — возвращает объект пользователя (или null)
+const user = await exodeApi.school.user.create({
   email: 'student@example.com',
-  profile: { firstName: 'Ivan', role: 'Student' },
+  profile: { firstName: 'Иван', role: 'Student' },
 })
 
-// Обновление
-await exodeApi.school.user.update(user.id, {
-  profile: { lastName: 'Petrov' },
-})
+// Обновление — возвращает пользователя
+await exodeApi.school.user.update(user.id, { profile: { lastName: 'Петров' } })
 
-// Upsert (создать или обновить по логину)
+// Upsert (создать или обновить по email/phone/tgId/extId)
 const { user: u, isCreated } = await exodeApi.school.user.upsert({
   email: 'student@example.com',
-  profile: { firstName: 'Ivan' },
+  profile: { firstName: 'Иван' },
 })
 
-// Поиск
-const found = await exodeApi.school.user.find({ email: 'student@example.com' })
+// Поиск — ровно одно из login | tgId | extId
+const found = await exodeApi.school.user.find({ login: 'student@example.com' })
 
-// State
-await exodeApi.school.user.setState(user.id, 'onboarding', { step: 2 })
-const { value } = await exodeApi.school.user.getState(user.id, 'onboarding')
+// Удаление (≤250 за раз) — { deleted, skipped }
+const { deleted, skipped } = await exodeApi.school.user.deleteMany([1, 2, 3], 'Закрытие доступа')
 
-// Токен автоавторизации
+// State — ключ из enum UserStateKey
+await exodeApi.school.user.setState(user.id, UserStateKey.OnBoardingProgress, { step: 2 }) // → boolean
+const value = await exodeApi.school.user.getState(user.id, UserStateKey.OnBoardingProgress) // → unknown
+
+// Токен авто-авторизации — { session, isCreated }
 const { session } = await exodeApi.school.user.createAuthToken({ userId: user.id })
-// session.token → используйте в параметре ___uat для автоавторизации
+// session.token → подставьте в ?___uat=<token> для автологина
 ```
 
 <Tip>
-  Подробнее про автологин через `___uat` — в разделе [Интеграция с Telegram Mini App](/ru/exode-api/school/iframe/tg-mini-app).
+  Подробнее про автологин через `___uat` — в разделе
+  [Интеграция с Telegram Mini App](/ru/exode-api/school/iframe/tg-mini-app).
 </Tip>
 
-## Группы (school.group)
+## Группы (`school.group`)
 
 ```ts
+// Список групп (фильтр + пагинация)
+const { items } = await exodeApi.school.group.list({ courseIds: [10], take: 50 })
+
+// Добавить участников (≤250) — { exist, created }
 await exodeApi.school.group.addMembers(groupId, [1, 2, 3])
 
+// Удалить участников (≤250) — { affected }
 await exodeApi.school.group.removeMembers(groupId, [1])
-// → { affected: number }
 ```
 
-## Выгрузки (school.queryExport)
+## Курсы (`school.course`)
 
-Выгрузки работают асинхронно: генерация запускает workflow, результат нужно опрашивать по UUID.
+```ts
+// Список курсов
+const { items } = await exodeApi.school.course.list({ types: ['VideoCourse'], take: 20 })
+
+// Прогресс участников по курсу (пагинация)
+const progress = await exodeApi.school.course.progresses(courseId, { take: 100 })
+```
+
+## Доступы к продуктам (`school.productAccess`)
+
+```ts
+const { items } = await exodeApi.school.productAccess.list({ active: true, take: 50 })
+```
+
+## Счета (`school.invoice`)
+
+```ts
+const { items } = await exodeApi.school.invoice.list({ types: ['Regular'], take: 50 })
+```
+
+## Формы (`school.form`)
+
+```ts
+// Макеты форм
+const layout = await exodeApi.school.form.layoutCreate({ mode: 'Custom', name: 'Анкета', internalName: 'survey' })
+await exodeApi.school.form.layoutUpdate(layout.id, { status: 'Published' })
+await exodeApi.school.form.layoutDelete(layout.id) // → { affected }
+
+// Значения кастомных полей
+const { items } = await exodeApi.school.form.customFieldValueGet({ userIds: [27], take: 50 })
+
+// Установка значений по slug (тип определяется автоматически)
+await exodeApi.school.form.customFieldValueSetBySlug({
+  userId: 27,
+  layoutId: layout.id,
+  values: [{ slug: 'city', value: 'Ташкент' }, { slug: 'age', value: 25 }],
+})
+
+// Установка значений по fieldId (типизированно)
+await exodeApi.school.form.customFieldValueSet({
+  userId: 27,
+  layoutId: layout.id,
+  values: [{ fieldId: 10, text: 'Ташкент' }],
+})
+```
+
+## Выгрузки (`school.queryExport`)
+
+Выгрузки работают асинхронно: генерация запускает workflow, результат опрашивается по UUID.
 
 ```ts
 import { QueryExportType, QueryExportFormat } from '@exode-team/sdk/api'
 
-// 1. Запуск — возвращает WorkflowExecutionEntity с uuid
+// 1. Запуск — возвращает { uuid, status, ... }
 const { uuid } = await exodeApi.school.queryExport.generate({
   type: QueryExportType.GroupMemberFindMany,
   format: QueryExportFormat.Csv,
-  filter: { groupId: 42 },
+  variables: { filter: { groupIds: [42] } },
 })
 
-// 2. Опрос результата
+// 2. Опрос результата (повторяйте, пока status не станет Completed/Failed)
 const result = await exodeApi.school.queryExport.getResult(uuid)
 
-if (result.status === 'Completed') {
+if (result?.status === 'Completed') {
   console.log('File:', result.result?.fileUrl)
 }
 ```
@@ -140,13 +202,37 @@ if (result.status === 'Completed') {
 |--------|----------|
 | `Waiting` | Задача в очереди |
 | `Processing` | Выполняется |
-| `Completed` | Готово, `result` содержит файл |
+| `Completed` | Готово, `result` содержит файл (`fileUrl`, `fileName`, `fileSize`) |
 | `Failed` | Ошибка |
 | `Canceled` | Отменено |
 
+<Info>
+  `generate` ограничен лимитом **100 запросов в час**. Типы отчётов и переменные — в разделе
+  [Отчёты и выгрузки](/ru/exode-api/school/query-export/generate).
+</Info>
+
+## Валидация ответов
+
+По умолчанию ответ возвращается как есть (типизированный, без рантайм-проверки). Включите `validate`, чтобы
+прогонять payload через zod-схему — глобально или на конкретный запрос:
+
+```ts
+// Глобально
+const exodeApi = new ExodeAPI({ sellerId: 1, schoolId: 1, token, validate: true })
+
+// На конкретный запрос (low-level request)
+await exodeApi.request('GET', 'user/find', {
+  schema: userOutputSchema,
+  query: { extId: 'crm_1' },
+  validate: true,
+})
+```
+
+При несоответствии бросается `ExodeAPIError` с `cause: "ValidationError"`.
+
 ## Обработка ошибок
 
-Все ошибки API оборачиваются в `ExodeAPIError`:
+Все ошибки оборачиваются в `ExodeAPIError`:
 
 ```ts
 import { ExodeAPI, ExodeAPIError } from '@exode-team/sdk/api'
@@ -155,13 +241,21 @@ try {
   await exodeApi.school.user.create({ email: 'busy@example.com' })
 } catch (error) {
   if (error instanceof ExodeAPIError) {
-    console.error('Code:', error.code)           // 400, 401, 403...
-    console.error('Cause:', error.errorCause)    // 'EmailIsBusy', 'Unauthorized'
-    console.error('Details:', error.details)
+    console.error(error.code)        // 400, 401, 403, 408, 429, 0 (сеть)...
+    console.error(error.errorCause)  // 'EmailIsBusy', 'Unauthorized', 'Timeout', 'NetworkError'...
+    console.error(error.details)     // техническое описание (опц.)
   }
 }
 ```
 
+| `errorCause` | Когда |
+|---|---|
+| доменные коды (`EmailIsBusy`, `Unauthorized`, `Forbidden`, `Rate`, …) | ответ API с ошибкой |
+| `Timeout` | превышен `timeout` (code 408) |
+| `NetworkError` | сетевая ошибка (code 0) |
+| `ParseError` | ответ не разобрался как JSON |
+| `ValidationError` | ответ не прошёл zod-валидацию (при `validate: true`) |
+
 <Info>
-  Полный список `cause`-кодов доступен в соответствующих разделах REST-документации.
+  Полный список доменных `cause`-кодов — в разделе [Работа с API](/ru/exode-api/setup#формат-ошибок).
 </Info>

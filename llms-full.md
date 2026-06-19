@@ -3,6 +3,9 @@
 Машиночитаемый обзор Exode SaaS API: соглашения, все методы, параметры, формы ответов, сущности и вебхуки.
 Полная документация — в каталоге `ru/exode-api/`. Источник истины — серверные zod-схемы (`shared/schemas`).
 
+> Есть официальный npm-SDK `@exode-team/sdk` (типизированный клиент REST API + bridge мини-приложений).
+> Справочник для LLM: `ru/exode-sdk/llms.txt`. npm: https://www.npmjs.com/package/@exode-team/sdk
+
 ## Базовые соглашения
 
 - **Base URL:** `https://api.exode.biz`. Префикс всех методов: `/saas/v2`.

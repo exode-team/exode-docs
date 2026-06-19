@@ -70,6 +70,16 @@
 - [Telegram Mini App](https://docs.exode.biz/ru/exode-api/school/iframe/tg-mini-app): авто-авторизация через `?___uat=<token>`.
 - [Кастомный JS код](https://docs.exode.biz/ru/exode-api/school/custom-code/js-config): настройка интерфейса платформы.
 
+## SDK (@exode-team/sdk)
+
+Официальный npm-пакет: типизированный серверный клиент REST API + bridge для встраиваемых мини-приложений.
+
+- [Обзор SDK](https://docs.exode.biz/ru/exode-sdk/overview): модули пакета и версия.
+- [Установка](https://docs.exode.biz/ru/exode-sdk/installation): npm/CDN, импорты.
+- [API Client](https://docs.exode.biz/ru/exode-sdk/api-client): `ExodeAPI` — 7 ресурсов `school.*`, валидация, ошибки.
+- [MiniApp](https://docs.exode.biz/ru/exode-sdk/miniapp/introduction): bridge, команды, события, [React-хуки](https://docs.exode.biz/ru/exode-sdk/miniapp/react).
+- npm: https://www.npmjs.com/package/@exode-team/sdk
+
 ## Optional
 
 - [Поддержка](https://t.me/exode_support_biz): создание сервисного пользователя и выдача API-токена.
