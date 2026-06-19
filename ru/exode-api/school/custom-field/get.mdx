@@ -7,6 +7,12 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <HeaderParamFields/>
 
+```
+GET /saas/v2/form/custom-field/value/get
+```
+
+Требуется аутентификация и право `FormManage`.
+
 ## Параметры запроса
 
 <Info>
@@ -24,7 +30,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 </ParamField>
 
 <ParamField query="take" type="integer" required={false}>
-  Количество записей на странице. По умолчанию `20`.
+  Количество записей на странице. От `1` до `1000`. По умолчанию `100`.
 </ParamField>
 
 ### Сортировка

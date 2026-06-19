@@ -12,6 +12,12 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <HeaderParamFields/>
 
+```
+PUT /saas/v2/user/upsert
+```
+
+Требуется аутентификация и право `SchoolManageUsers`.
+
 ## Параметры запроса
 
 ##### Для определения существующего пользователя по логину — передайте хотя бы один из ниже перечисленных параметров, в противном случае пользователь будет создаваться при каждом запросе.

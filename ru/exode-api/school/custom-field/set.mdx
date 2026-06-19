@@ -7,6 +7,13 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <HeaderParamFields/>
 
+```
+POST /saas/v2/form/custom-field/value/set
+POST /saas/v2/form/custom-field/value/set-by-slug
+```
+
+Требуется аутентификация и право `FormManage`.
+
 ## Параметры запроса
 
 Доступны два формата передачи значений: **по slug** (рекомендуемый) и **по fieldId** (расширенный).

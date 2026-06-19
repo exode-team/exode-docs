@@ -21,6 +21,8 @@
             "group": "Работа с API",
             "pages": [
               "ru/welcome",
+              "ru/exode-api/quickstart",
+              "ru/exode-api/concepts",
               "ru/exode-api/setup",
               "ru/exode-api/webhooks/about",
               "ru/exode-api/objects/entities/index"
@@ -34,14 +36,30 @@
               "ru/exode-api/school/user/upsert",
               "ru/exode-api/school/user/find",
               "ru/exode-api/school/user/state",
+              "ru/exode-api/school/user/delete-many",
               "ru/exode-api/school/user/session/auth-token"
             ]
           },
           {
             "group": "Группы",
             "pages": [
+              "ru/exode-api/school/group/list",
               "ru/exode-api/school/group-member/create-many",
               "ru/exode-api/school/group-member/delete-many"
+            ]
+          },
+          {
+            "group": "Курсы",
+            "pages": [
+              "ru/exode-api/school/course/list",
+              "ru/exode-api/school/course/progresses"
+            ]
+          },
+          {
+            "group": "Доступы и продажи",
+            "pages": [
+              "ru/exode-api/school/product-access/list",
+              "ru/exode-api/school/invoice/list"
             ]
           },
           {
@@ -85,8 +103,14 @@
             "group": "Все объекты",
             "pages": [
               "ru/exode-api/objects/entities/user",
+              "ru/exode-api/objects/entities/session",
               "ru/exode-api/objects/entities/group",
-              "ru/exode-api/objects/entities/group-member"
+              "ru/exode-api/objects/entities/group-member",
+              "ru/exode-api/objects/entities/course",
+              "ru/exode-api/objects/entities/product",
+              "ru/exode-api/objects/entities/payment",
+              "ru/exode-api/objects/entities/school",
+              "ru/exode-api/objects/entities/form"
             ]
           }
         ]

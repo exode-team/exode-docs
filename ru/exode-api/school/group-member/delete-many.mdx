@@ -19,15 +19,21 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <HeaderParamFields/>
 
+```
+DELETE /saas/v2/group/:groupId/member/delete-many
+```
+
+Требуется аутентификация и право `SchoolManageUsers`.
+
 ## Параметры запроса
 
 <Tip>
-  Максимальное количество пользователей, которое можно удалить за один запрос — 100. Для удаления большего
+  Максимальное количество пользователей, которое можно удалить за один запрос — 250. Для удаления большего
   количества пользователей используйте несколько запросов.
 </Tip>
 
 <ParamField body="userIds" type="array" required>
-  Массив идентификаторов пользователей для удаления из группы. Максимум 100 пользователей за один запрос.
+  Массив идентификаторов пользователей для удаления из группы. Максимум 250 пользователей за один запрос.
 </ParamField>
 
 <Info>
@@ -188,9 +194,9 @@ except requests.exceptions.RequestException as e:
 {
   "code": 400,
   "success": false,
-  "cause": "TooManyUsers",
-  "message": "Maximum 100 users allowed per request",
-  "error": "Maximum 100 users allowed per request"
+  "cause": "validation",
+  "message": "Max length is 250 elements",
+  "error": "Bad Request"
 }
 ```
 ```json Error - Access Denied

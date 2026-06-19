@@ -83,7 +83,39 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
   }
   ```
 </Accordion>
+
+<Accordion title="OnBoardingProgress">
+  - Тип: object.
+  - GET/SET: да/да.
+  - Маскирование: нет.
+  - Назначение: прогресс прохождения онбординга пользователем.
+
+  ```json Body (SET OnBoardingProgress)
+  {
+    "value": { "step": 3, "completed": false }
+  }
+  ```
+</Accordion>
+
+<Accordion title="ContentCategoryIds">
+  - Тип: array.
+  - GET/SET: да/да.
+  - Маскирование: нет.
+  - Назначение: выбранные пользователем категории контента (массив ID).
+
+  ```json Body (SET ContentCategoryIds)
+  {
+    "value": [12, 45, 78]
+  }
+  ```
+</Accordion>
 </AccordionGroup>
+
+<Info>
+  Запись (`SET`) разрешена только для ключей: `UtmSignupParams`, `PersonalInfoFilled`, `OnBoardingProgress`,
+  `ContentCategoryIds`. Чтение (`GET`) дополнительно доступно для `VkToken` (возвращается **замаскированным**).
+  Запрос к любому другому ключу вернёт ошибку `Not allowed key`.
+</Info>
 
 ## Получить состояние по ключу
 

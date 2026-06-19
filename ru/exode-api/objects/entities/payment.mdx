@@ -1,0 +1,82 @@
+---
+title: "Платёж и счёт"
+description: "Структуры объектов платежа, счёта, позиции счёта и эквайринга по shared zod-схемам"
+---
+
+Публичные структуры финансовых объектов: `payment`, `invoice`, `invoiceProduct`, `acquiring`. Полное дерево
+`payment` приходит в вебхуке [`PaymentCompleted`](/ru/exode-api/webhooks/about).
+
+<Info>
+    Метод [`invoice/list/raw`](/ru/exode-api/school/invoice/list) отдаёт компактную проекцию счёта
+    (`invoiceId`, `invoiceUuid`, `type`, `status`, суммы, `currency`, `user`, `products`). Ниже — полные
+    публичные схемы. Денежные поля — числа (decimal из БД приводится к number).
+</Info>
+
+## `payment`
+
+<ResponseField name="id" type="integer" required>ID платежа.</ResponseField>
+<ResponseField name="uuid" type="string" required>UUID платежа.</ResponseField>
+<ResponseField name="type" type="enum" required>Тип: `OneTime`, `RecurrentPay`, `RecurrentInit`.</ResponseField>
+<ResponseField name="status" type="enum | null">
+    Статус: `Created`, `WaitingPay`, `WaitingForBinding`, `Processing`, `Completed`, `BindingCompleted`, `Canceled`.
+</ResponseField>
+<ResponseField name="released" type="boolean" required>Средства разблокированы (выплачены продавцу).</ResponseField>
+<ResponseField name="checkoutPaymentId" type="string | null">ID платежа в платёжной системе.</ResponseField>
+<ResponseField name="checkoutUrl" type="string | null">URL оплаты.</ResponseField>
+<ResponseField name="paidAt" type="string | null">Дата оплаты (ISO 8601).</ResponseField>
+<ResponseField name="expireAt" type="string | null">Дата истечения (ISO 8601).</ResponseField>
+<ResponseField name="isCompleted" type="boolean | null">Платёж завершён.</ResponseField>
+<ResponseField name="isCanceled" type="boolean | null">Платёж отменён.</ResponseField>
+<ResponseField name="meta" type="object | null">Служебные метаданные.</ResponseField>
+<ResponseField name="webhookLogs" type="object[] | null">Логи вебхуков платёжной системы.</ResponseField>
+<ResponseField name="chargeLogs" type="object[] | null">Логи списаний.</ResponseField>
+<ResponseField name="statusHistoryLogs" type="object[] | null">История статусов: `{ timestamp, status }`.</ResponseField>
+<ResponseField name="acquiring" type="object | null">Эквайринг (см. ниже).</ResponseField>
+<ResponseField name="invoice" type="object | null">Счёт (см. ниже).</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+<ResponseField name="deletedAt" type="string | null">Дата удаления или `null`.</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
+
+## `invoice`
+
+<ResponseField name="id" type="integer" required>ID счёта.</ResponseField>
+<ResponseField name="uuid" type="string" required>UUID счёта.</ResponseField>
+<ResponseField name="humanId" type="integer | null">Человекочитаемый номер счёта.</ResponseField>
+<ResponseField name="type" type="enum" required>Тип: `Regular`, `InstallmentPay`, `InstallmentInit`, `SubscriptionPay`, `SubscriptionInit`.</ResponseField>
+<ResponseField name="status" type="enum | null">Статус: `Active`, `Canceled`.</ResponseField>
+<ResponseField name="totalAmount" type="number" required>Итоговая сумма.</ResponseField>
+<ResponseField name="discountAmount" type="number" required>Сумма скидки.</ResponseField>
+<ResponseField name="currency" type="enum" required>Валюта: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ResponseField>
+<ResponseField name="expireAt" type="string | null">Дата истечения (ISO 8601).</ResponseField>
+<ResponseField name="isActive" type="boolean | null">Счёт активен.</ResponseField>
+<ResponseField name="user" type="object | null">
+    Покупатель — объект [пользователя с профилем](./user); дополнительно может содержать `school`.
+</ResponseField>
+<ResponseField name="products" type="object[] | null">Позиции счёта (см. `invoiceProduct`).</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+
+## `invoiceProduct`
+
+<ResponseField name="id" type="integer" required>ID позиции.</ResponseField>
+<ResponseField name="originalPrice" type="number" required>Первоначальная цена.</ResponseField>
+<ResponseField name="totalPrice" type="number" required>Итоговая цена.</ResponseField>
+<ResponseField name="discountAmount" type="number" required>Сумма скидки по позиции.</ResponseField>
+<ResponseField name="price" type="object | null">Цена продукта — объект [`productPrice`](./product).</ResponseField>
+<ResponseField name="discount" type="object | null">Скидка — объект [`discount`](./product).</ResponseField>
+<ResponseField name="product" type="object | null">Продукт — объект [`product`](./product); дополнительно может содержать `course`.</ResponseField>
+
+## `acquiring`
+
+<ResponseField name="id" type="integer" required>ID эквайринга.</ResponseField>
+<ResponseField name="uuid" type="string" required>UUID эквайринга.</ResponseField>
+<ResponseField name="active" type="boolean | null">Активен.</ResponseField>
+<ResponseField name="name" type="string | null">Название.</ResponseField>
+<ResponseField name="description" type="string | null">Описание.</ResponseField>
+<ResponseField name="hasProviderCommission" type="boolean | null">Есть комиссия провайдера.</ResponseField>
+<ResponseField name="provider" type="object | null">Провайдер: `{ id, type, active }`.</ResponseField>
+
+<Note>
+    Секреты провайдера (apiKey, конфигурация) и платёжный метод/номер карты в публичной схеме не возвращаются.
+</Note>

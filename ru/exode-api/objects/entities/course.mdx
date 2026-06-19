@@ -1,0 +1,122 @@
+---
+title: "Курс и обучение"
+description: "Структуры объектов курса, прогресса, урока и практики по shared zod-схемам"
+---
+
+На этой странице — публичные структуры объектов, связанных с обучением: `course`, `courseProgress`,
+`courseLesson`, `courseLessonPractice`, `courseLessonPracticeAttempt`. Они возвращаются в методах работы с
+курсами и в вебхуках (`CourseCompleted`, `CourseProgressChanged`, `CourseLessonPracticeCompleted`).
+
+<Info>
+    Метод [`course/list/raw`](/ru/exode-api/school/course/list) отдаёт компактную проекцию
+    (`courseId`, `name`, `type`, `groupIds`). Ниже — полные публичные схемы сущностей.
+</Info>
+
+## `course`
+
+<ResponseField name="id" type="integer" required>ID курса.</ResponseField>
+<ResponseField name="type" type="enum" required>Тип: `Bundle`, `Webinar`, `TextCourse`, `Assessment`, `VideoCourse`, `PersonalLesson`.</ResponseField>
+<ResponseField name="name" type="string" required>Название.</ResponseField>
+<ResponseField name="description" type="string" required>Описание.</ResponseField>
+<ResponseField name="alias" type="string | null">Символьный алиас.</ResponseField>
+<ResponseField name="tags" type="string[]" required>Теги.</ResponseField>
+<ResponseField name="seoTags" type="string[]" required>SEO-теги.</ResponseField>
+<ResponseField name="image" type="object | null">Изображения: `{ main, wrapper }`.</ResponseField>
+<ResponseField name="promoVideo" type="string | null">Промо-видео.</ResponseField>
+<ResponseField name="settings" type="object" required>Настройки курса (произвольный объект).</ResponseField>
+<ResponseField name="order" type="integer" required>Порядок сортировки.</ResponseField>
+<ResponseField name="isBundle" type="boolean | null">Является ли бандлом.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+<ResponseField name="deletedAt" type="string | null">Дата удаления или `null`.</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
+
+## `courseProgress`
+
+Возвращается методом [`course/:courseId/progresses`](/ru/exode-api/school/course/progresses). Запись описывает
+прогресс пользователя по конкретному уроку.
+
+<ResponseField name="id" type="integer" required>ID записи прогресса.</ResponseField>
+<ResponseField name="courseId" type="integer | null">ID курса.</ResponseField>
+<ResponseField name="userId" type="integer" required>ID пользователя.</ResponseField>
+<ResponseField name="lessonId" type="integer" required>ID урока.</ResponseField>
+<ResponseField name="status" type="enum | null">
+    Статус урока: `NotInitialized`, `NotStarted`, `OnTheory`, `OnPractice`, `OnReview`, `OnCorrection`,
+    `Completed`, `NotParticipant`, `AvailableAsDemo`, `ExpiredByGroup`, `DisabledByGroup`, `AllowedByProgress`,
+    `BlockedByProgress`, `StartScheduled`, `StartScheduledWaitPrev`, `BundleStartBlocked`,
+    `BundleStartPendingConfirmation`.
+</ResponseField>
+<ResponseField name="scheduleStatus" type="enum | null">
+    Статус расписания: `OnTimeChoose`, `WaitingStart`, `InProgress`, `Completed`, `Canceled`.
+</ResponseField>
+<ResponseField name="scheduleStartAt" type="string | null">Старт по расписанию (ISO 8601).</ResponseField>
+<ResponseField name="scheduleFinishAt" type="string | null">Окончание по расписанию (ISO 8601).</ResponseField>
+<ResponseField name="practiceDeadlineAt" type="string | null">Дедлайн практики (ISO 8601).</ResponseField>
+<ResponseField name="isCompleted" type="boolean | null">Урок завершён.</ResponseField>
+<ResponseField name="isOnReview" type="boolean | null">На проверке.</ResponseField>
+<ResponseField name="completedAt" type="string | null">Дата завершения (ISO 8601).</ResponseField>
+<ResponseField name="onReviewAt" type="string | null">Дата отправки на проверку (ISO 8601).</ResponseField>
+<ResponseField name="statusHistoryLogs" type="object[] | null">История статусов: `{ timestamp, status }`.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+
+## `courseLesson`
+
+<ResponseField name="id" type="integer" required>ID урока.</ResponseField>
+<ResponseField name="courseId" type="integer" required>ID курса.</ResponseField>
+<ResponseField name="type" type="enum" required>Тип: `Regular`, `Webinar`.</ResponseField>
+<ResponseField name="accessType" type="enum" required>Тип доступа: `Demo`, `Participant`.</ResponseField>
+<ResponseField name="status" type="string | null">Статус урока.</ResponseField>
+<ResponseField name="name" type="string" required>Название.</ResponseField>
+<ResponseField name="description" type="string" required>Описание.</ResponseField>
+<ResponseField name="previewImage" type="string | null">Превью.</ResponseField>
+<ResponseField name="order" type="integer" required>Порядок.</ResponseField>
+<ResponseField name="withContent" type="boolean" required>Есть теоретический контент.</ResponseField>
+<ResponseField name="withPractice" type="boolean" required>Есть практическая часть.</ResponseField>
+<ResponseField name="publishedAt" type="string | null">Дата публикации (ISO 8601).</ResponseField>
+<ResponseField name="settings" type="object" required>Настройки урока.</ResponseField>
+<ResponseField name="isPublished" type="boolean | null">Опубликован.</ResponseField>
+
+## `courseLessonPractice`
+
+<ResponseField name="id" type="integer" required>ID практики.</ResponseField>
+<ResponseField name="name" type="string" required>Название.</ResponseField>
+<ResponseField name="description" type="string" required>Описание.</ResponseField>
+<ResponseField name="questionMode" type="enum" required>Режим вопросов.</ResponseField>
+<ResponseField name="resultMode" type="enum" required>Режим результатов.</ResponseField>
+<ResponseField name="variantMode" type="enum" required>Режим вариантов.</ResponseField>
+<ResponseField name="retryVariantMode" type="enum" required>Режим вариантов при пересдаче.</ResponseField>
+<ResponseField name="maxAttempts" type="integer | null">Макс. число попыток.</ResponseField>
+<ResponseField name="timeLimitInMinutes" type="integer | null">Лимит времени (мин).</ResponseField>
+<ResponseField name="deadlineInDays" type="integer | null">Дедлайн (дней).</ResponseField>
+<ResponseField name="passThreshold" type="integer | null">Порог прохождения.</ResponseField>
+<ResponseField name="starsPerTaskPoint" type="integer | null">Звёзд за балл задания.</ResponseField>
+<ResponseField name="requireAllAnswers" type="boolean" required>Требуются ответы на все задания.</ResponseField>
+<ResponseField name="tasksCount" type="integer" required>Количество заданий.</ResponseField>
+
+## `courseLessonPracticeAttempt`
+
+Возвращается при выгрузке [попыток практик](/ru/exode-api/school/query-export/practice-attempt-find-many) и в
+вебхуке `CourseLessonPracticeCompleted`.
+
+<ResponseField name="id" type="integer" required>ID попытки.</ResponseField>
+<ResponseField name="uuid" type="string | null">UUID попытки.</ResponseField>
+<ResponseField name="variantId" type="integer" required>ID варианта.</ResponseField>
+<ResponseField name="userId" type="integer" required>ID пользователя.</ResponseField>
+<ResponseField name="status" type="enum | null">
+    Статус: `Created`, `OnReview`, `OnCorrection`, `AutoVerified`, `Verified`, `Failed`, `Stacked`.
+</ResponseField>
+<ResponseField name="order" type="integer" required>Номер попытки.</ResponseField>
+<ResponseField name="finished" type="boolean" required>Попытка завершена.</ResponseField>
+<ResponseField name="sentToReviewAt" type="string | null">Отправлена на проверку (ISO 8601).</ResponseField>
+<ResponseField name="sentAfterDeadline" type="boolean" required>Отправлена после дедлайна.</ResponseField>
+<ResponseField name="deadlineAt" type="string | null">Дедлайн (ISO 8601).</ResponseField>
+<ResponseField name="passedAt" type="string | null">Дата прохождения (ISO 8601).</ResponseField>
+<ResponseField name="solvedCount" type="integer" required>Количество решённых заданий.</ResponseField>
+<ResponseField name="pointsAmount" type="integer" required>Набрано баллов.</ResponseField>
+<ResponseField name="maxPointsAmount" type="integer" required>Максимум баллов.</ResponseField>
+<ResponseField name="uncounted" type="boolean" required>Попытка не засчитана.</ResponseField>
+<ResponseField name="isPassed" type="boolean | null">Пройдена.</ResponseField>
+<ResponseField name="correctPercent" type="number | null">Процент правильных.</ResponseField>
+<ResponseField name="isExpired" type="boolean | null">Просрочена.</ResponseField>
+<ResponseField name="statusHistoryLogs" type="object[] | null">История статусов: `{ timestamp, status }`.</ResponseField>

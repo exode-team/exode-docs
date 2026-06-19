@@ -7,6 +7,12 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <HeaderParamFields/>
 
+```
+PUT /saas/v2/user/:userId/update
+```
+
+Требуется аутентификация и право `SchoolManageUsers`.
+
 ## Параметры запроса
 
 ##### При обновлении все поля необязательны для заполнения. Если поле необходимо удалить и оно может быть пустым — передавайте `null`

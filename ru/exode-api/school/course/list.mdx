@@ -1,0 +1,226 @@
+---
+title: "Список курсов"
+description: "Получение списка курсов школы с фильтрацией и пагинацией"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/course/list/raw
+```
+
+<Info>
+    Все параметры фильтрации необязательны. Параметры-массивы передаются повторением параметра в строке запроса:
+    `courseIds=1&courseIds=2`.
+</Info>
+
+## Параметры запроса
+
+### Пагинация
+
+<ParamField query="skip" type="integer" required={false}>
+    Количество записей, которые нужно пропустить. По умолчанию `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Номер страницы (альтернатива `skip`). Начинается с `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Количество записей на странице. От `1` до `1000`. По умолчанию `100`.
+</ParamField>
+
+### Фильтрация
+
+<ParamField query="courseIds" type="integer[]" required={false}>
+    Фильтр по ID курсов.
+</ParamField>
+
+<ParamField query="aliases" type="string[]" required={false}>
+    Фильтр по символьным алиасам курсов.
+</ParamField>
+
+<ParamField query="types" type="enum[]" required={false}>
+    Фильтр по типам курсов. Возможные значения: `Bundle`, `Webinar`, `TextCourse`, `Assessment`, `VideoCourse`,
+    `PersonalLesson`.
+</ParamField>
+
+<ParamField query="tags" type="string[]" required={false}>
+    Фильтр по тегам курса. До 50 символов на тег.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+    Поиск по названию курса. Максимум 50 символов.
+</ParamField>
+
+<ParamField query="subjectCategoryIds" type="integer[]" required={false}>
+    Фильтр по ID предметных категорий.
+</ParamField>
+
+<ParamField query="contentCategoryIds" type="integer[]" required={false}>
+    Фильтр по ID контентных категорий.
+</ParamField>
+
+<ParamField query="archived" type="boolean" required={false}>
+    Включить архивные курсы.
+</ParamField>
+
+<ParamField query="participation" type="enum" required={false}>
+    Тип участия (относительно текущего сервисного пользователя): `All`, `Active`, `Completed`,
+    `NotParticipant`.
+</ParamField>
+
+<ParamField query="manage" type="boolean" required={false}>
+    Только курсы, доступные на управление.
+</ParamField>
+
+<ParamField query="administrate" type="boolean" required={false}>
+    Только курсы, доступные на администрирование.
+</ParamField>
+
+<ParamField query="access" type="object" required={false}>
+    Вложенный фильтр по доступам к продукту курса. Полный набор полей совпадает с фильтром метода
+    [«Список доступов к продуктам»](/ru/exode-api/school/product-access/list) (например, `active`, `userIds`,
+    `billingStatuses`, `expireAtDateRange`).
+</ParamField>
+
+<ParamField query="product" type="object" required={false}>
+    Вложенный фильтр по продукту.
+
+    <Expandable title="Свойства product">
+        <ParamField query="productIds" type="integer[]">ID продуктов.</ParamField>
+        <ParamField query="statuses" type="enum[]">Статусы: `Draft`, `OnCheck`, `Declined`, `ReadyToPublish`, `Published`.</ParamField>
+        <ParamField query="currencies" type="enum[]">Валюты: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ParamField>
+        <ParamField query="showInCatalog" type="boolean">Показывается ли в каталоге.</ParamField>
+        <ParamField query="isOnSale" type="boolean">В продаже ли продукт.</ParamField>
+        <ParamField query="archived" type="boolean">Включать архивные.</ParamField>
+        <ParamField query="search" type="string">Поиск по продукту (до 50 символов).</ParamField>
+    </Expandable>
+</ParamField>
+
+## Поля ответа
+
+<ResponseField name="payload" type="object">
+    Постраничный список курсов (компактная проекция). Полная структура — в справочнике
+    [`course`](/ru/exode-api/objects/entities/course).
+
+    <Expandable title="Свойства payload">
+        <ResponseField name="items" type="object[]">
+            Массив курсов.
+
+            <Expandable title="Свойства элемента">
+                <ResponseField name="courseId" type="integer">ID курса.</ResponseField>
+                <ResponseField name="name" type="string">Название курса.</ResponseField>
+                <ResponseField name="type" type="enum">
+                    Тип курса: `Bundle`, `Webinar`, `TextCourse`, `Assessment`, `VideoCourse`, `PersonalLesson`.
+                </ResponseField>
+                <ResponseField name="groupIds" type="integer[]">ID связанных групп курса.</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Текущая страница.</ResponseField>
+        <ResponseField name="count" type="integer">Общее количество записей.</ResponseField>
+        <ResponseField name="pages" type="integer">Общее количество страниц.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Признак первой страницы.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Признак последней страницы.</ResponseField>
+        <ResponseField name="next" type="object">Параметры следующей страницы (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Параметры предыдущей страницы (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/course/list/raw?take=20&types=VideoCourse' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listCourses = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/course/list/raw', {
+    params: { take: 20, types: ['VideoCourse'] },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listCourses();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/course/list/raw?take=20&types=VideoCourse';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/course/list/raw'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'take': 20, 'types': ['VideoCourse'] }, headers=headers)
+print(response.json())
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "items": [
+      {
+        "courseId": 10,
+        "name": "Подготовка к экзамену",
+        "type": "VideoCourse",
+        "groupIds": [501, 502]
+      }
+    ],
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "next": { "skip": 20, "take": 20, "page": 2 },
+    "prev": { "skip": 0, "take": 20, "page": 1 }
+  }
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+    Требуется аутентификация по токену и одно из прав: куратор курса (`CourseCurator`) или управление
+    пользователями школы (`SchoolManageUsers`).
+</Check>

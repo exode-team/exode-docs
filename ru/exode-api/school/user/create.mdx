@@ -7,6 +7,12 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <HeaderParamFields/>
 
+```
+POST /saas/v2/user/create
+```
+
+Требуется аутентификация и право `SchoolManageUsers`.
+
 ## Параметры запроса
 
 ##### Для определения логина — передайте хотя бы один из ниже перечисленных параметров
@@ -36,7 +42,12 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 </ParamField>
 
 <ParamField body="extId" type="string" required={false}>
-  Внешний идентификатор пользователя из вашей системы. Строка или `null`.
+  Внешний идентификатор пользователя из вашей системы. Строка до 50 символов или `null`. При передаче пустой
+  строки — преобразуется в `null`.
+</ParamField>
+
+<ParamField body="banned" type="boolean" required={false}>
+  Создать пользователя сразу заблокированным. По умолчанию `false`.
 </ParamField>
 
 ### Параметры профиля
@@ -60,7 +71,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
     </ParamField>
 
     <ParamField body="sex" type="enum" required={false}>
-      Пол пользователя. Возможные значения: `Women`, `Men`.
+      Пол пользователя. Возможные значения: `Ufo`, `Women`, `Men`.
     </ParamField>
 
     <ParamField body="role" type="enum" required={false}>
@@ -248,7 +259,7 @@ except requests.exceptions.RequestException as e:
         "firstName": "Firstname",
         "lastName": "Lastname",
         "bdate": "1990-01-01",
-        "sex": "Male",
+        "sex": "Men",
         "role": "Student",
         "createdAt": "2024-01-15T10:30:00Z",
         "updatedAt": "2024-01-15T10:30:00Z"

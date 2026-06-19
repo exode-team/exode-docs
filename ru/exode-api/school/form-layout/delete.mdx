@@ -7,6 +7,12 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <HeaderParamFields/>
 
+```
+DELETE /saas/v2/form/layout/:layoutId/delete
+```
+
+Требуется аутентификация и право `FormManage`.
+
 ## Параметры пути
 
 <ParamField path="layoutId" type="integer" required={true}>
@@ -147,7 +153,7 @@ except requests.exceptions.RequestException as e:
 </Check>
 
 <Check>
-  Макет должен принадлежать текущей школе (проверяется через `SellerGuard`).
+  Макет должен принадлежать текущей школе (проверяется автоматически).
 </Check>
 
 <Warning>

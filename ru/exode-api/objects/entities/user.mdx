@@ -1,144 +1,127 @@
 ---
 title: "Пользователь"
-description: "Структура объекта пользователя, возвращаемого во всех методах Exode API для школ"
+description: "Структура объекта пользователя (user) и его профиля (profile), возвращаемых в Exode API"
 ---
 
-Объект `user` описывает учетную запись пользователя в школе Exode: логины, контакты, статус, язык, часовой пояс и технические поля для интеграций (например, внешний идентификатор `extId`).
+Объект `user` описывает учётную запись пользователя в школе Exode. Возвращается в методах `user/create`,
+`user/update`, `user/upsert`, `user/find`, во вложенных полях других сущностей (счета, доступы, вебхуки) и,
+вместе с объектом `profile`, в `userWithProfile`.
 
-Этот объект используется:
+<Info>
+    Состав полей строго соответствует схеме публичного ответа: служебные/приватные поля (внутренние метаданные,
+    токены) не возвращаются.
+</Info>
 
-- в ответах методов `user/create`, `user/update`, `user/upsert`, `user/find`;
-- во вложенных полях (например, участник группы, сессии и др.).
+## Поля `user`
 
-## Поля пользователя
+### Идентификаторы и логины
 
-### Основные поля
+<ResponseField name="id" type="integer" required>ID пользователя в Exode.</ResponseField>
+<ResponseField name="uuid" type="string" required>UUID пользователя.</ResponseField>
+<ResponseField name="domain" type="string" required>Доменный логин вида `id12345`.</ResponseField>
+<ResponseField name="email" type="string | null">Email пользователя.</ResponseField>
+<ResponseField name="phone" type="string | null">Телефон в международном формате.</ResponseField>
+<ResponseField name="tgId" type="integer | null">Telegram ID.</ResponseField>
+<ResponseField name="vkId" type="integer | null">VK ID (при авторизации через VK).</ResponseField>
+<ResponseField name="appleId" type="string | null">Apple ID (при авторизации через Apple).</ResponseField>
+<ResponseField name="extId" type="string | null">
+    Внешний идентификатор из вашей системы (CRM/LMS). Задаётся при `user/create`/`update`/`upsert` и используется
+    для поиска в `user/find` — связывает пользователя Exode с записью в вашей базе.
+</ResponseField>
+<ResponseField name="schoolId" type="integer | null">ID школы пользователя.</ResponseField>
 
-<ParamField body="id" type="integer" required>
-  Уникальный ID пользователя в системе Exode.
-</ParamField>
+### Статусы
 
-<ParamField body="uuid" type="string" required>
-  Строковый UUID пользователя.
-</ParamField>
+<ResponseField name="active" type="boolean" required>Пользователь не отключён администратором.</ResponseField>
+<ResponseField name="activated" type="boolean" required>Пользователь подтвердил вход (через код/оплату).</ResponseField>
+<ResponseField name="banned" type="boolean" required>Пользователь заблокирован и не может входить.</ResponseField>
+<ResponseField name="alive" type="boolean | null">«Живой» доступ: `active === true` и `banned === false`.</ResponseField>
 
-<ParamField body="active" type="boolean" required>
-  Флаг активности пользователя в системе (не отключен администратором).
-</ParamField>
+### Локаль и активность
 
-<ParamField body="activated" type="boolean" required>
-  Пользователь подтвердил вход (через код/оплату).
-</ParamField>
+<ResponseField name="language" type="enum | null">Язык интерфейса: `Ru`, `Uz`, `En`, `Qa`.</ResponseField>
+<ResponseField name="timezone" type="integer | null">Смещение часового пояса относительно UTC в часах (например, `5`).</ResponseField>
+<ResponseField name="lastOnlineAt" type="string | null">Последняя активность (ISO 8601).</ResponseField>
+<ResponseField name="currentTime" type="string | null">Текущее локальное время пользователя с учётом часового пояса.</ResponseField>
+<ResponseField name="isSleepingNow" type="boolean | null">Эвристика «ночного» времени для пользователя.</ResponseField>
 
-<ParamField body="banned" type="boolean" required>
-  Пользователь заблокирован и не может входить в систему.
-</ParamField>
+### Платформа и геймификация
 
-<ParamField body="vkId" type="integer | null" required={false}>
-  VK ID пользователя, если он авторизован через VK.
-</ParamField>
-
-<ParamField body="tgId" type="integer | null" required={false}>
-  Telegram ID пользователя.
-</ParamField>
-
-<ParamField body="extId" type="string | null" required={false}>
-  Внешний идентификатор пользователя в вашей системе (CRM, LMS и т.п.). Используется для связки Exode ↔ ваша база.
-</ParamField>
-
-<ParamField body="appleId" type="string | null" required={false}>
-  Идентификатор Apple ID, если пользователь авторизован через Apple.
-</ParamField>
-
-<ParamField body="domain" type="string | null" required={false}>
-  Доменный логин вида `id12345`, который может использоваться как логин.
-</ParamField>
-
-<ParamField body="email" type="string | null" required={false}>
-  Email пользователя.
-</ParamField>
-
-<ParamField body="phone" type="string | null" required={false}>
-  Номер телефона пользователя в международном формате.
-</ParamField>
-
-<ParamField body="language" type='"Ru" | "Uz" | "En" | "Qa" | null' required={false}>
-  Язык интерфейса пользователя.
-</ParamField>
-
-<ParamField body="timezone" type="number | null" required={false}>
-  Смещение часового пояса пользователя относительно UTC в часах (например, `5` для UTC+5).
-</ParamField>
-
-<ParamField body="lastOnlineAt" type="string | null" required={false}>
-  Дата и время последней активности пользователя в формате ISO 8601.
-</ParamField>
-
-<ParamField body="starsBalance" type="integer" required>
-  Баланс «звезд» пользователя в системе геймификации (общий по всем курсам).
-</ParamField>
+<ResponseField name="createdOnDomain" type="enum" required>
+    Домен регистрации: `Ru`, `Uz`, `Kz`, `Biz`, `Global`.
+</ResponseField>
+<ResponseField name="product" type="enum" required>Продукт регистрации: `BizSchool`, `Marketplace`.</ResponseField>
+<ResponseField name="starsBalance" type="integer" required>Баланс «звёзд» в системе геймификации.</ResponseField>
+<ResponseField name="permissions" type="string[]" required>Список прав пользователя в текущем контексте.</ResponseField>
 
 ### Системные поля аудита
 
-<ParamField body="createdAt" type="string" required>
-  Дата и время создания пользователя (ISO 8601).
-</ParamField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата последнего обновления (ISO 8601).</ResponseField>
+<ResponseField name="deletedAt" type="string | null">Дата удаления (ISO 8601) или `null`.</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Дата архивации (ISO 8601) или `null`.</ResponseField>
 
-<ParamField body="updatedAt" type="string" required>
-  Дата и время последнего обновления.
-</ParamField>
+## Поля `profile`
 
-### Вычисляемые поля (GraphQL/REST)
+В `userWithProfile` объект пользователя дополнен полем `profile` (может быть `null`).
 
-<ParamField body="alive" type="boolean" required>
-  Пользователь «живой» с точки зрения доступа (`active === true` и `banned === false`).
-</ParamField>
+<ResponseField name="id" type="integer" required>ID профиля.</ResponseField>
+<ResponseField name="userId" type="integer | null">ID пользователя.</ResponseField>
+<ResponseField name="official" type="boolean" required>Признак официального (верифицированного) профиля.</ResponseField>
+<ResponseField name="firstName" type="string | null">Имя.</ResponseField>
+<ResponseField name="lastName" type="string | null">Фамилия.</ResponseField>
+<ResponseField name="fullName" type="string | null">Полное имя.</ResponseField>
+<ResponseField name="fullNameShort" type="string | null">Сокращённое имя.</ResponseField>
+<ResponseField name="avatar" type="object">Объект аватара (произвольная структура).</ResponseField>
+<ResponseField name="bdate" type="string | null">Дата рождения (`YYYY-MM-DD`).</ResponseField>
+<ResponseField name="sex" type="enum">Пол: `Ufo`, `Women`, `Men`.</ResponseField>
+<ResponseField name="country" type="string | null">Страна.</ResponseField>
+<ResponseField name="city" type="string | null">Город.</ResponseField>
+<ResponseField name="role" type="enum">Роль: `Student`, `Tutor`, `Parent`.</ResponseField>
+<ResponseField name="status" type="string | null">Статус (произвольный текст).</ResponseField>
+<ResponseField name="title" type="string | null">Титул.</ResponseField>
+<ResponseField name="emojiTitle" type="string | null">Эмодзи-титул.</ResponseField>
+<ResponseField name="titleState" type="object">Состояние титулов (ручные/локационные/достижения).</ResponseField>
 
-<ParamField body="login" type="string" required>
-  Текущий приоритетный логин (обычно телефон, затем email, затем домен).
-</ParamField>
-
-<ParamField body="currentTime" type="string" required>
-  Текущее локальное время пользователя с учетом его часового пояса.
-</ParamField>
-
-<ParamField body="isSleepingNow" type="boolean" required>
-  Эвристика: сейчас «ночное» время для пользователя (обычно 22:00–08:00).
-</ParamField>
-
-## Пример объекта `user`
+## Пример объекта `userWithProfile`
 
 ```json
 {
   "id": 123,
-  "createdAt": "2024-01-15T10:30:00Z",
-  "updatedAt": "2024-01-15T11:45:00Z",
   "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "domain": "id123",
+  "email": "user@example.com",
+  "phone": "+9876543210",
+  "tgId": 987654321,
+  "vkId": null,
+  "appleId": null,
+  "extId": "crm_12345",
+  "schoolId": 91,
   "active": true,
   "activated": true,
   "banned": false,
-  "vkId": null,
-  "tgId": 987654321,
-  "extId": "crm_12345",
-  "appleId": null,
-  "domain": null,
-  "email": "user@example.com",
-  "phone": "+9876543210",
+  "alive": true,
   "language": "Ru",
   "timezone": 5,
-  "lastOnlineAt": "2024-01-15T11:40:00Z",
+  "lastOnlineAt": "2025-01-15T11:40:00Z",
+  "createdOnDomain": "Biz",
+  "product": "BizSchool",
   "starsBalance": 0,
-  "metadata": {},
-  "alive": true,
-  "login": "user@example.com",
-  "currentTime": "2025-07-20T10:37:39-05:00",
-  "isSleepingNow": false
+  "permissions": [],
+  "createdAt": "2025-01-15T10:30:00Z",
+  "updatedAt": "2025-01-15T11:45:00Z",
+  "deletedAt": null,
+  "archivedAt": null,
+  "profile": {
+    "id": 456,
+    "userId": 123,
+    "official": false,
+    "firstName": "Иван",
+    "lastName": "Иванов",
+    "fullName": "Иван Иванов",
+    "sex": "Men",
+    "role": "Student",
+    "bdate": "1990-01-01"
+  }
 }
 ```
-
-## Где используется `extId`
-
-- в методах `user/create`, `user/update`, `user/upsert` — передается в теле запроса и сохраняется в поле `extId`;
-- в методе `user/find` — используется для поиска пользователя по внешнему идентификатору;
-- в других ответах, где возвращается объект `user`, поле `extId` помогает вам однозначно связать пользователя Exode с записью в вашей CRM/LMS.
-

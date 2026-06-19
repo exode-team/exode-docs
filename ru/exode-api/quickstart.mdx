@@ -1,0 +1,122 @@
+---
+title: 'Быстрый старт'
+description: 'Первый запрос к Exode API за несколько минут'
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+За пять шагов вы сделаете первый запрос: получите токен, настроите заголовки, найдёте или создадите
+пользователя и разберёте ответ.
+
+<Steps>
+<Step title="Получите доступы">
+    Напишите в [поддержку](https://t.me/exode_support_biz) — вам создадут сервисного пользователя (API-клиента)
+    с нужными правами и выдадут три значения:
+
+    - `Authorization` — API-токен (используется как `Bearer <TOKEN>`);
+    - `Seller-Id` — идентификатор продавца;
+    - `School-Id` — идентификатор школы.
+
+    <Warning>Храните токен в переменных окружения, не в коде и не в репозитории.</Warning>
+</Step>
+
+<Step title="Подготовьте заголовки">
+    Все запросы выполняются с тремя обязательными заголовками:
+
+    <HeaderParamFields/>
+</Step>
+
+<Step title="Сделайте первый запрос — найдите пользователя">
+    Проверьте доступ безопасным методом чтения — [`user/find`](/ru/exode-api/school/user/find):
+
+    <CodeGroup>
+    ```bash cURL
+    curl --location 'https://api.exode.biz/saas/v2/user/find?extId=crm_12345' \
+      --header 'Authorization: Bearer YOUR_TOKEN' \
+      --header 'Seller-Id: {{ sellerId }}' \
+      --header 'School-Id: {{ schoolId }}'
+    ```
+
+    ```javascript Node.js
+    const axios = require('axios');
+
+    const client = axios.create({
+      baseURL: 'https://api.exode.biz/saas/v2',
+      headers: {
+        Authorization: `Bearer ${process.env.EXODE_TOKEN}`,
+        'Seller-Id': process.env.SELLER_ID,
+        'School-Id': process.env.SCHOOL_ID,
+      },
+    });
+
+    const { data } = await client.get('/user/find', { params: { extId: 'crm_12345' } });
+    console.log(data.payload.user);
+    ```
+
+    ```python Python
+    import os, requests
+
+    session = requests.Session()
+    session.headers.update({
+      'Authorization': f"Bearer {os.environ['EXODE_TOKEN']}",
+      'Seller-Id': os.environ['SELLER_ID'],
+      'School-Id': os.environ['SCHOOL_ID'],
+    })
+
+    r = session.get('https://api.exode.biz/saas/v2/user/find', params={'extId': 'crm_12345'})
+    print(r.json()['payload']['user'])
+    ```
+    </CodeGroup>
+</Step>
+
+<Step title="Создайте пользователя">
+    Если пользователя ещё нет — создайте его методом [`user/create`](/ru/exode-api/school/user/create).
+    Логин и пароль будут отправлены автоматически (при наличии контакта).
+
+    ```bash cURL
+    curl --location 'https://api.exode.biz/saas/v2/user/create' \
+      --header 'Authorization: Bearer YOUR_TOKEN' \
+      --header 'Seller-Id: {{ sellerId }}' \
+      --header 'School-Id: {{ schoolId }}' \
+      --header 'Content-Type: application/json' \
+      --data-raw '{
+        "email": "user@example.com",
+        "extId": "crm_12345",
+        "profile": { "firstName": "Иван", "lastName": "Иванов" }
+      }'
+    ```
+</Step>
+
+<Step title="Разберите ответ">
+    Любой ответ обёрнут в `{ success, code, payload }`. Проверяйте `success`/`code`, а при ошибке —
+    поле `cause`:
+
+    ```json Успех
+    { "success": true, "code": 200, "payload": { "user": { "id": 123, "extId": "crm_12345" } } }
+    ```
+
+    ```json Ошибка
+    { "success": false, "code": 400, "cause": "EmailIsBusy", "message": "Email is busy", "error": "Email is busy" }
+    ```
+
+    Подробно о заголовках, формате ответа, ошибках, rate-limit и пагинации — на странице
+    [«Работа с API»](/ru/exode-api/setup).
+</Step>
+</Steps>
+
+## Что дальше
+
+<CardGroup cols={2}>
+    <Card title="Ключевые понятия" icon="diagram-project" href="/ru/exode-api/concepts">
+        Как связаны продавец, школа, курсы, продукты и доступы.
+    </Card>
+    <Card title="Работа с API" icon="gear" href="/ru/exode-api/setup">
+        Заголовки, формат ответа и ошибок, rate-limit, пагинация.
+    </Card>
+    <Card title="Вебхуки" icon="bell" href="/ru/exode-api/webhooks/about">
+        Получайте события платформы в свои сервисы.
+    </Card>
+    <Card title="Объекты API" icon="cube" href="/ru/exode-api/objects/entities/index">
+        Полные структуры сущностей по zod-схемам.
+    </Card>
+</CardGroup>

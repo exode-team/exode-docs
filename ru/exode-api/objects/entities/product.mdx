@@ -1,0 +1,78 @@
+---
+title: "Продукт и доступы"
+description: "Структуры объектов продукта, доступа, цены и скидки по shared zod-схемам"
+---
+
+Публичные структуры объектов продаж: `product`, `productAccess`, `productPrice`, `discount`. Используются во
+вложенных полях счетов/платежей и в вебхуках (`ProductEnrolledToFree`, `PaymentCompleted`).
+
+<Info>
+    Метод [`product-access/list/raw`](/ru/exode-api/school/product-access/list) отдаёт компактную проекцию
+    доступа (`accessId`, `productId`, `courseId`, `active`, `expireAt`, `user`). Ниже — полные публичные схемы.
+</Info>
+
+## `product`
+
+<ResponseField name="id" type="integer" required>ID продукта.</ResponseField>
+<ResponseField name="sellerId" type="integer" required>ID продавца.</ResponseField>
+<ResponseField name="type" type="enum" required>Тип: `Course`, `School`, `Digital`.</ResponseField>
+<ResponseField name="status" type="enum | null">Статус: `Draft`, `OnCheck`, `Declined`, `ReadyToPublish`, `Published`.</ResponseField>
+<ResponseField name="currency" type="enum" required>Валюта: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ResponseField>
+<ResponseField name="name" type="string | null">Название.</ResponseField>
+<ResponseField name="showInCatalog" type="boolean" required>Показывается в каталоге.</ResponseField>
+<ResponseField name="approves" type="enum[]" required>Подтверждения: `Certified`, `Recommended`.</ResponseField>
+<ResponseField name="domains" type="enum[]" required>Домены: `Ru`, `Uz`, `Kz`, `Biz`, `Global`.</ResponseField>
+<ResponseField name="publishedAt" type="string | null">Дата публикации (ISO 8601).</ResponseField>
+<ResponseField name="saleStartAt" type="string | null">Начало продаж (ISO 8601).</ResponseField>
+<ResponseField name="saleFinishAt" type="string | null">Конец продаж (ISO 8601).</ResponseField>
+<ResponseField name="isFree" type="boolean | null">Бесплатный.</ResponseField>
+<ResponseField name="isPublished" type="boolean | null">Опубликован.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+<ResponseField name="deletedAt" type="string | null">Дата удаления или `null`.</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
+
+## `productAccess`
+
+<ResponseField name="id" type="integer" required>ID доступа.</ResponseField>
+<ResponseField name="productId" type="integer" required>ID продукта.</ResponseField>
+<ResponseField name="parentId" type="integer | null">ID родительского доступа (для бандлов).</ResponseField>
+<ResponseField name="active" type="boolean" required>Доступ активен.</ResponseField>
+<ResponseField name="deactivatedAt" type="string | null">Дата деактивации (ISO 8601).</ResponseField>
+<ResponseField name="expireAt" type="string | null">Дата истечения (ISO 8601).</ResponseField>
+<ResponseField name="billingIsActive" type="boolean | null">Активен ли биллинг доступа.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+
+## `productPrice`
+
+<ResponseField name="id" type="integer" required>ID цены.</ResponseField>
+<ResponseField name="mode" type="enum" required>Режим: `AccordingToGroup`, `SelfDefinition`.</ResponseField>
+<ResponseField name="type" type="enum" required>Тип: `Demo`, `OneTime`, `Installment`, `Subscription`, `ExternalLink`.</ResponseField>
+<ResponseField name="title" type="string | null">Заголовок.</ResponseField>
+<ResponseField name="description" type="string | null">Описание.</ResponseField>
+<ResponseField name="amount" type="number" required>Сумма.</ResponseField>
+<ResponseField name="previousAmount" type="number | null">Прежняя сумма (для отображения скидки).</ResponseField>
+<ResponseField name="accessDays" type="integer | null">Длительность доступа в днях.</ResponseField>
+<ResponseField name="infinityAccess" type="boolean" required>Бессрочный доступ.</ResponseField>
+<ResponseField name="active" type="boolean" required>Цена активна.</ResponseField>
+<ResponseField name="hidden" type="boolean" required>Цена скрыта.</ResponseField>
+<ResponseField name="activeFrom" type="string | null">Активна с (ISO 8601).</ResponseField>
+<ResponseField name="activeTo" type="string | null">Активна по (ISO 8601).</ResponseField>
+<ResponseField name="installmentConfig" type="object | null">Конфигурация рассрочки.</ResponseField>
+<ResponseField name="subscriptionConfig" type="object | null">Конфигурация подписки.</ResponseField>
+<ResponseField name="isDemo" type="boolean | null">Демо-цена.</ResponseField>
+<ResponseField name="isRecurrent" type="boolean | null">Рекуррентная.</ResponseField>
+<ResponseField name="isInstallment" type="boolean | null">Рассрочка.</ResponseField>
+<ResponseField name="isSubscription" type="boolean | null">Подписка.</ResponseField>
+
+## `discount`
+
+<ResponseField name="id" type="integer" required>ID скидки.</ResponseField>
+<ResponseField name="code" type="string" required>Промокод.</ResponseField>
+<ResponseField name="type" type="enum" required>Тип: `Amount` (фикс. сумма), `Percent` (процент).</ResponseField>
+<ResponseField name="value" type="number" required>Значение скидки.</ResponseField>
+<ResponseField name="currency" type="enum" required>Валюта: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ResponseField>
+<ResponseField name="active" type="boolean" required>Скидка активна.</ResponseField>
+<ResponseField name="activeFrom" type="string | null">Активна с (ISO 8601).</ResponseField>
+<ResponseField name="activeTo" type="string | null">Активна по (ISO 8601).</ResponseField>

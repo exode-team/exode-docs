@@ -74,36 +74,32 @@ POST /saas/v2/query-export/generate
   Объект задачи генерации.
 
   <Expandable title="Свойства payload">
-    <ResponseField name="id" type="number">
-      Числовой идентификатор задачи.
-    </ResponseField>
-
     <ResponseField name="uuid" type="string">
       UUID задачи — используется для [получения результата](/ru/exode-api/school/query-export/result).
     </ResponseField>
 
+    <ResponseField name="flow" type="string">
+      Тип процесса. Для выгрузок — `QueryExport`.
+    </ResponseField>
+
     <ResponseField name="status" type="string">
-      Статус задачи. При создании — `Processing`.
+      Статус задачи: `Waiting`, `Processing`, `Failed`, `Canceled`, `Completed`. При создании — `Processing`.
     </ResponseField>
 
     <ResponseField name="isCompleted" type="boolean">
       Флаг завершения задачи. При создании — `false`.
     </ResponseField>
 
+    <ResponseField name="userId" type="number | null">
+      ID инициатора задачи.
+    </ResponseField>
+
     <ResponseField name="createdAt" type="string">
       Дата создания задачи (ISO 8601).
     </ResponseField>
 
-    <ResponseField name="updatedAt" type="string">
+    <ResponseField name="updatedAt" type="string | null">
       Дата последнего обновления задачи (ISO 8601).
-    </ResponseField>
-
-    <ResponseField name="deletedAt" type="string | null">
-      Дата удаления задачи. `null`, если задача не удалена.
-    </ResponseField>
-
-    <ResponseField name="archivedAt" type="string | null">
-      Дата архивации задачи. `null`, если задача не архивирована.
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -227,10 +223,12 @@ except requests.exceptions.RequestException as e:
 {
   "success": true,
   "payload": {
-    "id": 282,
     "uuid": "ac4140c9-12d3-4c1f-a7aa-d12f16c7bbdd",
+    "flow": "QueryExport",
     "status": "Processing",
-    "isCompleted": false
+    "isCompleted": false,
+    "userId": 5562,
+    "createdAt": "2025-01-18T12:44:55.812Z"
   },
   "code": 201
 }

@@ -1,0 +1,55 @@
+---
+title: "Школа и продавец"
+description: "Структуры объектов школы, продавца и организации по shared zod-схемам"
+---
+
+Публичные структуры: `school`, `seller`, `organization`. Дерево `school` с вложенным `seller` приходит в
+системном вебхуке `SchoolCreated`.
+
+## `school`
+
+<ResponseField name="id" type="integer" required>ID школы.</ResponseField>
+<ResponseField name="name" type="string" required>Название школы.</ResponseField>
+<ResponseField name="description" type="string | null">Описание.</ResponseField>
+<ResponseField name="segment" type="enum" required>Сегмент: `Commerce`, `Corporate`.</ResponseField>
+<ResponseField name="accessType" type="enum" required>Тип доступа: `Public`, `Private`.</ResponseField>
+<ResponseField name="domainType" type="enum" required>Тип домена: `Base`, `Custom`.</ResponseField>
+<ResponseField name="baseDomain" type="string" required>Базовый домен (поддомен Exode).</ResponseField>
+<ResponseField name="customDomain" type="string | null">Кастомный домен.</ResponseField>
+<ResponseField name="domain" type="string | null">Текущий активный домен.</ResponseField>
+<ResponseField name="fqdn" type="string | null">Полное доменное имя.</ResponseField>
+<ResponseField name="baseFqdn" type="string | null">Полное имя на базовом домене.</ResponseField>
+<ResponseField name="publicUrl" type="string | null">Публичный URL школы.</ResponseField>
+<ResponseField name="iconUrl" type="string | null">URL иконки.</ResponseField>
+<ResponseField name="active" type="boolean" required>Школа активна.</ResponseField>
+<ResponseField name="isPublic" type="boolean | null">Публичная.</ResponseField>
+<ResponseField name="isPrivate" type="boolean | null">Приватная.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+<ResponseField name="deletedAt" type="string | null">Дата удаления или `null`.</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
+
+## `seller`
+
+<ResponseField name="id" type="integer" required>ID продавца.</ResponseField>
+<ResponseField name="type" type="enum" required>Тип: `Tutor`, `School`, `Producer`, `University`.</ResponseField>
+<ResponseField name="active" type="boolean" required>Активен.</ResponseField>
+<ResponseField name="verified" type="boolean" required>Верифицирован.</ResponseField>
+<ResponseField name="balance" type="number" required>Баланс.</ResponseField>
+<ResponseField name="payoutBalance" type="number" required>Баланс к выплате.</ResponseField>
+<ResponseField name="baseCurrency" type="enum" required>Базовая валюта: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ResponseField>
+<ResponseField name="isSchool" type="boolean | null">Является ли школой.</ResponseField>
+<ResponseField name="organization" type="object | null">Реквизиты организации (см. ниже).</ResponseField>
+
+## `organization`
+
+<ResponseField name="id" type="integer" required>ID организации.</ResponseField>
+<ResponseField name="form" type="string" required>Форма организации.</ResponseField>
+<ResponseField name="name" type="string" required>Название.</ResponseField>
+<ResponseField name="organizationName" type="string | null">Юридическое название.</ResponseField>
+<ResponseField name="selfEmployedName" type="string | null">Имя самозанятого.</ResponseField>
+<ResponseField name="inn" type="string | null">ИНН.</ResponseField>
+<ResponseField name="ogrn" type="string | null">ОГРН.</ResponseField>
+<ResponseField name="logo" type="string | null">Логотип.</ResponseField>
+<ResponseField name="address" type="string | null">Адрес.</ResponseField>
+<ResponseField name="isOrganization" type="boolean | null">Является ли организацией.</ResponseField>

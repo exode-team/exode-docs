@@ -7,6 +7,12 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <HeaderParamFields/>
 
+```
+POST /saas/v2/user/session/auth-token
+```
+
+Требуется аутентификация и право `SchoolManageUsers`.
+
 ## Параметры запроса
 
 <ParamField body="userId" type="integer" required>
@@ -218,19 +224,28 @@ except requests.exceptions.RequestException as e:
 ## Параметры ответа
 
 <ResponseField name="session" type="object" required>
-  Объект сессии пользователя.
+  Объект сессии пользователя — полная структура описана в справочнике
+  [`session`](/ru/exode-api/objects/entities/session).
 
-  <Expandable title="Свойства сессии">
+  <Expandable title="Ключевые свойства сессии">
     <ResponseField name="id" type="integer" required>
       Уникальный идентификатор сессии.
     </ResponseField>
 
-    <ResponseField name="token" type="string" required>
-      JWT токен для аутентификации пользователя.
+    <ResponseField name="uuid" type="string" required>
+      UUID сессии.
     </ResponseField>
 
-    <ResponseField name="expireAt" type="timestamp" required>
-      Время истечения сессии в формате ISO 8601.
+    <ResponseField name="token" type="string" required>
+      Токен для аутентификации пользователя.
+    </ResponseField>
+
+    <ResponseField name="alive" type="boolean" required>
+      Сессия активна.
+    </ResponseField>
+
+    <ResponseField name="expireAt" type="string" required>
+      Время истечения сессии (ISO 8601).
     </ResponseField>
   </Expandable>
 </ResponseField>

@@ -1,38 +1,62 @@
 ---
 title: "Объекты API"
-description: "Справочник сущностей (entities), используемых в exode API для школ"
+description: "Справочник сущностей (entities) Exode API — структуры по shared zod-схемам"
 ---
 
-На этой странице собраны ссылки на подробные описания основных объектов, которые возвращаются в Exode API.
+На этой странице собраны публичные структуры объектов, возвращаемых в Exode API и вебхуках. Состав полей строго
+соответствует серверным zod-схемам публичных контрактов: служебные и приватные поля не отдаются.
 
-<CardGroup cols={1}>
-    <Card
-        title="Пользователь"
-        icon="user"
-        href="/ru/exode-api/objects/entities/user"
-    >
-        Пользователь школы: логины, контакты, статусы, язык, часовой пояс и внешний идентификатор `extId` для связи с
-        вашей CRM или LMS.
+<Info>
+    Списочные методы (`.../list/raw`) часто возвращают **компактную проекцию** объекта. Полная структура
+    каждой сущности описана на её странице ниже.
+</Info>
+
+## Пользователи и доступ
+
+<CardGroup cols={2}>
+    <Card title="Пользователь" icon="user" href="/ru/exode-api/objects/entities/user">
+        `user` и `profile`: логины, контакты, статусы, `extId`, права.
     </Card>
-
-    <Card
-        title="Группа"
-        icon="users"
-        href="/ru/exode-api/objects/entities/group"
-    >
-        Учебная или продуктовая группа: владелец, продукт, ограничения доступа, расписание и правила работы с
-        образовательным контентом.
+    <Card title="Сессия" icon="key" href="/ru/exode-api/objects/entities/session">
+        `session`: токен авторизации, устройство, статус онлайн.
     </Card>
-
-    <Card
-        title="Участник группы"
-        icon="id-card"
-        href="/ru/exode-api/objects/entities/group-member"
-    >
-        Связь пользователя и группы: статус участия, блокировки, а также информация о добавлении в Telegram‑каналы и
-        групповые чаты.
+    <Card title="Группа" icon="users" href="/ru/exode-api/objects/entities/group">
+        `group`: учебные/продуктовые группы, ограничения, Telegram.
+    </Card>
+    <Card title="Участник группы" icon="id-card" href="/ru/exode-api/objects/entities/group-member">
+        `groupMember`: связь пользователя и группы, блокировки.
     </Card>
 </CardGroup>
 
-Используйте эту страницу как точку входа при интеграции: от конкретных методов API переходите к описанию сущностей, чтобы понимать полный набор полей и их семантику.
+## Обучение и продажи
 
+<CardGroup cols={2}>
+    <Card title="Курс и обучение" icon="graduation-cap" href="/ru/exode-api/objects/entities/course">
+        `course`, `courseProgress`, `courseLesson`, `courseLessonPractice`, `courseLessonPracticeAttempt`.
+    </Card>
+    <Card title="Продукт и доступы" icon="box" href="/ru/exode-api/objects/entities/product">
+        `product`, `productAccess`, `productPrice`, `discount`.
+    </Card>
+    <Card title="Платёж и счёт" icon="credit-card" href="/ru/exode-api/objects/entities/payment">
+        `payment`, `invoice`, `invoiceProduct`, `acquiring`.
+    </Card>
+    <Card title="Школа и продавец" icon="building" href="/ru/exode-api/objects/entities/school">
+        `school`, `seller`, `organization`.
+    </Card>
+</CardGroup>
+
+## Формы
+
+<CardGroup cols={2}>
+    <Card title="Формы и поля" icon="list-check" href="/ru/exode-api/objects/entities/form">
+        `formLayout` и `formFieldValue`: макеты форм и значения кастомных полей.
+    </Card>
+</CardGroup>
+
+## Общие соглашения по полям
+
+- **Даты** (`createdAt`, `expireAt`, …) — строки ISO 8601 (UTC). Поля с суффиксом `At` и значением `null` означают,
+  что событие не наступило.
+- **Денежные поля** (`totalAmount`, `amount`, `balance`, …) — числа.
+- **Поля аудита** присутствуют у большинства сущностей: `id`, `createdAt`, `updatedAt`, `deletedAt`, `archivedAt`.
+- **`*Id`-поля** ссылаются на другую сущность (например, `courseId`, `userId`).

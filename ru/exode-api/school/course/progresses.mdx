@@ -1,0 +1,187 @@
+---
+title: "Прогресс по курсу"
+description: "Получение прогресса участников по урокам курса с пагинацией"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/course/:courseId/progresses
+```
+
+<Info>
+    Возвращает записи прогресса по урокам выбранного курса для всех участников. Каждая запись соответствует
+    паре «пользователь + урок».
+</Info>
+
+## Параметры пути
+
+<ParamField path="courseId" type="integer" required>
+    ID курса, прогресс по которому нужно получить.
+</ParamField>
+
+## Параметры запроса
+
+### Пагинация
+
+<ParamField query="skip" type="integer" required={false}>
+    Количество записей, которые нужно пропустить. По умолчанию `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Номер страницы (альтернатива `skip`). Начинается с `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Количество записей на странице. От `1` до `1000`. По умолчанию `100`.
+</ParamField>
+
+## Поля ответа
+
+<ResponseField name="payload" type="object">
+    Постраничный список записей прогресса. Полная структура записи — `courseProgress` в справочнике
+    [`course`](/ru/exode-api/objects/entities/course).
+
+    <Expandable title="Свойства payload">
+        <ResponseField name="items" type="object[]">
+            Массив записей прогресса.
+
+            <Expandable title="Свойства элемента">
+                <ResponseField name="id" type="integer">ID записи прогресса.</ResponseField>
+                <ResponseField name="courseId" type="integer | null">ID курса.</ResponseField>
+                <ResponseField name="userId" type="integer">ID пользователя.</ResponseField>
+                <ResponseField name="lessonId" type="integer">ID урока.</ResponseField>
+                <ResponseField name="status" type="enum | null">
+                    Статус прогресса по уроку. Возможные значения: `NotInitialized`, `NotStarted`, `OnTheory`,
+                    `OnPractice`, `OnReview`, `OnCorrection`, `Completed` и др.
+                </ResponseField>
+                <ResponseField name="scheduleStatus" type="enum | null">
+                    Статус расписания: `OnTimeChoose`, `WaitingStart`, `InProgress`, `Completed`, `Canceled`.
+                </ResponseField>
+                <ResponseField name="scheduleStartAt" type="string | null">Дата старта по расписанию (ISO 8601).</ResponseField>
+                <ResponseField name="scheduleFinishAt" type="string | null">Дата окончания по расписанию (ISO 8601).</ResponseField>
+                <ResponseField name="practiceDeadlineAt" type="string | null">Дедлайн практической части (ISO 8601).</ResponseField>
+                <ResponseField name="isCompleted" type="boolean | null">Признак завершения урока.</ResponseField>
+                <ResponseField name="isOnReview" type="boolean | null">Признак нахождения на проверке.</ResponseField>
+                <ResponseField name="completedAt" type="string | null">Дата завершения (ISO 8601).</ResponseField>
+                <ResponseField name="onReviewAt" type="string | null">Дата отправки на проверку (ISO 8601).</ResponseField>
+                <ResponseField name="statusHistoryLogs" type="object[] | null">
+                    История изменения статуса: массив объектов `{ timestamp, status }`.
+                </ResponseField>
+                <ResponseField name="createdAt" type="string">Дата создания записи (ISO 8601).</ResponseField>
+                <ResponseField name="updatedAt" type="string">Дата обновления записи (ISO 8601).</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Текущая страница.</ResponseField>
+        <ResponseField name="count" type="integer">Общее количество записей.</ResponseField>
+        <ResponseField name="pages" type="integer">Общее количество страниц.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Признак первой страницы.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Признак последней страницы.</ResponseField>
+        <ResponseField name="next" type="object">Параметры следующей страницы (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Параметры предыдущей страницы (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/course/10/progresses?take=50' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const getProgresses = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/course/10/progresses', {
+    params: { take: 50 },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+getProgresses();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/course/10/progresses?take=50';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/course/10/progresses'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'take': 50 }, headers=headers)
+print(response.json())
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "items": [
+      {
+        "id": 9001,
+        "courseId": 10,
+        "userId": 123,
+        "lessonId": 55,
+        "status": "Completed",
+        "scheduleStatus": "InProgress",
+        "isCompleted": true,
+        "completedAt": "2025-01-15T10:30:00Z",
+        "createdAt": "2025-01-10T09:00:00Z",
+        "updatedAt": "2025-01-15T10:30:00Z"
+      }
+    ],
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "next": { "skip": 20, "take": 20, "page": 2 },
+    "prev": { "skip": 0, "take": 20, "page": 1 }
+  }
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+    Требуется аутентификация по токену и одно из прав: куратор курса (`CourseCurator`) или управление
+    пользователями школы (`SchoolManageUsers`).
+</Check>

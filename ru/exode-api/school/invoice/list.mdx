@@ -1,0 +1,250 @@
+---
+title: "Список счетов"
+description: "Получение списка счетов (инвойсов) школы с фильтрацией и пагинацией"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/invoice/list/raw
+```
+
+<Info>
+    Все параметры фильтрации необязательны. Параметры-массивы передаются повторением параметра в строке запроса:
+    `userIds=1&userIds=2`. Диапазоны (`*Range`) передаются как вложенные параметры, например
+    `createdAtDateRange[from]` и `createdAtDateRange[to]`.
+</Info>
+
+## Параметры запроса
+
+### Пагинация
+
+<ParamField query="skip" type="integer" required={false}>
+    Количество записей, которые нужно пропустить. По умолчанию `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Номер страницы (альтернатива `skip`). Начинается с `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Количество записей на странице. От `1` до `1000`. По умолчанию `100`.
+</ParamField>
+
+### Фильтрация
+
+<ParamField query="invoiceIds" type="integer[]" required={false}>
+    Фильтр по ID счетов.
+</ParamField>
+
+<ParamField query="userIds" type="integer[]" required={false}>
+    Фильтр по ID пользователей.
+</ParamField>
+
+<ParamField query="productIds" type="integer[]" required={false}>
+    Фильтр по ID продуктов.
+</ParamField>
+
+<ParamField query="types" type="enum[]" required={false}>
+    Фильтр по типу счёта: `Regular`, `InstallmentPay`, `InstallmentInit`, `SubscriptionPay`, `SubscriptionInit`.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+    Поиск (по пользователю/идентификаторам). Максимум 50 символов, пробелы по краям обрезаются.
+</ParamField>
+
+<ParamField query="createdAtDateRange" type="object" required={false}>
+    Диапазон дат создания счёта.
+
+    <Expandable title="Свойства createdAtDateRange">
+        <ParamField query="from" type="string">Начало диапазона (ISO 8601). Должно быть ≤ `to`.</ParamField>
+        <ParamField query="to" type="string">Конец диапазона (ISO 8601). Должно быть ≥ `from`.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField query="totalAmountRange" type="object" required={false}>
+    Диапазон итоговой суммы счёта. Должно быть задано хотя бы одно из полей.
+
+    <Expandable title="Свойства totalAmountRange">
+        <ParamField query="from" type="number">Минимальная сумма.</ParamField>
+        <ParamField query="to" type="number">Максимальная сумма.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField query="utmParams" type="object" required={false}>
+    Фильтр по UTM-меткам счёта.
+
+    <Expandable title="Свойства utmParams">
+        <ParamField query="value" type="object[]">
+            Массив пар «ключ-значение». Каждый элемент: `{ "key": "utm_source", "value": "google" }`
+            (`key` и `value` — непустые строки).
+        </ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField query="payment" type="object" required={false}>
+    Фильтр по связанному платежу.
+
+    <Expandable title="Свойства payment">
+        <ParamField query="paymentIds" type="integer[]">ID платежей.</ParamField>
+        <ParamField query="acquiringIds" type="integer[]">ID эквайрингов.</ParamField>
+        <ParamField query="statuses" type="enum[]">
+            Статусы платежа: `Created`, `WaitingPay`, `WaitingForBinding`, `Processing`, `Completed`,
+            `BindingCompleted`, `Canceled`.
+        </ParamField>
+        <ParamField query="actualStatuses" type="enum[]">
+            Актуальные (текущие) статусы платежа — те же значения, что и `statuses`.
+        </ParamField>
+    </Expandable>
+</ParamField>
+
+## Поля ответа
+
+<ResponseField name="payload" type="object">
+    Постраничный список счетов (компактная проекция). Полная структура — `invoice` в справочнике
+    [`payment`](/ru/exode-api/objects/entities/payment).
+
+    <Expandable title="Свойства payload">
+        <ResponseField name="items" type="object[]">
+            Массив счетов.
+
+            <Expandable title="Свойства элемента">
+                <ResponseField name="invoiceId" type="integer">ID счёта.</ResponseField>
+                <ResponseField name="invoiceUuid" type="string">UUID счёта.</ResponseField>
+                <ResponseField name="type" type="enum">Тип счёта (см. фильтр `types`).</ResponseField>
+                <ResponseField name="status" type="enum">Статус счёта: `Active`, `Canceled`.</ResponseField>
+                <ResponseField name="totalAmount" type="number">Итоговая сумма счёта.</ResponseField>
+                <ResponseField name="discountAmount" type="number">Сумма скидки.</ResponseField>
+                <ResponseField name="currency" type="enum">Валюта: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ResponseField>
+                <ResponseField name="createdAt" type="string">Дата создания (ISO 8601).</ResponseField>
+                <ResponseField name="expireAt" type="string | null">Дата истечения (ISO 8601).</ResponseField>
+                <ResponseField name="user" type="object">
+                    Покупатель: `id`, `tgId`, `login`, `email`, `phone`, `fullName`.
+                </ResponseField>
+                <ResponseField name="products" type="object[]">
+                    Позиции счёта: массив объектов `{ productId, courseId, totalPrice, discountAmount }`.
+                </ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Текущая страница.</ResponseField>
+        <ResponseField name="count" type="integer">Общее количество записей.</ResponseField>
+        <ResponseField name="pages" type="integer">Общее количество страниц.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Признак первой страницы.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Признак последней страницы.</ResponseField>
+        <ResponseField name="next" type="object">Параметры следующей страницы (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Параметры предыдущей страницы (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/invoice/list/raw?take=20&types=Regular' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listInvoices = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/invoice/list/raw', {
+    params: { take: 20, types: ['Regular'] },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listInvoices();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/invoice/list/raw?take=20&types=Regular';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/invoice/list/raw'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'take': 20, 'types': ['Regular'] }, headers=headers)
+print(response.json())
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "items": [
+      {
+        "invoiceId": 7001,
+        "invoiceUuid": "b1f2c3d4-...",
+        "type": "Regular",
+        "status": "Active",
+        "totalAmount": 1990,
+        "discountAmount": 0,
+        "currency": "Rub",
+        "createdAt": "2025-01-15T10:30:00Z",
+        "expireAt": null,
+        "user": {
+          "id": 123,
+          "tgId": null,
+          "login": "user@example.com",
+          "email": "user@example.com",
+          "phone": "+9876543210",
+          "fullName": "Иван Иванов"
+        },
+        "products": [
+          { "productId": 200, "courseId": 10, "totalPrice": 1990, "discountAmount": 0 }
+        ]
+      }
+    ],
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "next": { "skip": 20, "take": 20, "page": 2 },
+    "prev": { "skip": 0, "take": 20, "page": 1 }
+  }
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+    Требуется аутентификация по токену и право на просмотр продаж (`SellerSales`).
+</Check>

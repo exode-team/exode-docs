@@ -1,0 +1,61 @@
+---
+title: "Формы и поля"
+description: "Структуры объектов макета формы и значения кастомного поля по shared zod-схемам"
+---
+
+Публичные структуры форм: `formLayout` (макет) и `formFieldValue` (значение поля). Возвращаются методами
+работы с [формами](/ru/exode-api/school/form-layout/create) и
+[кастомными полями](/ru/exode-api/school/custom-field/get).
+
+## `formLayout`
+
+<ResponseField name="id" type="integer" required>ID макета.</ResponseField>
+<ResponseField name="uuid" type="string" required>UUID макета.</ResponseField>
+<ResponseField name="slug" type="string" required>Символьный код макета.</ResponseField>
+<ResponseField name="name" type="string" required>Название.</ResponseField>
+<ResponseField name="internalName" type="string | null">Внутреннее название.</ResponseField>
+<ResponseField name="note" type="string | null">Заметка.</ResponseField>
+<ResponseField name="mode" type="enum" required>Режим: `Form`, `Signup`, `Custom`, `Welcome`, `Participant`.</ResponseField>
+<ResponseField name="status" type="enum | null">Статус: `Draft`, `Published`.</ResponseField>
+<ResponseField name="config" type="object" required>Конфигурация макета (например, `resubmitMode`).</ResponseField>
+<ResponseField name="sellerId" type="integer" required>ID продавца-владельца.</ResponseField>
+<ResponseField name="isEdited" type="boolean | null">Признак ручного редактирования.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+<ResponseField name="deletedAt" type="string | null">Дата удаления или `null`.</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
+
+## `formFieldValue`
+
+<ResponseField name="id" type="integer" required>ID значения.</ResponseField>
+<ResponseField name="userId" type="integer" required>ID пользователя.</ResponseField>
+<ResponseField name="fieldId" type="integer" required>ID поля.</ResponseField>
+<ResponseField name="fillId" type="integer | null">ID заполнения формы.</ResponseField>
+<ResponseField name="value" type="any | null">Нормализованное значение поля (универсальное).</ResponseField>
+<ResponseField name="text" type="string | null">Текстовое значение (`Text`, `Select`, `Radio`, `Textarea`).</ResponseField>
+<ResponseField name="number" type="number | null">Числовое значение (`Number`).</ResponseField>
+<ResponseField name="boolean" type="boolean | null">Логическое значение (`Boolean`, `Switch`, `Checkbox`).</ResponseField>
+<ResponseField name="date" type="string | null">Дата (`Date`, ISO 8601).</ResponseField>
+<ResponseField name="json" type="any | null">JSON-значение (`Json`, `File`, `Multiselect`).</ResponseField>
+<ResponseField name="field" type="object | null">
+    Описание поля.
+
+    <Expandable title="Свойства field">
+        <ResponseField name="id" type="integer">ID поля.</ResponseField>
+        <ResponseField name="slug" type="string | null">Символьный код поля.</ResponseField>
+        <ResponseField name="type" type="string | null">
+            Тип поля: `Text`, `File`, `Json`, `Date`, `Radio`, `Switch`, `Number`, `Select`, `Boolean`,
+            `Textarea`, `Checkbox`, `Multiselect`.
+        </ResponseField>
+        <ResponseField name="order" type="integer | null">Порядок поля.</ResponseField>
+        <ResponseField name="layoutId" type="integer | null">ID макета.</ResponseField>
+        <ResponseField name="props" type="object | null">Свойства поля.</ResponseField>
+        <ResponseField name="preference" type="object | null">Настройки отображения.</ResponseField>
+        <ResponseField name="permissions" type="object | null">
+            Права доступа к полю: `read` и `write`, каждый — `{ api, user, manager }` (boolean). Поля с
+            `read.api = false` исключаются из выдачи API, с `write.api = false` — недоступны для записи.
+        </ResponseField>
+    </Expandable>
+</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
