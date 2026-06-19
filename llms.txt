@@ -1,0 +1,75 @@
+# Exode API
+
+> Exode — EdTech SaaS-платформа для онлайн-школ. REST API под префиксом `/saas/v2` (база `https://api.exode.biz`) для управления пользователями, группами, курсами, доступами, формами, выгрузками и вебхуками. Аутентификация: `Authorization: Bearer <token>` + заголовки `Seller-Id`, `School-Id`. Ответ всегда обёрнут в `{ success, code, payload }`.
+
+Полный машиночитаемый справочник по всем методам, параметрам, сущностям и вебхукам одной страницей: https://docs.exode.biz/llms-full.md
+
+## Начало работы
+
+- [Вступление](https://docs.exode.biz/ru/welcome): обзор API и точки входа.
+- [Быстрый старт](https://docs.exode.biz/ru/exode-api/quickstart): первый запрос за 5 шагов.
+- [Ключевые понятия](https://docs.exode.biz/ru/exode-api/concepts): модель данных (продавец, школа, пользователи, курсы, продукты, доступы, платежи).
+- [Работа с API](https://docs.exode.biz/ru/exode-api/setup): базовый URL, аутентификация, формат ответа и ошибок, rate-limit, пагинация.
+- [Вебхуки](https://docs.exode.biz/ru/exode-api/webhooks/about): исходящие события, подпись, повторные попытки.
+
+## Методы — Пользователи
+
+- [Создание пользователя](https://docs.exode.biz/ru/exode-api/school/user/create): `POST /saas/v2/user/create`.
+- [Обновление пользователя](https://docs.exode.biz/ru/exode-api/school/user/update): `PUT /saas/v2/user/:userId/update`.
+- [Апсерт пользователя](https://docs.exode.biz/ru/exode-api/school/user/upsert): `PUT /saas/v2/user/upsert`.
+- [Поиск пользователя](https://docs.exode.biz/ru/exode-api/school/user/find): `GET /saas/v2/user/find`.
+- [Удаление пользователей](https://docs.exode.biz/ru/exode-api/school/user/delete-many): `DELETE /saas/v2/user/delete-many`.
+- [Состояния пользователя](https://docs.exode.biz/ru/exode-api/school/user/state): `GET|PUT /saas/v2/user/:userId/state/{get,set}`.
+- [Токен сессии](https://docs.exode.biz/ru/exode-api/school/user/session/auth-token): `POST /saas/v2/user/session/auth-token` (авто-логин через `?___uat=<token>`).
+
+## Методы — Группы
+
+- [Список групп](https://docs.exode.biz/ru/exode-api/school/group/list): `GET /saas/v2/group/list/raw`.
+- [Добавление участников](https://docs.exode.biz/ru/exode-api/school/group-member/create-many): `POST /saas/v2/group/:groupId/member/create-many`.
+- [Удаление участников](https://docs.exode.biz/ru/exode-api/school/group-member/delete-many): `DELETE /saas/v2/group/:groupId/member/delete-many`.
+
+## Методы — Курсы
+
+- [Список курсов](https://docs.exode.biz/ru/exode-api/school/course/list): `GET /saas/v2/course/list/raw`.
+- [Прогресс по курсу](https://docs.exode.biz/ru/exode-api/school/course/progresses): `GET /saas/v2/course/:courseId/progresses`.
+
+## Методы — Доступы и продажи
+
+- [Список доступов к продуктам](https://docs.exode.biz/ru/exode-api/school/product-access/list): `GET /saas/v2/product-access/list/raw`.
+- [Список счетов](https://docs.exode.biz/ru/exode-api/school/invoice/list): `GET /saas/v2/invoice/list/raw`.
+
+## Методы — Формы и кастомные поля
+
+- [Создание макета формы](https://docs.exode.biz/ru/exode-api/school/form-layout/create): `POST /saas/v2/form/layout/create`.
+- [Обновление макета формы](https://docs.exode.biz/ru/exode-api/school/form-layout/update): `PUT /saas/v2/form/layout/:layoutId/update`.
+- [Удаление макета формы](https://docs.exode.biz/ru/exode-api/school/form-layout/delete): `DELETE /saas/v2/form/layout/:layoutId/delete`.
+- [Получение значений полей](https://docs.exode.biz/ru/exode-api/school/custom-field/get): `GET /saas/v2/form/custom-field/value/get`.
+- [Установка значений полей](https://docs.exode.biz/ru/exode-api/school/custom-field/set): `POST /saas/v2/form/custom-field/value/{set,set-by-slug}`.
+
+## Методы — Отчёты и выгрузки
+
+- [Запрос на генерацию](https://docs.exode.biz/ru/exode-api/school/query-export/generate): `POST /saas/v2/query-export/generate` (асинхронно, лимит 100/час).
+- [Получение результата](https://docs.exode.biz/ru/exode-api/school/query-export/result): `GET /saas/v2/workflow-execution/:executionUuid/result`.
+- [Отчёт: участники группы](https://docs.exode.biz/ru/exode-api/school/query-export/group-member-find-many): тип `QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY`.
+- [Отчёт: попытки практик](https://docs.exode.biz/ru/exode-api/school/query-export/practice-attempt-find-many): тип `QUERY_EXPORT_TYPE_COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY`.
+
+## Объекты (структуры по zod-схемам)
+
+- [Объекты API](https://docs.exode.biz/ru/exode-api/objects/entities/index): обзор всех сущностей.
+- [Пользователь](https://docs.exode.biz/ru/exode-api/objects/entities/user): `user`, `profile`.
+- [Сессия](https://docs.exode.biz/ru/exode-api/objects/entities/session): `session`.
+- [Группа](https://docs.exode.biz/ru/exode-api/objects/entities/group) и [Участник группы](https://docs.exode.biz/ru/exode-api/objects/entities/group-member).
+- [Курс и обучение](https://docs.exode.biz/ru/exode-api/objects/entities/course): `course`, `courseProgress`, `courseLesson`, `courseLessonPractice`, `courseLessonPracticeAttempt`.
+- [Продукт и доступы](https://docs.exode.biz/ru/exode-api/objects/entities/product): `product`, `productAccess`, `productPrice`, `discount`.
+- [Платёж и счёт](https://docs.exode.biz/ru/exode-api/objects/entities/payment): `payment`, `invoice`, `invoiceProduct`, `acquiring`.
+- [Школа и продавец](https://docs.exode.biz/ru/exode-api/objects/entities/school): `school`, `seller`, `organization`.
+- [Формы и поля](https://docs.exode.biz/ru/exode-api/objects/entities/form): `formLayout`, `formFieldValue`.
+
+## Интеграции
+
+- [Telegram Mini App](https://docs.exode.biz/ru/exode-api/school/iframe/tg-mini-app): авто-авторизация через `?___uat=<token>`.
+- [Кастомный JS код](https://docs.exode.biz/ru/exode-api/school/custom-code/js-config): настройка интерфейса платформы.
+
+## Optional
+
+- [Поддержка](https://t.me/exode_support_biz): создание сервисного пользователя и выдача API-токена.
