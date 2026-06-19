@@ -3,7 +3,7 @@
 Self-contained reference for the `@exode-team/sdk` package. Feed it to an LLM so the model
 can write correct integration code for the Exode platform without extra context.
 
-Package version: **0.1.1**
+Package version: **0.1.2**
 Repository: https://github.com/exode-team/exode-sdk
 npm: https://www.npmjs.com/package/@exode-team/sdk
 
@@ -23,7 +23,7 @@ Requirements: Node.js >= 18; TypeScript >= 5.7 (optional, types ship with packag
 React >= 17 (optional peer dep, only for `miniapp/react`). Dependency: `zod@^4`.
 
 Install: `npm install @exode-team/sdk`. CDN (miniapp IIFE):
-`https://cdn.exode.biz/sdk/v0.1.1/miniapp.global.js` (global `ExodeMiniAppSDK`).
+`https://cdn.exode.biz/sdk/v0.1.2/miniapp.global.js` (global `ExodeMiniAppSDK`).
 
 No root export — always import from a specific subpath.
 
@@ -46,7 +46,6 @@ interface ExodeAPIConfig {
   token: string          // required -> Authorization: Bearer <token>
   baseUrl?: string       // default 'https://api.exode.biz/saas/v2'
   timeout?: number       // ms, default 30000
-  validate?: boolean     // default false; if true, every response is safeParse'd against its zod schema
 }
 
 const exodeApi = new ExodeAPI({ sellerId: 1, schoolId: 1, token: process.env.EXODE_TOKEN! })
@@ -57,12 +56,11 @@ Constructor throws if `token`, `sellerId` or `schoolId` is missing.
 ### 2.2 Low-level request
 
 ```ts
-exodeApi.request<S extends z.ZodType>(method: string, path: string, options: {
-  schema: S                          // zod schema for the payload (used for typing + optional validation)
+exodeApi.request<T>(method: string, path: string, options?: {
   body?: unknown
   query?: Record<string, unknown>    // arrays -> repeated keys; objects -> bracket keys; Date -> ISO
-  validate?: boolean                 // per-request override of the client-level flag
-}): Promise<z.infer<S>>
+}): Promise<T>
+// Resource methods (school.*) wrap this; the result type comes from the shared schema's z.infer.
 ```
 
 ### 2.3 `school.user`
@@ -228,9 +226,17 @@ items, etc.) match the REST docs at https://docs.exode.biz/ru/exode-api/objects/
 ### 2.11 Exports
 
 ```ts
-// client
+// runtime values: ExodeAPI, ExodeAPIError, all enums (below), QueryExportType, QueryExportFormat
 export { ExodeAPI, ExodeAPIError }
 export type { ExodeAPIConfig, RequestOptions }
+// entity types (z.infer): User, UserBase, Profile, Session, Group, GroupMember, CourseProgress,
+//   FormLayout, FormFieldValue
+// output types (z.infer): UserOutput, UpsertUserOutput, SetUserStateOutput, GetUserStateOutput,
+//   SessionAuthTokenOutput, DeleteManyUserOutput, GroupSaasOutput, ListGroupOutput,
+//   CreateManyMemberGroupOutput, CourseSaasOutput, ListCourseOutput, ListProgressCourseOutput,
+//   FormLayoutOutput, ListFormFieldValueOutput, FormFieldValuesOutput, InvoiceSaasOutput,
+//   ListInvoiceOutput, ProductAccessSaasOutput, ListProductAccessOutput, WorkflowExecutionOutput,
+//   ProgressWorkflowOutput, AffectedOutput
 // input types (from shared codegen): ListInput, BaseSortInput, DateRangeInput, NumberRangeInput,
 //   UtmParamsInput, ProfileContactInput, UpdateProfileInput, UpdateUserInput, FilterGroupInput,
 //   FilterCourseInput, FilterProgressCourseInput, FilterInvoiceInput, FilterAccessProductInput,
@@ -240,9 +246,8 @@ export type { ExodeAPIConfig, RequestOptions }
 //   GroupListParams, CourseListParams, FormFieldValueGetParams, SetCustomFieldValueInput,
 //   UpsertFormFieldValueBySlugInput, SetCustomFieldValueBySlugInput, InvoiceListParams,
 //   ProductAccessListParams, QueryExportGenerateInput
-// zod schemas (for opt-in validation): userPublicSchema, profilePublicSchema, userWithProfileSchema,
-//   sessionPublicSchema, groupPublicSchema, groupMemberPublicSchema, courseProgressPublicSchema,
-//   formLayoutPublicSchema, formFieldValuePublicSchema, *OutputSchema, paginatedListSchema, affectedOutputSchema
+// NOTE: zod schemas themselves are NOT exported — there is no runtime validation in the client
+//   (the backend validates via @ZodResponse), so zod stays out of the runtime bundle.
 // enums: Language, ProfileRole, UserSexType, UserStateKey, AppServeDomain, AppServeProduct, CourseType,
 //   CourseParticipationType, CourseProgressLessonStatus, CourseProgressScheduleStatus, InvoiceType,
 //   InvoiceStatus, ProductCurrency, ProductBillingType, ProductAccessBillingStatus,
@@ -257,7 +262,7 @@ export type { ExodeAPIConfig, RequestOptions }
 class ExodeAPIError extends Error {
   readonly code: number          // HTTP status, or 0 (NetworkError) / 408 (Timeout)
   readonly errorCause: string    // 'EmailIsBusy', 'Unauthorized', 'Rate', 'Timeout', 'NetworkError',
-                                  // 'ParseError', 'ValidationError'
+                                  // 'ParseError', 'UnknownError'
   readonly details?: string
 }
 // API error body: { success: false, code, cause, message, error? }

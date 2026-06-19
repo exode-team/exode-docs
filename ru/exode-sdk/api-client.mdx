@@ -23,7 +23,6 @@ const exodeApi = new ExodeAPI({
   token: process.env.EXODE_TOKEN!,
   baseUrl: 'https://api.exode.biz/saas/v2', // по умолчанию
   timeout: 30_000,                           // по умолчанию 30s
-  validate: false,                           // по умолчанию false
 })
 ```
 
@@ -47,11 +46,6 @@ const exodeApi = new ExodeAPI({
 
 <ResponseField name="timeout" type="number">
   Таймаут запроса в миллисекундах. По умолчанию `30000`. При превышении — `ExodeAPIError` с `cause: "Timeout"` (code 408).
-</ResponseField>
-
-<ResponseField name="validate" type="boolean">
-  Проверять каждый ответ по zod-схеме (`safeParse`). По умолчанию `false` — payload возвращается как есть
-  (типизированный через `z.infer`), без рантайм-парсинга. Можно переопределить на конкретный запрос.
 </ResponseField>
 
 <Warning>
@@ -211,24 +205,16 @@ if (result?.status === 'Completed') {
   [Отчёты и выгрузки](/ru/exode-api/school/query-export/generate).
 </Info>
 
-## Валидация ответов
+## Типизация ответов
 
-По умолчанию ответ возвращается как есть (типизированный, без рантайм-проверки). Включите `validate`, чтобы
-прогонять payload через zod-схему — глобально или на конкретный запрос:
+Типы всех ответов выведены из тех же серверных zod-схем (через `z.infer`) и доступны на импорт
+(`User`, `Profile`, `Session`, `Group`, `GroupMember`, `CourseProgress`, `FormLayout`, `FormFieldValue`,
+а также `*Output`-типы). Рантайм-валидации на стороне клиента **нет**: контракты уже проверяются на бэкенде
+(`@ZodResponse`), поэтому zod не попадает в рантайм-бандл — ответ возвращается как есть, строго типизированным.
 
 ```ts
-// Глобально
-const exodeApi = new ExodeAPI({ sellerId: 1, schoolId: 1, token, validate: true })
-
-// На конкретный запрос (low-level request)
-await exodeApi.request('GET', 'user/find', {
-  schema: userOutputSchema,
-  query: { extId: 'crm_1' },
-  validate: true,
-})
+import type { User, ListGroupOutput } from '@exode-team/sdk/api'
 ```
-
-При несоответствии бросается `ExodeAPIError` с `cause: "ValidationError"`.
 
 ## Обработка ошибок
 
@@ -254,7 +240,6 @@ try {
 | `Timeout` | превышен `timeout` (code 408) |
 | `NetworkError` | сетевая ошибка (code 0) |
 | `ParseError` | ответ не разобрался как JSON |
-| `ValidationError` | ответ не прошёл zod-валидацию (при `validate: true`) |
 
 <Info>
   Полный список доменных `cause`-кодов — в разделе [Работа с API](/ru/exode-api/setup#формат-ошибок).
