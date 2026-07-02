@@ -10,7 +10,8 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 <Info>
     Трудоустройство (`employment`) связывает пользователя школы с департаментом и должностью. У сотрудника может
     быть несколько записей трудоустройства в истории, но только **одна активная** для конкретной пары
-    департамент + должность.
+    департамент + должность. У записи также фиксируются условия занятости: вид (`kind`), тип (`type`) и
+    ставка (`rate`).
 </Info>
 
 <Warning>
@@ -20,8 +21,9 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <Info>
     Перевод (`transfer`) и повышение (`promote`) не изменяют текущую запись, а **закрывают** её (`finishAt`, статус
-    `Terminated`) и создают **новую** активную запись в целевом департаменте либо с новой должностью. В ответе
-    возвращается именно новая запись трудоустройства.
+    `Terminated`) и создают **новую** активную запись в целевом департаменте либо с новой должностью. Условия
+    занятости (`kind`, `type`, `rate`) переносятся в новую запись без изменений. В ответе возвращается именно
+    новая запись трудоустройства.
 </Info>
 
 ## Список трудоустройств
@@ -92,6 +94,9 @@ GET /saas/v2/staff/employment/list
                 <ResponseField name="startAt" type="string">Дата начала трудоустройства (ISO 8601).</ResponseField>
                 <ResponseField name="finishAt" type="string | null">Дата завершения трудоустройства (ISO 8601) или `null` для активной записи.</ResponseField>
                 <ResponseField name="status" type="enum">Статус: `Active` или `Terminated`.</ResponseField>
+                <ResponseField name="kind" type="enum">Вид занятости: `Main` (основное место работы), `InternalSecondary` (внутреннее совместительство), `ExternalSecondary` (внешнее совместительство).</ResponseField>
+                <ResponseField name="type" type="enum">Тип занятости: `FullTime` (полная) или `PartTime` (частичная).</ResponseField>
+                <ResponseField name="rate" type="number">Ставка — доля полной ставки, от `0.01` до `1` (например, `0.5`).</ResponseField>
                 <ResponseField name="createdAt" type="string">Дата создания записи.</ResponseField>
                 <ResponseField name="updatedAt" type="string">Дата последнего обновления.</ResponseField>
             </Expandable>
@@ -158,7 +163,10 @@ listEmployments();
         "departmentId": 4,
         "startAt": "2026-07-02T11:15:47.316Z",
         "finishAt": null,
-        "status": "Active"
+        "status": "Active",
+        "kind": "Main",
+        "type": "FullTime",
+        "rate": 1
       },
       {
         "id": 8,
@@ -171,7 +179,10 @@ listEmployments();
         "departmentId": 4,
         "startAt": "2026-07-02T11:15:47.299Z",
         "finishAt": "2026-07-02T11:15:47.316Z",
-        "status": "Terminated"
+        "status": "Terminated",
+        "kind": "Main",
+        "type": "FullTime",
+        "rate": 1
       }
     ],
     "next": {
@@ -228,6 +239,19 @@ POST /saas/v2/staff/employment/hire
     Дата начала трудоустройства в формате ISO 8601. По умолчанию — текущий момент.
 </ParamField>
 
+<ParamField body="kind" type="enum" required={false}>
+    Вид занятости: `Main` (основное место работы), `InternalSecondary` (внутреннее совместительство),
+    `ExternalSecondary` (внешнее совместительство). По умолчанию `Main`.
+</ParamField>
+
+<ParamField body="type" type="enum" required={false}>
+    Тип занятости: `FullTime` (полная) или `PartTime` (частичная). По умолчанию `FullTime`.
+</ParamField>
+
+<ParamField body="rate" type="number" required={false}>
+    Ставка — доля полной ставки, от `0.01` до `1`. По умолчанию `1`.
+</ParamField>
+
 <RequestExample>
 ```bash cURL
 curl --location 'https://api.exode.biz/saas/v2/staff/employment/hire' \
@@ -239,7 +263,10 @@ curl --location 'https://api.exode.biz/saas/v2/staff/employment/hire' \
     "userId": 1683,
     "positionId": 3,
     "departmentId": 3,
-    "startAt": "2026-07-02T00:00:00.000Z"
+    "startAt": "2026-07-02T00:00:00.000Z",
+    "kind": "Main",
+    "type": "PartTime",
+    "rate": 0.5
   }'
 ```
 
@@ -252,6 +279,9 @@ const hireEmployment = async () => {
     positionId: 3,
     departmentId: 3,
     startAt: '2026-07-02T00:00:00.000Z',
+    kind: 'Main',
+    type: 'PartTime',
+    rate: 0.5,
   }, {
     headers: {
       'Seller-Id': '{{ sellerId }}',
@@ -284,7 +314,10 @@ hireEmployment();
     "departmentId": 3,
     "startAt": "2026-07-02T11:15:47.273Z",
     "finishAt": null,
-    "status": "Active"
+    "status": "Active",
+    "kind": "Main",
+    "type": "PartTime",
+    "rate": 0.5
   }
 }
 ```
@@ -296,6 +329,16 @@ hireEmployment();
   "cause": "StaffEmploymentAlreadyExists",
   "message": "Staff active employment already exists",
   "error": "Staff active employment already exists"
+}
+```
+
+```json Error - User Not Belongs To School
+{
+  "code": 400,
+  "success": false,
+  "cause": "UserNotBelongsToSchool",
+  "message": "User does not belong to the school",
+  "error": "User does not belong to the school"
 }
 ```
 </ResponseExample>
@@ -381,7 +424,10 @@ transferEmployment();
     "departmentId": 4,
     "startAt": "2026-07-02T11:15:47.299Z",
     "finishAt": null,
-    "status": "Active"
+    "status": "Active",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
   }
 }
 ```
@@ -478,7 +524,10 @@ promoteEmployment();
     "departmentId": 4,
     "startAt": "2026-07-02T11:15:47.316Z",
     "finishAt": null,
-    "status": "Active"
+    "status": "Active",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
   }
 }
 ```
@@ -568,7 +617,10 @@ terminateEmployment();
     "departmentId": 4,
     "startAt": "2026-07-02T11:15:47.285Z",
     "finishAt": "2026-07-02T11:15:47.401Z",
-    "status": "Terminated"
+    "status": "Terminated",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
   }
 }
 ```
