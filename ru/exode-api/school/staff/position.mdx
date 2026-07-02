@@ -117,12 +117,16 @@ getPositionList();
   "success": true,
   "code": 200,
   "payload": {
+    "page": 1,
+    "count": 2,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
     "items": [
       {
         "id": 4,
         "createdAt": "2026-07-02T11:15:47.216Z",
         "updatedAt": "2026-07-02T11:15:47.260Z",
-        "deletedAt": null,
         "archivedAt": null,
         "schoolId": 198,
         "name": "Staff Backend Engineer"
@@ -131,19 +135,21 @@ getPositionList();
         "id": 3,
         "createdAt": "2026-07-02T11:15:47.207Z",
         "updatedAt": "2026-07-02T11:15:47.207Z",
-        "deletedAt": null,
         "archivedAt": null,
         "schoolId": 198,
         "name": "Backend Engineer"
       }
     ],
-    "page": 1,
-    "count": 2,
-    "pages": 1,
-    "isFirst": true,
-    "isLast": true,
-    "next": { "skip": 0, "take": 10, "page": 1 },
-    "prev": { "skip": 0, "take": 10, "page": 1 }
+    "next": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    },
+    "prev": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    }
   }
 }
 ```
@@ -210,7 +216,6 @@ createPosition();
     "id": 3,
     "createdAt": "2026-07-02T11:15:47.207Z",
     "updatedAt": "2026-07-02T11:15:47.207Z",
-    "deletedAt": null,
     "archivedAt": null,
     "schoolId": 198,
     "name": "Backend Engineer"
@@ -302,7 +307,6 @@ updatePosition();
     "id": 4,
     "createdAt": "2026-07-02T11:15:47.216Z",
     "updatedAt": "2026-07-02T11:15:47.260Z",
-    "deletedAt": null,
     "archivedAt": null,
     "schoolId": 198,
     "name": "Staff Backend Engineer"

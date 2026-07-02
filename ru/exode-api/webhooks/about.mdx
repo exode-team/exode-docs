@@ -309,12 +309,13 @@ def exode_webhook():
 ```json
 {
   "event": "PaymentCompleted",
+  "timestamp": "2026-07-02T11:16:25.172Z",
+  "idempotencyKey": "g9lFWzmF-4BkJaxvFvIEX",
   "data": {
     "payment": {
       "id": 13001,
       "createdAt": "2026-01-01T00:00:00.000Z",
       "updatedAt": "2026-01-01T00:00:00.000Z",
-      "deletedAt": null,
       "archivedAt": null,
       "uuid": "samplePaymentUuid",
       "type": "OneTime",
@@ -322,19 +323,18 @@ def exode_webhook():
       "checkoutPaymentId": "sampleCheckoutPaymentId",
       "checkoutUrl": null,
       "released": true,
-      "meta": {},
-      "webhookLogs": [],
-      "chargeLogs": [],
       "paidAt": "2026-01-01T00:00:00.000Z",
       "expireAt": null,
       "isCompleted": true,
       "isCanceled": false,
+      "meta": {},
+      "webhookLogs": [],
+      "chargeLogs": [],
       "statusHistoryLogs": [],
       "invoice": {
         "id": 12001,
         "createdAt": "2026-01-01T00:00:00.000Z",
         "updatedAt": "2026-01-01T00:00:00.000Z",
-        "deletedAt": null,
         "archivedAt": null,
         "uuid": "sampleInvoiceUuid",
         "humanId": 1001,
@@ -349,7 +349,6 @@ def exode_webhook():
           "id": 1001,
           "createdAt": "2026-01-01T00:00:00.000Z",
           "updatedAt": "2026-01-01T00:00:00.000Z",
-          "deletedAt": null,
           "archivedAt": null,
           "uuid": "sampleUserUuid",
           "active": true,
@@ -367,17 +366,13 @@ def exode_webhook():
           "language": "En",
           "timezone": 0,
           "lastOnlineAt": "2026-01-01T00:00:00.000Z",
-          "createdOnDomain": "Biz",
-          "product": "BizSchool",
           "starsBalance": 0,
-          "permissions": [],
           "currentTime": "2026-01-01T00:00:00.000Z",
           "isSleepingNow": false,
           "profile": {
             "id": 1001,
             "createdAt": "2026-01-01T00:00:00.000Z",
             "updatedAt": "2026-01-01T00:00:00.000Z",
-            "deletedAt": null,
             "archivedAt": null,
             "userId": 1001,
             "official": false,
@@ -385,9 +380,6 @@ def exode_webhook():
             "lastName": "Doe",
             "fullName": "John Doe",
             "fullNameShort": "John D.",
-            "avatar": {
-              "id": 1001
-            },
             "bdate": null,
             "sex": "Ufo",
             "country": null,
@@ -396,6 +388,12 @@ def exode_webhook():
             "status": null,
             "title": null,
             "emojiTitle": null,
+            "avatar": {
+              "id": 1001,
+              "small": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/small/avatar.png",
+              "medium": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/medium/avatar.png",
+              "maximum": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/avatar.png"
+            },
             "titleState": {
               "manualTitle": null,
               "manualEmojiTitle": null,
@@ -412,7 +410,6 @@ def exode_webhook():
             "id": 1,
             "createdAt": "2026-01-01T00:00:00.000Z",
             "updatedAt": "2026-01-01T00:00:00.000Z",
-            "deletedAt": null,
             "archivedAt": null,
             "segment": "Commerce",
             "baseDomain": "school",
@@ -436,16 +433,15 @@ def exode_webhook():
             "id": 11001,
             "createdAt": "2026-01-01T00:00:00.000Z",
             "updatedAt": "2026-01-01T00:00:00.000Z",
-            "deletedAt": null,
             "archivedAt": null,
             "originalPrice": 100,
             "totalPrice": 100,
             "discountAmount": 0,
+            "discount": null,
             "price": {
               "id": 10001,
               "createdAt": "2026-01-01T00:00:00.000Z",
               "updatedAt": "2026-01-01T00:00:00.000Z",
-              "deletedAt": null,
               "archivedAt": null,
               "mode": "SelfDefinition",
               "type": "OneTime",
@@ -459,43 +455,43 @@ def exode_webhook():
               "hidden": false,
               "activeFrom": null,
               "activeTo": null,
-              "meta": {},
               "installmentConfig": null,
               "subscriptionConfig": null,
               "isDemo": false,
               "isRecurrent": false,
               "isInstallment": false,
-              "isSubscription": false
+              "isSubscription": false,
+              "meta": {}
             },
-            "discount": null,
             "product": {
               "id": 7001,
               "createdAt": "2026-01-01T00:00:00.000Z",
               "updatedAt": "2026-01-01T00:00:00.000Z",
-              "deletedAt": null,
               "archivedAt": null,
               "sellerId": 1,
               "type": "Course",
               "status": "Published",
               "showInCatalog": true,
               "currency": "Usd",
-              "approves": [],
               "publishedAt": "2026-01-01T00:00:00.000Z",
               "saleStartAt": null,
               "saleFinishAt": null,
-              "domains": [],
               "isFree": false,
               "isPublished": true,
+              "approves": [],
+              "domains": [],
               "course": {
                 "id": 2001,
                 "createdAt": "2026-01-01T00:00:00.000Z",
                 "updatedAt": "2026-01-01T00:00:00.000Z",
-                "deletedAt": null,
                 "archivedAt": null,
                 "type": "VideoCourse",
                 "name": "Sample Course",
                 "description": "Sample course description",
                 "alias": null,
+                "promoVideo": null,
+                "order": 0,
+                "isBundle": false,
                 "tags": [
                   "sample"
                 ],
@@ -503,10 +499,7 @@ def exode_webhook():
                 "image": {
                   "main": ""
                 },
-                "promoVideo": null,
-                "settings": {},
-                "order": 0,
-                "isBundle": false
+                "settings": {}
               }
             }
           }
@@ -518,17 +511,15 @@ def exode_webhook():
         "uuid": "sampleAcquiringUuid",
         "name": "Sample Acquiring",
         "description": null,
+        "hasProviderCommission": false,
         "provider": {
           "id": 1,
           "type": "Card",
           "active": true
-        },
-        "hasProviderCommission": false
+        }
       }
     }
-  },
-  "timestamp": "2026-07-02T11:16:25.172Z",
-  "idempotencyKey": "g9lFWzmF-4BkJaxvFvIEX"
+  }
 }
 ```
 

@@ -90,7 +90,6 @@ getDepartmentTree();
       "id": 3,
       "createdAt": "2026-07-02T11:15:47.223Z",
       "updatedAt": "2026-07-02T11:15:47.223Z",
-      "deletedAt": null,
       "archivedAt": null,
       "schoolId": 198,
       "parentId": null,
@@ -100,7 +99,6 @@ getDepartmentTree();
       "id": 4,
       "createdAt": "2026-07-02T11:15:47.234Z",
       "updatedAt": "2026-07-02T11:15:47.247Z",
-      "deletedAt": null,
       "archivedAt": null,
       "schoolId": 198,
       "parentId": 3,
@@ -208,12 +206,16 @@ getDepartmentList();
   "success": true,
   "code": 200,
   "payload": {
+    "page": 1,
+    "count": 2,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
     "items": [
       {
         "id": 4,
         "createdAt": "2026-07-02T11:15:47.234Z",
         "updatedAt": "2026-07-02T11:15:47.247Z",
-        "deletedAt": null,
         "archivedAt": null,
         "schoolId": 198,
         "parentId": 3,
@@ -223,20 +225,22 @@ getDepartmentList();
         "id": 3,
         "createdAt": "2026-07-02T11:15:47.223Z",
         "updatedAt": "2026-07-02T11:15:47.223Z",
-        "deletedAt": null,
         "archivedAt": null,
         "schoolId": 198,
         "parentId": null,
         "name": "Engineering"
       }
     ],
-    "page": 1,
-    "count": 2,
-    "pages": 1,
-    "isFirst": true,
-    "isLast": true,
-    "next": { "skip": 0, "take": 10, "page": 1 },
-    "prev": { "skip": 0, "take": 10, "page": 1 }
+    "next": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    },
+    "prev": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    }
   }
 }
 ```
@@ -309,7 +313,6 @@ createDepartment();
     "id": 3,
     "createdAt": "2026-07-02T11:15:47.223Z",
     "updatedAt": "2026-07-02T11:15:47.223Z",
-    "deletedAt": null,
     "archivedAt": null,
     "schoolId": 198,
     "parentId": null,
@@ -396,7 +399,6 @@ updateDepartment();
     "id": 4,
     "createdAt": "2026-07-02T11:15:47.234Z",
     "updatedAt": "2026-07-02T11:15:47.247Z",
-    "deletedAt": null,
     "archivedAt": null,
     "schoolId": 198,
     "parentId": 3,

@@ -129,12 +129,16 @@ listAbsences();
   "success": true,
   "code": 200,
   "payload": {
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
     "items": [
       {
         "id": 2,
         "createdAt": "2026-07-02T11:15:47.341Z",
         "updatedAt": "2026-07-02T11:15:47.354Z",
-        "deletedAt": null,
         "archivedAt": null,
         "schoolId": 198,
         "employmentId": 9,
@@ -144,13 +148,16 @@ listAbsences();
         "note": "Summer vacation (updated)"
       }
     ],
-    "page": 1,
-    "count": 1,
-    "pages": 1,
-    "isFirst": true,
-    "isLast": true,
-    "next": { "skip": 0, "take": 10, "page": 1 },
-    "prev": { "skip": 0, "take": 10, "page": 1 }
+    "next": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    },
+    "prev": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    }
   }
 }
 ```
@@ -248,7 +255,6 @@ createAbsence();
     "id": 2,
     "createdAt": "2026-07-02T11:15:47.341Z",
     "updatedAt": "2026-07-02T11:15:47.341Z",
-    "deletedAt": null,
     "archivedAt": null,
     "schoolId": 198,
     "employmentId": 9,
@@ -347,7 +353,6 @@ updateAbsence();
     "id": 2,
     "createdAt": "2026-07-02T11:15:47.341Z",
     "updatedAt": "2026-07-02T11:15:47.354Z",
-    "deletedAt": null,
     "archivedAt": null,
     "schoolId": 198,
     "employmentId": 9,

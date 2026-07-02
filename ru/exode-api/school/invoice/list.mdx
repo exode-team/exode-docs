@@ -228,6 +228,11 @@ print(response.json())
   "success": true,
   "code": 200,
   "payload": {
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
     "items": [
       {
         "invoiceId": 7001,
@@ -248,17 +253,25 @@ print(response.json())
           "fullName": "Иван Иванов"
         },
         "products": [
-          { "productId": 200, "courseId": 10, "totalPrice": 1990, "discountAmount": 0 }
+          {
+            "productId": 200,
+            "courseId": 10,
+            "totalPrice": 1990,
+            "discountAmount": 0
+          }
         ]
       }
     ],
-    "page": 1,
-    "count": 1,
-    "pages": 1,
-    "isFirst": true,
-    "isLast": true,
-    "next": { "skip": 20, "take": 20, "page": 2 },
-    "prev": { "skip": 0, "take": 20, "page": 1 }
+    "next": {
+      "skip": 20,
+      "take": 20,
+      "page": 2
+    },
+    "prev": {
+      "skip": 0,
+      "take": 20,
+      "page": 1
+    }
   }
 }
 ```

@@ -220,6 +220,13 @@ except requests.exceptions.RequestException as e:
   "success": true,
   "code": 200,
   "payload": {
+    "count": 3,
+    "page": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "next": null,
+    "prev": null,
     "items": [
       {
         "id": 1,
@@ -227,15 +234,15 @@ except requests.exceptions.RequestException as e:
         "fieldId": 10,
         "fillId": null,
         "value": "Ташкент",
+        "createdAt": "2025-03-10T12:00:00.000Z",
+        "updatedAt": "2025-03-10T12:00:00.000Z",
         "field": {
           "id": 10,
           "slug": "city",
           "type": "Text",
           "name": "Город",
           "order": 0
-        },
-        "createdAt": "2025-03-10T12:00:00.000Z",
-        "updatedAt": "2025-03-10T12:00:00.000Z"
+        }
       },
       {
         "id": 2,
@@ -243,15 +250,15 @@ except requests.exceptions.RequestException as e:
         "fieldId": 11,
         "fillId": null,
         "value": "ООО «Компания»",
+        "createdAt": "2025-03-10T12:00:00.000Z",
+        "updatedAt": "2025-03-10T12:00:00.000Z",
         "field": {
           "id": 11,
           "slug": "company",
           "type": "Text",
           "name": "Компания",
           "order": 1
-        },
-        "createdAt": "2025-03-10T12:00:00.000Z",
-        "updatedAt": "2025-03-10T12:00:00.000Z"
+        }
       },
       {
         "id": 3,
@@ -259,24 +266,17 @@ except requests.exceptions.RequestException as e:
         "fieldId": 10,
         "fillId": null,
         "value": "Ташкент",
+        "createdAt": "2025-03-10T14:30:00.000Z",
+        "updatedAt": "2025-03-10T14:30:00.000Z",
         "field": {
           "id": 10,
           "slug": "city",
           "type": "Text",
           "name": "Город",
           "order": 0
-        },
-        "createdAt": "2025-03-10T14:30:00.000Z",
-        "updatedAt": "2025-03-10T14:30:00.000Z"
+        }
       }
-    ],
-    "count": 3,
-    "page": 1,
-    "pages": 1,
-    "isFirst": true,
-    "isLast": true,
-    "next": null,
-    "prev": null
+    ]
   }
 }
 ```
@@ -285,14 +285,14 @@ except requests.exceptions.RequestException as e:
   "success": true,
   "code": 200,
   "payload": {
-    "items": [],
     "count": 0,
     "page": 1,
     "pages": 0,
     "isFirst": true,
     "isLast": true,
     "next": null,
-    "prev": null
+    "prev": null,
+    "items": []
   }
 }
 ```

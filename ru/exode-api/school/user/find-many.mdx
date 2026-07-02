@@ -112,7 +112,6 @@ print(json.dumps(result['payload']['users'], indent=2, ensure_ascii=False))
         "id": 1683,
         "createdAt": "2026-07-02T11:15:46.896Z",
         "updatedAt": "2026-07-02T11:15:46.940Z",
-        "deletedAt": null,
         "archivedAt": null,
         "uuid": "e-cjTT0CWMCB",
         "active": true,
@@ -130,17 +129,13 @@ print(json.dumps(result['payload']['users'], indent=2, ensure_ascii=False))
         "language": null,
         "timezone": null,
         "lastOnlineAt": null,
-        "createdOnDomain": "Biz",
-        "product": "BizSchool",
         "starsBalance": 0,
-        "permissions": [],
         "currentTime": "2026-07-02T11:15:46+00:00",
         "isSleepingNow": false,
         "profile": {
           "id": 1665,
           "createdAt": "2026-07-02T11:15:46.932Z",
           "updatedAt": "2026-07-02T11:15:46.932Z",
-          "deletedAt": null,
           "archivedAt": null,
           "userId": 1683,
           "official": false,
@@ -148,9 +143,6 @@ print(json.dumps(result['payload']['users'], indent=2, ensure_ascii=False))
           "lastName": "Lastname",
           "fullName": "Firstname Lastname",
           "fullNameShort": "Firstname L.",
-          "avatar": {
-            "id": 1665
-          },
           "bdate": null,
           "sex": "Ufo",
           "country": null,
@@ -159,6 +151,12 @@ print(json.dumps(result['payload']['users'], indent=2, ensure_ascii=False))
           "status": null,
           "title": "",
           "emojiTitle": "",
+          "avatar": {
+            "id": 1665,
+            "small": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/small/avatar.png",
+            "medium": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/medium/avatar.png",
+            "maximum": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/avatar.png"
+          },
           "titleState": {
             "manualTitle": null,
             "manualEmojiTitle": null,
@@ -190,10 +188,10 @@ print(json.dumps(result['payload']['users'], indent=2, ensure_ascii=False))
   "cause": "validation",
   "code": 400,
   "success": false,
+  "error": "Bad Request",
   "message": [
     "logins should not be empty"
-  ],
-  "error": "Bad Request"
+  ]
 }
 ```
 </ResponseExample>

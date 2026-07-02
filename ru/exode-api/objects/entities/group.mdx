@@ -48,7 +48,6 @@ description: "Структура объекта группы (group) в Exode AP
 
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
 <ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
-<ResponseField name="deletedAt" type="string | null">Дата удаления или `null`.</ResponseField>
 <ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
 
 ## Пример объекта `group`
@@ -61,16 +60,25 @@ description: "Структура объекта группы (group) в Exode AP
   "space": "Education",
   "order": 10,
   "maxMembers": 30,
-  "communication": { "tgChannelId": null, "tgGroupChatId": null },
-  "accessLimitation": { "active": true, "startPointType": "CommonDate" },
-  "scheduleLimitation": { "active": false },
-  "contentLimitation": { "active": false },
   "isTgConnected": false,
   "tgConnectionMode": "Disconnected",
   "createdAt": "2025-01-10T09:00:00Z",
   "updatedAt": "2025-01-15T12:30:00Z",
-  "deletedAt": null,
-  "archivedAt": null
+  "archivedAt": null,
+  "communication": {
+    "tgChannelId": null,
+    "tgGroupChatId": null
+  },
+  "accessLimitation": {
+    "active": true,
+    "startPointType": "CommonDate"
+  },
+  "scheduleLimitation": {
+    "active": false
+  },
+  "contentLimitation": {
+    "active": false
+  }
 }
 ```
 

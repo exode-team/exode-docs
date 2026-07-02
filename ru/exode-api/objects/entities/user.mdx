@@ -47,18 +47,11 @@ description: "Структура объекта пользователя (user) 
 
 ### Платформа и геймификация
 
-<ResponseField name="createdOnDomain" type="enum" required>
-    Домен регистрации: `Ru`, `Uz`, `Kz`, `Biz`, `Global`.
-</ResponseField>
-<ResponseField name="product" type="enum" required>Продукт регистрации: `BizSchool`, `Marketplace`.</ResponseField>
 <ResponseField name="starsBalance" type="integer" required>Баланс «звёзд» в системе геймификации.</ResponseField>
-<ResponseField name="permissions" type="string[]" required>Список прав пользователя в текущем контексте.</ResponseField>
-
 ### Системные поля аудита
 
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
 <ResponseField name="updatedAt" type="string" required>Дата последнего обновления (ISO 8601).</ResponseField>
-<ResponseField name="deletedAt" type="string | null">Дата удаления (ISO 8601) или `null`.</ResponseField>
 <ResponseField name="archivedAt" type="string | null">Дата архивации (ISO 8601) или `null`.</ResponseField>
 
 ## Поля `profile`
@@ -72,7 +65,16 @@ description: "Структура объекта пользователя (user) 
 <ResponseField name="lastName" type="string | null">Фамилия.</ResponseField>
 <ResponseField name="fullName" type="string | null">Полное имя.</ResponseField>
 <ResponseField name="fullNameShort" type="string | null">Сокращённое имя.</ResponseField>
-<ResponseField name="avatar" type="object">Объект аватара (произвольная структура).</ResponseField>
+<ResponseField name="avatar" type="object">
+    Аватар пользователя — ссылки на изображение в разных размерах.
+
+    <Expandable title="Свойства avatar">
+        <ResponseField name="id" type="integer">ID профиля.</ResponseField>
+        <ResponseField name="small" type="string | null">URL миниатюры.</ResponseField>
+        <ResponseField name="medium" type="string | null">URL среднего размера.</ResponseField>
+        <ResponseField name="maximum" type="string | null">URL максимального размера.</ResponseField>
+    </Expandable>
+</ResponseField>
 <ResponseField name="bdate" type="string | null">Дата рождения (`YYYY-MM-DD`).</ResponseField>
 <ResponseField name="sex" type="enum">Пол: `Ufo`, `Women`, `Men`.</ResponseField>
 <ResponseField name="country" type="string | null">Страна.</ResponseField>
@@ -104,13 +106,9 @@ description: "Структура объекта пользователя (user) 
   "language": "Ru",
   "timezone": 5,
   "lastOnlineAt": "2025-01-15T11:40:00Z",
-  "createdOnDomain": "Biz",
-  "product": "BizSchool",
   "starsBalance": 0,
-  "permissions": [],
   "createdAt": "2025-01-15T10:30:00Z",
   "updatedAt": "2025-01-15T11:45:00Z",
-  "deletedAt": null,
   "archivedAt": null,
   "profile": {
     "id": 456,

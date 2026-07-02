@@ -172,6 +172,11 @@ print(response.json())
   "success": true,
   "code": 200,
   "payload": {
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
     "items": [
       {
         "groupId": 501,
@@ -181,13 +186,16 @@ print(response.json())
         "membersCount": 42
       }
     ],
-    "page": 1,
-    "count": 1,
-    "pages": 1,
-    "isFirst": true,
-    "isLast": true,
-    "next": { "skip": 20, "take": 20, "page": 2 },
-    "prev": { "skip": 0, "take": 20, "page": 1 }
+    "next": {
+      "skip": 20,
+      "take": 20,
+      "page": 2
+    },
+    "prev": {
+      "skip": 0,
+      "take": 20,
+      "page": 1
+    }
   }
 }
 ```

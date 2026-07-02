@@ -34,7 +34,6 @@ description: "Структура объекта участника группы 
 
 <ResponseField name="createdAt" type="string" required>Дата создания записи (ISO 8601).</ResponseField>
 <ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
-<ResponseField name="deletedAt" type="string | null">Дата удаления или `null`.</ResponseField>
 <ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
 
 ## Пример объекта `groupMember`
@@ -48,8 +47,15 @@ description: "Структура объекта участника группы 
   "active": true,
   "blockedUntil": null,
   "isAddedToTg": false,
-  "tgChannelMeta": { "chatInviteLink": null },
-  "tgGroupChatMeta": { "chatInviteLink": null },
+  "createdAt": "2025-07-19T15:45:51.212Z",
+  "updatedAt": "2025-07-19T15:45:51.212Z",
+  "archivedAt": null,
+  "tgChannelMeta": {
+    "chatInviteLink": null
+  },
+  "tgGroupChatMeta": {
+    "chatInviteLink": null
+  },
   "user": {
     "id": 15,
     "uuid": "YRnh3REH1Wbd",
@@ -58,11 +64,7 @@ description: "Структура объекта участника группы 
     "banned": false,
     "email": "user@example.com",
     "phone": "+9876543210"
-  },
-  "createdAt": "2025-07-19T15:45:51.212Z",
-  "updatedAt": "2025-07-19T15:45:51.212Z",
-  "deletedAt": null,
-  "archivedAt": null
+  }
 }
 ```
 

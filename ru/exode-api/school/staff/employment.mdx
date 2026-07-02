@@ -141,12 +141,16 @@ listEmployments();
   "success": true,
   "code": 200,
   "payload": {
+    "page": 1,
+    "count": 4,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
     "items": [
       {
         "id": 9,
         "createdAt": "2026-07-02T11:15:47.312Z",
         "updatedAt": "2026-07-02T11:15:47.312Z",
-        "deletedAt": null,
         "archivedAt": null,
         "schoolId": 198,
         "userId": 1683,
@@ -160,7 +164,6 @@ listEmployments();
         "id": 8,
         "createdAt": "2026-07-02T11:15:47.295Z",
         "updatedAt": "2026-07-02T11:15:47.312Z",
-        "deletedAt": null,
         "archivedAt": null,
         "schoolId": 198,
         "userId": 1683,
@@ -171,13 +174,16 @@ listEmployments();
         "status": "Terminated"
       }
     ],
-    "page": 1,
-    "count": 4,
-    "pages": 1,
-    "isFirst": true,
-    "isLast": true,
-    "next": { "skip": 0, "take": 10, "page": 1 },
-    "prev": { "skip": 0, "take": 10, "page": 1 }
+    "next": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    },
+    "prev": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    }
   }
 }
 ```
@@ -271,7 +277,6 @@ hireEmployment();
     "id": 6,
     "createdAt": "2026-07-02T11:15:47.273Z",
     "updatedAt": "2026-07-02T11:15:47.273Z",
-    "deletedAt": null,
     "archivedAt": null,
     "schoolId": 198,
     "userId": 1683,
@@ -369,7 +374,6 @@ transferEmployment();
     "id": 8,
     "createdAt": "2026-07-02T11:15:47.295Z",
     "updatedAt": "2026-07-02T11:15:47.295Z",
-    "deletedAt": null,
     "archivedAt": null,
     "schoolId": 198,
     "userId": 1683,
@@ -467,7 +471,6 @@ promoteEmployment();
     "id": 9,
     "createdAt": "2026-07-02T11:15:47.312Z",
     "updatedAt": "2026-07-02T11:15:47.312Z",
-    "deletedAt": null,
     "archivedAt": null,
     "schoolId": 198,
     "userId": 1683,
@@ -558,7 +561,6 @@ terminateEmployment();
     "id": 7,
     "createdAt": "2026-07-02T11:15:47.284Z",
     "updatedAt": "2026-07-02T11:15:47.400Z",
-    "deletedAt": null,
     "archivedAt": null,
     "schoolId": 198,
     "userId": 1684,
