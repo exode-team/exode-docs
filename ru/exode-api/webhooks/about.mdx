@@ -63,7 +63,7 @@ description: "Получайте события пользователей, ку
   "event": "PaymentCompleted",
   "timestamp": "2025-01-18T12:44:55.812Z",
   "idempotencyKey": "7qqQL3bE0o8R8d3X",
-  "data": { /* зависит от события */ }
+  "data": { /* depends on the event */ }
 }
 ```
 
@@ -84,7 +84,7 @@ import express from 'express';
 
 const app = express();
 
-// Важно: используйте сырое тело (raw body), а не повторно сериализованный объект
+// Important: use the raw body, not a re-serialized object
 app.post('/webhooks/exode', express.raw({ type: 'application/json' }), (req, res) => {
   const rawBody = req.body.toString('utf8');
   const received = req.header('signature') || '';
@@ -103,7 +103,7 @@ app.post('/webhooks/exode', express.raw({ type: 'application/json' }), (req, res
   }
 
   const payload = JSON.parse(rawBody);
-  // TODO: дедуплицируйте по payload.idempotencyKey и обработайте payload.data
+  // TODO: deduplicate by payload.idempotencyKey and handle payload.data
 
   res.sendStatus(200);
 });
@@ -123,7 +123,7 @@ if (!hash_equals($expected, $received)) {
 }
 
 $payload = json_decode($rawBody, true);
-// TODO: дедуплицируйте по $payload['idempotencyKey'] и обработайте $payload['data']
+// TODO: deduplicate by $payload['idempotencyKey'] and handle $payload['data']
 
 http_response_code(200);
 ```
@@ -136,7 +136,7 @@ app = Flask(__name__)
 
 @app.post('/webhooks/exode')
 def exode_webhook():
-    raw_body = request.get_data()  # bytes, сырое тело
+    raw_body = request.get_data()  # bytes, raw body
     received = request.headers.get('signature', '')
     secret = os.environ['EXODE_WEBHOOK_SECRET'].encode()
 
@@ -145,7 +145,7 @@ def exode_webhook():
         abort(401)
 
     payload = request.get_json()
-    # TODO: дедуплицируйте по payload['idempotencyKey'] и обработайте payload['data']
+    # TODO: deduplicate by payload['idempotencyKey'] and handle payload['data']
     return '', 200
 ```
 </CodeGroup>

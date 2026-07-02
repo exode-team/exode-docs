@@ -197,7 +197,7 @@ except requests.exceptions.RequestException as e:
 Данные.Вставить("status", "Published");
 Данные.Вставить("config", Конфигурация);
 
-// Сериализация тела в JSON
+// Serialize body to JSON
 ЗаписьJSON = Новый ЗаписьJSON;
 ЗаписьJSON.УстановитьСтроку();
 ЗаписатьJSON(ЗаписьJSON, Данные);

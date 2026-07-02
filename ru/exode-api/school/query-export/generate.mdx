@@ -233,7 +233,7 @@ except requests.exceptions.RequestException as e:
 Данные.Вставить("type", "QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY");
 Данные.Вставить("variables", Переменные);
 
-// Сериализация тела в JSON
+// Serialize body to JSON
 ЗаписьJSON = Новый ЗаписьJSON;
 ЗаписьJSON.УстановитьСтроку();
 ЗаписатьJSON(ЗаписьJSON, Данные);

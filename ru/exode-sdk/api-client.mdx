@@ -21,8 +21,8 @@ const exodeApi = new ExodeAPI({
   sellerId: 1,
   schoolId: 1,
   token: process.env.EXODE_TOKEN!,
-  baseUrl: 'https://api.exode.biz/saas/v2', // по умолчанию
-  timeout: 30_000,                           // по умолчанию 30s
+  baseUrl: 'https://api.exode.biz/saas/v2', // default
+  timeout: 30_000,                           // default 30s
 })
 ```
 
@@ -72,34 +72,34 @@ const exodeApi = new ExodeAPI({
 ```ts
 import { UserStateKey } from '@exode-team/sdk/api'
 
-// Создание — возвращает объект пользователя (или null)
+// Create — returns the user object (or null)
 const user = await exodeApi.school.user.create({
   email: 'student@example.com',
-  profile: { firstName: 'Иван', role: 'Student' },
+  profile: { firstName: 'John', role: 'Student' },
 })
 
-// Обновление — возвращает пользователя
-await exodeApi.school.user.update(user.id, { profile: { lastName: 'Петров' } })
+// Update — returns the user
+await exodeApi.school.user.update(user.id, { profile: { lastName: 'Smith' } })
 
-// Upsert (создать или обновить по email/phone/tgId/extId)
+// Upsert (create or update by email/phone/tgId/extId)
 const { user: u, isCreated } = await exodeApi.school.user.upsert({
   email: 'student@example.com',
-  profile: { firstName: 'Иван' },
+  profile: { firstName: 'John' },
 })
 
-// Поиск — ровно одно из login | tgId | extId
+// Find — exactly one of login | tgId | extId
 const found = await exodeApi.school.user.find({ login: 'student@example.com' })
 
-// Удаление (≤250 за раз) — { deleted, skipped }
-const { deleted, skipped } = await exodeApi.school.user.deleteMany([1, 2, 3], 'Закрытие доступа')
+// Delete (≤250 at a time) — { deleted, skipped }
+const { deleted, skipped } = await exodeApi.school.user.deleteMany([1, 2, 3], 'Access revocation')
 
-// State — ключ из enum UserStateKey
+// State — key from the UserStateKey enum
 await exodeApi.school.user.setState(user.id, UserStateKey.OnBoardingProgress, { step: 2 }) // → boolean
 const value = await exodeApi.school.user.getState(user.id, UserStateKey.OnBoardingProgress) // → unknown
 
-// Токен авто-авторизации — { session, isCreated }
+// Auto-auth token — { session, isCreated }
 const { session } = await exodeApi.school.user.createAuthToken({ userId: user.id })
-// session.token → подставьте в ?___uat=<token> для автологина
+// session.token → put into ?___uat=<token> for auto-login
 ```
 
 <Tip>
@@ -110,23 +110,23 @@ const { session } = await exodeApi.school.user.createAuthToken({ userId: user.id
 ## Группы (`school.group`)
 
 ```ts
-// Список групп (фильтр + пагинация)
+// List groups (filter + pagination)
 const { items } = await exodeApi.school.group.list({ courseIds: [10], take: 50 })
 
-// Добавить участников (≤250) — { exist, created }
+// Add members (≤250) — { exist, created }
 await exodeApi.school.group.addMembers(groupId, [1, 2, 3])
 
-// Удалить участников (≤250) — { affected }
+// Remove members (≤250) — { affected }
 await exodeApi.school.group.removeMembers(groupId, [1])
 ```
 
 ## Курсы (`school.course`)
 
 ```ts
-// Список курсов
+// List courses
 const { items } = await exodeApi.school.course.list({ types: ['VideoCourse'], take: 20 })
 
-// Прогресс участников по курсу (пагинация)
+// Course members' progress (pagination)
 const progress = await exodeApi.school.course.progresses(courseId, { take: 100 })
 ```
 
@@ -145,26 +145,26 @@ const { items } = await exodeApi.school.invoice.list({ types: ['Regular'], take:
 ## Формы (`school.form`)
 
 ```ts
-// Макеты форм
-const layout = await exodeApi.school.form.layoutCreate({ mode: 'Custom', name: 'Анкета', internalName: 'survey' })
+// Form layouts
+const layout = await exodeApi.school.form.layoutCreate({ mode: 'Custom', name: 'Survey', internalName: 'survey' })
 await exodeApi.school.form.layoutUpdate(layout.id, { status: 'Published' })
 await exodeApi.school.form.layoutDelete(layout.id) // → { affected }
 
-// Значения кастомных полей
+// Custom field values
 const { items } = await exodeApi.school.form.customFieldValueGet({ userIds: [27], take: 50 })
 
-// Установка значений по slug (тип определяется автоматически)
+// Set values by slug (type is inferred automatically)
 await exodeApi.school.form.customFieldValueSetBySlug({
   userId: 27,
   layoutId: layout.id,
-  values: [{ slug: 'city', value: 'Ташкент' }, { slug: 'age', value: 25 }],
+  values: [{ slug: 'city', value: 'Tashkent' }, { slug: 'age', value: 25 }],
 })
 
-// Установка значений по fieldId (типизированно)
+// Set values by fieldId (typed)
 await exodeApi.school.form.customFieldValueSet({
   userId: 27,
   layoutId: layout.id,
-  values: [{ fieldId: 10, text: 'Ташкент' }],
+  values: [{ fieldId: 10, text: 'Tashkent' }],
 })
 ```
 
@@ -175,14 +175,14 @@ await exodeApi.school.form.customFieldValueSet({
 ```ts
 import { QueryExportType, QueryExportFormat } from '@exode-team/sdk/api'
 
-// 1. Запуск — возвращает { uuid, status, ... }
+// 1. Start — returns { uuid, status, ... }
 const { uuid } = await exodeApi.school.queryExport.generate({
   type: QueryExportType.GroupMemberFindMany,
   format: QueryExportFormat.Csv,
   variables: { filter: { groupIds: [42] } },
 })
 
-// 2. Опрос результата (повторяйте, пока status не станет Completed/Failed)
+// 2. Poll for result (repeat until status becomes Completed/Failed)
 const result = await exodeApi.school.queryExport.getResult(uuid)
 
 if (result?.status === 'Completed') {
@@ -229,7 +229,7 @@ try {
   if (error instanceof ExodeAPIError) {
     console.error(error.code)        // 400, 401, 403, 408, 429, 0 (сеть)...
     console.error(error.errorCause)  // 'EmailIsBusy', 'Unauthorized', 'Timeout', 'NetworkError'...
-    console.error(error.details)     // техническое описание (опц.)
+    console.error(error.details)     // technical description (optional)
   }
 }
 ```

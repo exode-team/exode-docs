@@ -129,7 +129,7 @@ $params = http_build_query([
   'fieldSlugs' => [ 'city', 'company' ]
 ], '', '&', PHP_QUERY_RFC3986);
 
-// Для массивов используйте формат: userIds=27&userIds=42
+// For arrays use the format: userIds=27&userIds=42
 $queryString = 'userIds=27&userIds=42&fieldSlugs=city&fieldSlugs=company&createdAt=DESC';
 
 $headers = [

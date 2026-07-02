@@ -217,7 +217,7 @@ except requests.exceptions.RequestException as e:
 Данные.Вставить("note", "Дополнительные поля для CRM");
 Данные.Вставить("config", Конфигурация);
 
-// Сериализация тела в JSON
+// Serialize body to JSON
 ЗаписьJSON = Новый ЗаписьJSON;
 ЗаписьJSON.УстановитьСтроку();
 ЗаписатьJSON(ЗаписьJSON, Данные);

@@ -240,7 +240,7 @@ except requests.exceptions.RequestException as e:
 Данные.Вставить("banned", Ложь);
 Данные.Вставить("profile", Профиль);
 
-// Сериализация тела в JSON
+// Serialize body to JSON
 ЗаписьJSON = Новый ЗаписьJSON;
 ЗаписьJSON.УстановитьСтроку();
 ЗаписатьJSON(ЗаписьJSON, Данные);

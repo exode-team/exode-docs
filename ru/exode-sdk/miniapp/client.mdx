@@ -11,9 +11,9 @@ description: 'Ванильный JS API: init, route, ui, события'
 import { ExodeMiniApp } from '@exode-team/sdk/miniapp'
 
 const app = new ExodeMiniApp({
-  appId: 'my-app',        // обязательно
-  targetOrigin: '*',      // по умолчанию '*'
-  timeout: 10_000,        // мс, по умолчанию 10000
+  appId: 'my-app',        // required
+  targetOrigin: '*',      // default '*'
+  timeout: 10_000,        // ms, default 10000
 })
 ```
 
@@ -53,32 +53,32 @@ console.log(ctx.theme.scheme)
 ## Навигация (app.route)
 
 ```ts
-// Открыть маршрут основного приложения
+// Open a route in the main app
 await app.route.navigate('/course/123')
 
-// С параметрами
+// With params
 await app.route.navigate('/course/123', { tab: 'lessons' })
 
-// Назад по истории хоста
+// Back through host history
 await app.route.back()
 ```
 
 ## UI-команды (app.ui)
 
 ```ts
-// Snackbar-уведомление
+// Snackbar notification
 await app.ui.showSnackbar({
   message: 'Сохранено!',
   type: 'success', // 'success' | 'error' | 'info'
 })
 
-// Скрыть / показать нижнюю навигацию хоста
+// Hide / show host bottom navigation
 await app.ui.setTabbarVisible(false)
 
-// Скрыть / показать шапку хоста
+// Hide / show host header
 await app.ui.setHeaderVisible(false)
 
-// Закрыть мини-приложение
+// Close the mini app
 await app.ui.close()
 ```
 
@@ -99,7 +99,7 @@ app.on('route:changed', ({ path, params }) => {
   console.log('Host navigated to:', path)
 })
 
-// Отписка
+// Unsubscribe
 unsubscribe()
 ```
 
