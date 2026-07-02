@@ -24,6 +24,11 @@ POST /saas/v2/user/create
 </Info>
 
 <Info>
+  Если передать поле `password` — пользователю будет установлен указанный пароль, а автоматическая генерация и
+  отправка пароля выполняться **не будет**.
+</Info>
+
+<Info>
   Для отпарвки логина и пароля в Telegram — пользователь должен дать разрешение писать боту или иметь активный чат с
   этим ботом
 </Info>
@@ -48,6 +53,12 @@ POST /saas/v2/user/create
 
 <ParamField body="banned" type="boolean" required={false}>
   Создать пользователя сразу заблокированным. По умолчанию `false`.
+</ParamField>
+
+<ParamField body="password" type="string" required={false}>
+  Пароль пользователя. От 6 до 100 символов. Если передан — устанавливается как пароль для входа, автоматическая
+  отправка сгенерированного пароля пропускается. При передаче пустой строки — преобразуется в `null`.
+  Доступно только при создании (в `update` поле не поддерживается).
 </ParamField>
 
 ### Параметры профиля
@@ -97,6 +108,7 @@ curl --location 'https://api.exode.biz/saas/v2/user/create' \
     "phone": "+9876543210",
     "extId": "crm_12345",
     "tgId": null,
+    "password": "SecurePass123",
     "profile": {
       "firstName": "Firstname",
       "lastName": "Lastname",
@@ -117,6 +129,7 @@ const createUser = async () => {
       phone: '+9876543210',
       extId: 'crm_12345',
       tgId: null,
+      password: 'SecurePass123',
       profile: {
         firstName: 'Firstname',
         lastName: 'Lastname',
@@ -151,6 +164,7 @@ $data = [
   'phone' => '+9876543210',
   'extId' => 'crm_12345',
   'tgId' => null,
+  'password' => 'SecurePass123',
   'profile' => [
     'firstName' => 'Firstname',
     'lastName' => 'Lastname',
@@ -200,6 +214,7 @@ data = {
   'phone': '+9876543210',
   'extId': 'crm_12345',
   'tgId': None,
+  'password': 'SecurePass123',
   'profile': {
     'firstName': 'Firstname',
     'lastName': 'Lastname',
@@ -243,6 +258,7 @@ except requests.exceptions.RequestException as e:
 Данные.Вставить("phone", "+9876543210");
 Данные.Вставить("extId", "crm_12345");
 Данные.Вставить("tgId", Неопределено);
+Данные.Вставить("password", "SecurePass123");
 Данные.Вставить("profile", Профиль);
 
 // Сериализация тела в JSON
@@ -278,34 +294,70 @@ except requests.exceptions.RequestException as e:
 ```json Success
 {
   "success": true,
-  "code": 200,
+  "code": 201,
   "payload": {
     "user": {
-      "id": 123,
-      "uuid": "550e8400-e29b-41d4-a716-446655440000",
+      "id": 1683,
+      "createdAt": "2026-07-02T11:15:46.896Z",
+      "updatedAt": "2026-07-02T11:15:46.940Z",
+      "deletedAt": null,
+      "archivedAt": null,
+      "uuid": "e-cjTT0CWMCB",
       "active": true,
       "activated": true,
       "banned": false,
-      "extId": "crm_12345",
-      "tgId": null,
-      "domain": null,
+      "alive": true,
+      "domain": "id1683",
       "email": "user@example.com",
-      "phone": "+987654321",
+      "phone": "+9876543210",
+      "tgId": null,
+      "vkId": null,
+      "appleId": null,
+      "extId": "crm_12345",
+      "schoolId": 198,
       "language": null,
       "timezone": null,
       "lastOnlineAt": null,
+      "createdOnDomain": "Biz",
+      "product": "BizSchool",
       "starsBalance": 0,
-      "createdAt": "2024-01-15T10:30:00Z",
-      "updatedAt": "2024-01-15T10:30:00Z",
+      "permissions": [],
+      "currentTime": "2026-07-02T11:15:46+00:00",
+      "isSleepingNow": false,
       "profile": {
-        "id": 456,
+        "id": 1665,
+        "createdAt": "2026-07-02T11:15:46.932Z",
+        "updatedAt": "2026-07-02T11:15:46.932Z",
+        "deletedAt": null,
+        "archivedAt": null,
+        "userId": 1683,
+        "official": false,
         "firstName": "Firstname",
         "lastName": "Lastname",
+        "fullName": "Firstname Lastname",
+        "fullNameShort": "Firstname L.",
+        "avatar": {
+          "id": 1665
+        },
         "bdate": "1990-01-01",
         "sex": "Men",
+        "country": null,
+        "city": null,
         "role": "Student",
-        "createdAt": "2024-01-15T10:30:00Z",
-        "updatedAt": "2024-01-15T10:30:00Z"
+        "status": null,
+        "title": "",
+        "emojiTitle": "",
+        "titleState": {
+          "manualTitle": null,
+          "manualEmojiTitle": null,
+          "manualNextTitle": null,
+          "manualNextEmojiTitle": null,
+          "manualExpiredAt": null,
+          "locationTitle": null,
+          "locationEmojiTitle": null,
+          "achievementTitle": null,
+          "achievementEmojiTitle": null
+        }
       }
     }
   }

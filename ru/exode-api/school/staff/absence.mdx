@@ -1,0 +1,442 @@
+---
+title: "Отсутствия"
+description: "Учёт отпусков, больничных и командировок сотрудников корпоративной школы"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+    Отсутствие (`absence`) фиксирует период, когда сотрудник не работает: отпуск (`Vacation`), больничный
+    (`SickLeave`) или командировку (`BusinessTrip`). Отсутствие привязывается к трудоустройству сотрудника.
+</Info>
+
+<Warning>
+    Все эндпоинты модуля staff доступны **только** для школ сегмента `Corporate`. Для остальных сегментов запрос
+    вернёт ошибку `403 Forbidden`.
+</Warning>
+
+## Список отсутствий
+
+```
+GET /saas/v2/staff/absence/list
+```
+
+Требуется аутентификация и право `StaffView`.
+
+### Параметры запроса
+
+<Info>
+    Параметры-массивы передаются повторением параметра в строке запроса: `employmentIds=1&employmentIds=2`.
+</Info>
+
+#### Пагинация
+
+<ParamField query="skip" type="integer" required={false}>
+    Количество записей, которые нужно пропустить. По умолчанию `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Номер страницы (альтернатива `skip`). Начинается с `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Количество записей на странице. По умолчанию `10`.
+</ParamField>
+
+#### Фильтрация
+
+<ParamField query="employmentIds" type="integer[]" required={false}>
+    Фильтр по ID трудоустройств. До 250 значений.
+</ParamField>
+
+<ParamField query="positionIds" type="integer[]" required={false}>
+    Фильтр по ID должностей. До 250 значений.
+</ParamField>
+
+<ParamField query="types" type="enum[]" required={false}>
+    Фильтр по типам отсутствия. Возможные значения: `Vacation`, `SickLeave`, `BusinessTrip`. До 250 значений.
+</ParamField>
+
+<ParamField query="currentOnly" type="boolean" required={false}>
+    Если `true` — вернуть только текущие (активные на данный момент) отсутствия.
+</ParamField>
+
+### Поля ответа
+
+<ResponseField name="payload" type="object">
+    Постраничный список отсутствий.
+
+    <Expandable title="Свойства payload">
+        <ResponseField name="items" type="object[]">
+            Массив отсутствий.
+
+            <Expandable title="Свойства элемента">
+                <ResponseField name="id" type="integer">ID отсутствия.</ResponseField>
+                <ResponseField name="schoolId" type="integer">ID школы.</ResponseField>
+                <ResponseField name="employmentId" type="integer">ID трудоустройства сотрудника.</ResponseField>
+                <ResponseField name="type" type="enum">Тип отсутствия: `Vacation`, `SickLeave` или `BusinessTrip`.</ResponseField>
+                <ResponseField name="startAt" type="string">Дата начала отсутствия (ISO 8601).</ResponseField>
+                <ResponseField name="finishAt" type="string | null">Дата окончания отсутствия (ISO 8601) или `null`.</ResponseField>
+                <ResponseField name="note" type="string | null">Комментарий к отсутствию.</ResponseField>
+                <ResponseField name="createdAt" type="string">Дата создания записи.</ResponseField>
+                <ResponseField name="updatedAt" type="string">Дата последнего обновления.</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Текущая страница.</ResponseField>
+        <ResponseField name="count" type="integer">Общее количество записей.</ResponseField>
+        <ResponseField name="pages" type="integer">Общее количество страниц.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Признак первой страницы.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Признак последней страницы.</ResponseField>
+        <ResponseField name="next" type="object">Параметры следующей страницы (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Параметры предыдущей страницы (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/absence/list?take=10&types=Vacation' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listAbsences = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/staff/absence/list', {
+    params: { take: 10, types: ['Vacation'] },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listAbsences();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "items": [
+      {
+        "id": 2,
+        "createdAt": "2026-07-02T11:15:47.341Z",
+        "updatedAt": "2026-07-02T11:15:47.354Z",
+        "deletedAt": null,
+        "archivedAt": null,
+        "schoolId": 198,
+        "employmentId": 9,
+        "type": "Vacation",
+        "startAt": "2026-07-06T00:00:00.000Z",
+        "finishAt": "2026-07-20T00:00:00.000Z",
+        "note": "Summer vacation (updated)"
+      }
+    ],
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "next": { "skip": 0, "take": 10, "page": 1 },
+    "prev": { "skip": 0, "take": 10, "page": 1 }
+  }
+}
+```
+
+```json Error - Forbidden
+{
+  "code": 403,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Доступ к ресурсу ограничен",
+  "message": "Доступ к ресурсу ограничен"
+}
+```
+</ResponseExample>
+
+## Создать отсутствие
+
+```
+POST /saas/v2/staff/absence/create
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+### Параметры запроса
+
+<ParamField body="employmentId" type="integer" required>
+    ID трудоустройства сотрудника, к которому относится отсутствие.
+</ParamField>
+
+<ParamField body="type" type="enum" required>
+    Тип отсутствия. Возможные значения: `Vacation` (отпуск), `SickLeave` (больничный), `BusinessTrip`
+    (командировка).
+</ParamField>
+
+<ParamField body="startAt" type="string" required>
+    Дата начала отсутствия в формате ISO 8601. Должна быть не позже `finishAt`.
+</ParamField>
+
+<ParamField body="finishAt" type="string" required={false}>
+    Дата окончания отсутствия в формате ISO 8601. Должна быть не раньше `startAt`.
+</ParamField>
+
+<ParamField body="note" type="string" required={false}>
+    Комментарий к отсутствию. Максимум 500 символов. Автоматически обрезаются пробелы в начале и конце.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/absence/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "employmentId": 9,
+    "type": "Vacation",
+    "startAt": "2026-07-06T00:00:00.000Z",
+    "finishAt": "2026-07-20T00:00:00.000Z",
+    "note": "Summer vacation"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const createAbsence = async () => {
+  const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/absence/create', {
+    employmentId: 9,
+    type: 'Vacation',
+    startAt: '2026-07-06T00:00:00.000Z',
+    finishAt: '2026-07-20T00:00:00.000Z',
+    note: 'Summer vacation',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+createAbsence();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 2,
+    "createdAt": "2026-07-02T11:15:47.341Z",
+    "updatedAt": "2026-07-02T11:15:47.341Z",
+    "deletedAt": null,
+    "archivedAt": null,
+    "schoolId": 198,
+    "employmentId": 9,
+    "type": "Vacation",
+    "startAt": "2026-07-06T00:00:00.000Z",
+    "finishAt": "2026-07-20T00:00:00.000Z",
+    "note": "Summer vacation"
+  }
+}
+```
+
+```json Error - Invalid Date Range
+{
+  "code": 400,
+  "success": false,
+  "cause": "BadRequest",
+  "message": "startAt must be same or before finishAt",
+  "error": "startAt must be same or before finishAt"
+}
+```
+</ResponseExample>
+
+## Обновить отсутствие
+
+```
+PUT /saas/v2/staff/absence/{absenceId}/update
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+Обновляет поля отсутствия. Все поля тела необязательны — передавайте только те, которые нужно изменить.
+Привязку к трудоустройству (`employmentId`) изменить нельзя.
+
+### Параметры запроса
+
+<ParamField path="absenceId" type="integer" required>
+    ID обновляемого отсутствия.
+</ParamField>
+
+<ParamField body="type" type="enum" required={false}>
+    Тип отсутствия. Возможные значения: `Vacation`, `SickLeave`, `BusinessTrip`.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Дата начала отсутствия в формате ISO 8601. Должна быть не позже `finishAt`.
+</ParamField>
+
+<ParamField body="finishAt" type="string" required={false}>
+    Дата окончания отсутствия в формате ISO 8601. Должна быть не раньше `startAt`.
+</ParamField>
+
+<ParamField body="note" type="string" required={false}>
+    Комментарий к отсутствию. Максимум 500 символов.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/absence/2/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "note": "Summer vacation (updated)"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateAbsence = async () => {
+  const { data } = await axios.put('https://api.exode.biz/saas/v2/staff/absence/2/update', {
+    note: 'Summer vacation (updated)',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+updateAbsence();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 2,
+    "createdAt": "2026-07-02T11:15:47.341Z",
+    "updatedAt": "2026-07-02T11:15:47.354Z",
+    "deletedAt": null,
+    "archivedAt": null,
+    "schoolId": 198,
+    "employmentId": 9,
+    "type": "Vacation",
+    "startAt": "2026-07-06T00:00:00.000Z",
+    "finishAt": "2026-07-20T00:00:00.000Z",
+    "note": "Summer vacation (updated)"
+  }
+}
+```
+</ResponseExample>
+
+## Удалить отсутствие
+
+```
+DELETE /saas/v2/staff/absence/{absenceId}/delete
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+### Параметры запроса
+
+<ParamField path="absenceId" type="integer" required>
+    ID удаляемого отсутствия.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="deleted" type="boolean" required>
+    Флаг успешного удаления.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/absence/2/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const deleteAbsence = async () => {
+  const { data } = await axios.delete('https://api.exode.biz/saas/v2/staff/absence/2/delete', {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+deleteAbsence();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "deleted": true
+  }
+}
+```
+
+```json Error - Forbidden
+{
+  "code": 403,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Доступ к ресурсу ограничен",
+  "message": "Доступ к ресурсу ограничен"
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+    Модуль staff доступен только для школ сегмента `Corporate`. Для чтения списка требуется право `StaffView`, для
+    создания, обновления и удаления отсутствий — право `StaffManage`.
+</Check>
+
+<Warning>
+    Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+    школе.
+</Warning>

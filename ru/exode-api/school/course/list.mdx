@@ -112,6 +112,10 @@ GET /saas/v2/course/list/raw
 
             <Expandable title="Свойства элемента">
                 <ResponseField name="courseId" type="integer">ID курса.</ResponseField>
+                <ResponseField name="productId" type="integer">
+                    ID продукта курса. Используется для связи с методами
+                    [доступов](/ru/exode-api/school/product-access/list) и [счетов](/ru/exode-api/school/invoice/list).
+                </ResponseField>
                 <ResponseField name="name" type="string">Название курса.</ResponseField>
                 <ResponseField name="type" type="enum">
                     Тип курса: `Bundle`, `Webinar`, `TextCourse`, `Assessment`, `VideoCourse`, `PersonalLesson`.
@@ -222,6 +226,7 @@ print(response.json())
     "items": [
       {
         "courseId": 10,
+        "productId": 838,
         "name": "Подготовка к экзамену",
         "type": "VideoCourse",
         "groupIds": [501, 502]

@@ -277,7 +277,25 @@ def exode_webhook():
     - `product` — [продукт](/ru/exode-api/objects/entities/product) (опционально).
     - `course` — [курс](/ru/exode-api/objects/entities/course) (опционально).
 </Accordion>
+
+<Accordion title="ProductEnrolledViaLms — доступ выдан вручную (LMS)">
+    Триггер: доступ к продукту выдан администратором/менеджером через LMS или API.
+    Структура `data` идентична `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`).
+</Accordion>
+
+<Accordion title="ProductEnrolledViaPayment — доступ выдан после оплаты">
+    Триггер: доступ к продукту выдан после успешной оплаты.
+    Структура `data` идентична `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`).
+</Accordion>
 </AccordionGroup>
+
+<Note>
+    На события `UserSignedIn`, `UserLoggedOut`, `UserJoinedByReferral`, `UserCreatedViaLms`,
+    `CourseLessonPracticeDetailedSent`, `CourseLessonPracticeAutoVerifySent`, `ProductRefundCompleted`,
+    `ProductAccessSubscriptionEnding7Days` и `ProductAccessSubscriptionEnding1Day` можно подписаться, но
+    формальный контракт `data` для них ещё не зафиксирован — состав полезной нагрузки не гарантируется.
+    Перед использованием сверьтесь с [поддержкой](https://t.me/exode_support_biz).
+</Note>
 
 <Note>
     Событие `SchoolCreated` также доставляется, но только на системном уровне и недоступно для подписки
@@ -286,54 +304,231 @@ def exode_webhook():
 
 ### Пример: PaymentCompleted
 
+Тело ниже — реальный пример тестовой отправки (синтетические значения, точный состав полей):
+
 ```json
 {
   "event": "PaymentCompleted",
-  "timestamp": "2025-01-18T12:44:55.812Z",
-  "idempotencyKey": "7qqQL3bE0o8R8d3X",
   "data": {
     "payment": {
-      "id": 98214,
-      "uuid": "4ff8f2b2-2c18-4c8c-8106-620c46cb50ab",
+      "id": 13001,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "deletedAt": null,
+      "archivedAt": null,
+      "uuid": "samplePaymentUuid",
       "type": "OneTime",
       "status": "Completed",
-      "released": false,
-      "paidAt": "2025-01-18T12:43:27.101Z",
+      "checkoutPaymentId": "sampleCheckoutPaymentId",
+      "checkoutUrl": null,
+      "released": true,
+      "meta": {},
+      "webhookLogs": [],
+      "chargeLogs": [],
+      "paidAt": "2026-01-01T00:00:00.000Z",
+      "expireAt": null,
+      "isCompleted": true,
+      "isCanceled": false,
+      "statusHistoryLogs": [],
       "invoice": {
-        "id": 77102,
-        "uuid": "b1f2c3d4-2c18-4c8c-8106-620c46cb50ab",
+        "id": 12001,
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "updatedAt": "2026-01-01T00:00:00.000Z",
+        "deletedAt": null,
+        "archivedAt": null,
+        "uuid": "sampleInvoiceUuid",
+        "humanId": 1001,
         "type": "Regular",
         "status": "Active",
-        "totalAmount": 1990,
+        "totalAmount": 100,
         "discountAmount": 0,
-        "currency": "Rub",
+        "currency": "Usd",
+        "expireAt": null,
+        "isActive": true,
         "user": {
-          "id": 5562,
-          "uuid": "3fPYNkV2Y8Lz",
-          "email": "student@example.com",
-          "phone": "+79991234567",
+          "id": 1001,
+          "createdAt": "2026-01-01T00:00:00.000Z",
+          "updatedAt": "2026-01-01T00:00:00.000Z",
+          "deletedAt": null,
+          "archivedAt": null,
+          "uuid": "sampleUserUuid",
+          "active": true,
+          "activated": true,
+          "banned": false,
+          "alive": true,
+          "domain": "id1001",
+          "email": "user@example.com",
+          "phone": null,
+          "tgId": null,
+          "vkId": null,
+          "appleId": null,
+          "extId": null,
+          "schoolId": 1,
+          "language": "En",
+          "timezone": 0,
+          "lastOnlineAt": "2026-01-01T00:00:00.000Z",
+          "createdOnDomain": "Biz",
+          "product": "BizSchool",
+          "starsBalance": 0,
+          "permissions": [],
+          "currentTime": "2026-01-01T00:00:00.000Z",
+          "isSleepingNow": false,
           "profile": {
-            "firstName": "Ирина",
-            "lastName": "Соколова",
-            "role": "Student"
+            "id": 1001,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "updatedAt": "2026-01-01T00:00:00.000Z",
+            "deletedAt": null,
+            "archivedAt": null,
+            "userId": 1001,
+            "official": false,
+            "firstName": "John",
+            "lastName": "Doe",
+            "fullName": "John Doe",
+            "fullNameShort": "John D.",
+            "avatar": {
+              "id": 1001
+            },
+            "bdate": null,
+            "sex": "Ufo",
+            "country": null,
+            "city": null,
+            "role": "Student",
+            "status": null,
+            "title": null,
+            "emojiTitle": null,
+            "titleState": {
+              "manualTitle": null,
+              "manualEmojiTitle": null,
+              "manualNextTitle": null,
+              "manualNextEmojiTitle": null,
+              "manualExpiredAt": null,
+              "locationTitle": null,
+              "locationEmojiTitle": null,
+              "achievementTitle": null,
+              "achievementEmojiTitle": null
+            }
+          },
+          "school": {
+            "id": 1,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "updatedAt": "2026-01-01T00:00:00.000Z",
+            "deletedAt": null,
+            "archivedAt": null,
+            "segment": "Commerce",
+            "baseDomain": "school",
+            "customDomain": null,
+            "accessType": "Public",
+            "domainType": "Base",
+            "name": "Sample School",
+            "description": null,
+            "iconUrl": null,
+            "active": true,
+            "domain": "school",
+            "fqdn": "example.exode.biz",
+            "publicUrl": "https://example.exode.biz",
+            "baseFqdn": "example.exode.biz",
+            "isPublic": true,
+            "isPrivate": false
           }
         },
         "products": [
           {
-            "id": 4410,
-            "totalPrice": 1990,
+            "id": 11001,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "updatedAt": "2026-01-01T00:00:00.000Z",
+            "deletedAt": null,
+            "archivedAt": null,
+            "originalPrice": 100,
+            "totalPrice": 100,
             "discountAmount": 0,
-            "product": { "id": 200, "name": "Курс по подготовке", "currency": "Rub" }
+            "price": {
+              "id": 10001,
+              "createdAt": "2026-01-01T00:00:00.000Z",
+              "updatedAt": "2026-01-01T00:00:00.000Z",
+              "deletedAt": null,
+              "archivedAt": null,
+              "mode": "SelfDefinition",
+              "type": "OneTime",
+              "title": "Sample Price",
+              "description": null,
+              "amount": 100,
+              "previousAmount": null,
+              "accessDays": null,
+              "infinityAccess": true,
+              "active": true,
+              "hidden": false,
+              "activeFrom": null,
+              "activeTo": null,
+              "meta": {},
+              "installmentConfig": null,
+              "subscriptionConfig": null,
+              "isDemo": false,
+              "isRecurrent": false,
+              "isInstallment": false,
+              "isSubscription": false
+            },
+            "discount": null,
+            "product": {
+              "id": 7001,
+              "createdAt": "2026-01-01T00:00:00.000Z",
+              "updatedAt": "2026-01-01T00:00:00.000Z",
+              "deletedAt": null,
+              "archivedAt": null,
+              "sellerId": 1,
+              "type": "Course",
+              "status": "Published",
+              "showInCatalog": true,
+              "currency": "Usd",
+              "approves": [],
+              "publishedAt": "2026-01-01T00:00:00.000Z",
+              "saleStartAt": null,
+              "saleFinishAt": null,
+              "domains": [],
+              "isFree": false,
+              "isPublished": true,
+              "course": {
+                "id": 2001,
+                "createdAt": "2026-01-01T00:00:00.000Z",
+                "updatedAt": "2026-01-01T00:00:00.000Z",
+                "deletedAt": null,
+                "archivedAt": null,
+                "type": "VideoCourse",
+                "name": "Sample Course",
+                "description": "Sample course description",
+                "alias": null,
+                "tags": [
+                  "sample"
+                ],
+                "seoTags": [],
+                "image": {
+                  "main": ""
+                },
+                "promoVideo": null,
+                "settings": {},
+                "order": 0,
+                "isBundle": false
+              }
+            }
           }
         ]
       },
       "acquiring": {
-        "id": 12,
-        "uuid": "a1...",
-        "provider": { "id": 7, "type": "ClickAcquiringUz" }
+        "id": 1,
+        "active": true,
+        "uuid": "sampleAcquiringUuid",
+        "name": "Sample Acquiring",
+        "description": null,
+        "provider": {
+          "id": 1,
+          "type": "Card",
+          "active": true
+        },
+        "hasProviderCommission": false
       }
     }
-  }
+  },
+  "timestamp": "2026-07-02T11:16:25.172Z",
+  "idempotencyKey": "g9lFWzmF-4BkJaxvFvIEX"
 }
 ```
 

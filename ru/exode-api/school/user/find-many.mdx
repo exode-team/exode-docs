@@ -1,0 +1,210 @@
+---
+title: "Массовый поиск пользователей"
+description: "Поиск нескольких пользователей школы по спискам логинов, Telegram ID или внешних extId"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+POST /saas/v2/user/find-many
+```
+
+Требуется аутентификация и право `SchoolManageUsers`.
+
+## Параметры запроса
+
+##### Передайте хотя бы один из списков идентификаторов
+
+<Info>
+  Метод возвращает массив найденных пользователей. Пользователи, которых не удалось найти, в ответ не включаются —
+  сопоставляйте результат с запросом по `email`/`phone`/`tgId`/`extId` на своей стороне.
+</Info>
+
+<ParamField body="logins" type="string[]" required={false}>
+  Список логинов пользователей: email, телефон в международном формате или домен `id12345`.
+  От 2 до 50 символов каждый, максимум 250 элементов.
+</ParamField>
+
+<ParamField body="tgIds" type="integer[]" required={false}>
+  Список Telegram ID пользователей. Максимум 250 элементов.
+</ParamField>
+
+<ParamField body="extIds" type="string[]" required={false}>
+  Список внешних идентификаторов из вашей системы. От 1 до 50 символов каждый, максимум 250 элементов.
+</ParamField>
+
+<Warning>
+  Необходимо передать **хотя бы один непустой** список. Каждый список ограничен 250 элементами.
+</Warning>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/user/find-many' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "logins": ["user@example.com", "+9876543210"]
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const findManyUsers = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/user/find-many', {
+      logins: ['user@example.com', '+9876543210']
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Users found:', response.data.payload.users);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+findManyUsers();
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/user/find-many'
+
+data = {
+  'logins': ['user@example.com', '+9876543210']
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.post(url, json=data, headers=headers)
+response.raise_for_status()
+
+result = response.json()
+print(json.dumps(result['payload']['users'], indent=2, ensure_ascii=False))
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "users": [
+      {
+        "id": 1683,
+        "createdAt": "2026-07-02T11:15:46.896Z",
+        "updatedAt": "2026-07-02T11:15:46.940Z",
+        "deletedAt": null,
+        "archivedAt": null,
+        "uuid": "e-cjTT0CWMCB",
+        "active": true,
+        "activated": true,
+        "banned": false,
+        "alive": true,
+        "domain": "id1683",
+        "email": "user@example.com",
+        "phone": null,
+        "tgId": null,
+        "vkId": null,
+        "appleId": null,
+        "extId": "crm_12345",
+        "schoolId": 198,
+        "language": null,
+        "timezone": null,
+        "lastOnlineAt": null,
+        "createdOnDomain": "Biz",
+        "product": "BizSchool",
+        "starsBalance": 0,
+        "permissions": [],
+        "currentTime": "2026-07-02T11:15:46+00:00",
+        "isSleepingNow": false,
+        "profile": {
+          "id": 1665,
+          "createdAt": "2026-07-02T11:15:46.932Z",
+          "updatedAt": "2026-07-02T11:15:46.932Z",
+          "deletedAt": null,
+          "archivedAt": null,
+          "userId": 1683,
+          "official": false,
+          "firstName": "Firstname",
+          "lastName": "Lastname",
+          "fullName": "Firstname Lastname",
+          "fullNameShort": "Firstname L.",
+          "avatar": {
+            "id": 1665
+          },
+          "bdate": null,
+          "sex": "Ufo",
+          "country": null,
+          "city": null,
+          "role": "Student",
+          "status": null,
+          "title": "",
+          "emojiTitle": "",
+          "titleState": {
+            "manualTitle": null,
+            "manualEmojiTitle": null,
+            "manualNextTitle": null,
+            "manualNextEmojiTitle": null,
+            "manualExpiredAt": null,
+            "locationTitle": null,
+            "locationEmojiTitle": null,
+            "achievementTitle": null,
+            "achievementEmojiTitle": null
+          }
+        }
+      }
+    ]
+  }
+}
+```
+```json Success - никого не нашли
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "users": []
+  }
+}
+```
+```json Error - пустой запрос
+{
+  "cause": "validation",
+  "code": 400,
+  "success": false,
+  "message": [
+    "logins should not be empty"
+  ],
+  "error": "Bad Request"
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+Для поиска пользователей требуется **право на управление пользователями школы** (`SchoolManageUsers`).
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>

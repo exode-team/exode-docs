@@ -69,6 +69,7 @@ GET /saas/v2/group/list/raw
                 <ResponseField name="name" type="string">Название группы.</ResponseField>
                 <ResponseField name="courseId" type="integer | null">ID связанного курса.</ResponseField>
                 <ResponseField name="courseName" type="string | null">Название связанного курса.</ResponseField>
+                <ResponseField name="membersCount" type="integer">Количество участников группы.</ResponseField>
             </Expandable>
         </ResponseField>
 
@@ -176,7 +177,8 @@ print(response.json())
         "groupId": 501,
         "name": "Поток №1",
         "courseId": 10,
-        "courseName": "Подготовка к экзамену"
+        "courseName": "Подготовка к экзамену",
+        "membersCount": 42
       }
     ],
     "page": 1,

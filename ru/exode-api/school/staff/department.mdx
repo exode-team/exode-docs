@@ -1,0 +1,503 @@
+---
+title: "Департаменты"
+description: "REST-эндпоинты для управления департаментами (подразделениями) корпоративной школы"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+  Департаменты — это иерархические подразделения школы. Каждый департамент может иметь родительский департамент
+  (`parentId`), за счёт чего строится дерево организационной структуры. Департаменты используются модулем
+  персонала (staff) для распределения сотрудников по подразделениям и назначения руководителей.
+</Info>
+
+<Warning>
+  Все эндпоинты модуля персонала доступны **только для школ корпоративного сегмента** (`Corporate`).
+  Запрос от школы другого сегмента будет отклонён.
+</Warning>
+
+## Требования к правам доступа
+
+<Check>
+  Чтение (`tree`, `list`) требует права **`StaffView`**. Создание, обновление и удаление требуют права
+  **`StaffManage`**. Во всех случаях необходима аутентификация по токену и принадлежность школы к сегменту
+  `Corporate`.
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>
+
+## Дерево департаментов
+
+```
+GET /saas/v2/staff/department/tree
+```
+
+Требуется аутентификация и право `StaffView`.
+
+<Info>
+  Эндпоинт возвращает **плоский массив** всех департаментов школы. Иерархия задаётся полем `parentId` каждого
+  департамента (`null` — корневой департамент). Само дерево строится на стороне клиента группировкой элементов по
+  `parentId`.
+</Info>
+
+### Ответ
+
+<ResponseField name="payload" type="array" required>
+  Массив департаментов школы. Поле `parentId` указывает на родительский департамент (`null` — корневой).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/department/tree' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function getDepartmentTree() {
+  const { data } = await axios.get(
+    'https://api.exode.biz/saas/v2/staff/department/tree',
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+getDepartmentTree();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": [
+    {
+      "id": 3,
+      "createdAt": "2026-07-02T11:15:47.223Z",
+      "updatedAt": "2026-07-02T11:15:47.223Z",
+      "deletedAt": null,
+      "archivedAt": null,
+      "schoolId": 198,
+      "parentId": null,
+      "name": "Engineering"
+    },
+    {
+      "id": 4,
+      "createdAt": "2026-07-02T11:15:47.234Z",
+      "updatedAt": "2026-07-02T11:15:47.247Z",
+      "deletedAt": null,
+      "archivedAt": null,
+      "schoolId": 198,
+      "parentId": 3,
+      "name": "Backend & Infra Team"
+    }
+  ]
+}
+```
+```json Error - Forbidden
+{
+  "code": 403,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Доступ к ресурсу ограничен",
+  "message": "Доступ к ресурсу ограничен"
+}
+```
+</ResponseExample>
+
+## Список департаментов
+
+```
+GET /saas/v2/staff/department/list
+```
+
+Требуется аутентификация и право `StaffView`.
+
+<Info>
+  В отличие от `tree`, эндпоинт возвращает пагинированный список департаментов. Параметры пагинации и фильтрации
+  передаются как query-параметры.
+</Info>
+
+### Параметры
+
+<ParamField query="skip" type="integer" required={false}>
+  Количество пропускаемых записей (offset-пагинация). Минимум `0`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+  Количество возвращаемых записей на странице. От `1` до `1000`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+  Номер страницы (альтернатива `skip`). Минимум `1`.
+</ParamField>
+
+<ParamField query="parentIds" type="array" required={false}>
+  Массив ID родительских департаментов для фильтрации (до 250 значений). Возвращает только дочерние департаменты
+  указанных родителей.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+  Поиск по названию департамента. Максимум 50 символов.
+</ParamField>
+
+<ParamField query="createdAt" type="enum" required={false}>
+  Направление сортировки по дате создания. Возможные значения: `ASC`, `DESC`.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="payload" type="object" required>
+  Пагинированный объект: `items` (массив департаментов), `page`, `count`, `pages`, `isFirst`, `isLast`, `next`,
+  `prev`.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/department/list?take=10&page=1&search=Engineering' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function getDepartmentList() {
+  const { data } = await axios.get(
+    'https://api.exode.biz/saas/v2/staff/department/list',
+    {
+      params: {
+        take: 10,
+        page: 1,
+        search: 'Engineering',
+        parentIds: [3],
+      },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+getDepartmentList();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "items": [
+      {
+        "id": 4,
+        "createdAt": "2026-07-02T11:15:47.234Z",
+        "updatedAt": "2026-07-02T11:15:47.247Z",
+        "deletedAt": null,
+        "archivedAt": null,
+        "schoolId": 198,
+        "parentId": 3,
+        "name": "Backend & Infra Team"
+      },
+      {
+        "id": 3,
+        "createdAt": "2026-07-02T11:15:47.223Z",
+        "updatedAt": "2026-07-02T11:15:47.223Z",
+        "deletedAt": null,
+        "archivedAt": null,
+        "schoolId": 198,
+        "parentId": null,
+        "name": "Engineering"
+      }
+    ],
+    "page": 1,
+    "count": 2,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "next": { "skip": 0, "take": 10, "page": 1 },
+    "prev": { "skip": 0, "take": 10, "page": 1 }
+  }
+}
+```
+</ResponseExample>
+
+## Создание департамента
+
+```
+POST /saas/v2/staff/department/create
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+### Параметры запроса
+
+<ParamField body="name" type="string" required>
+  Название департамента. От 1 до 100 символов. Пробелы в начале и конце обрезаются автоматически.
+</ParamField>
+
+<ParamField body="parentId" type="integer" required={false}>
+  ID родительского департамента. Если указан — должен принадлежать той же школе, иначе будет возвращена ошибка
+  `StaffDepartmentNotFound`. Если не указан — департамент создаётся корневым.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/department/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Engineering",
+    "parentId": null
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function createDepartment() {
+  const { data } = await axios.post(
+    'https://api.exode.biz/saas/v2/staff/department/create',
+    {
+      name: 'Engineering',
+      parentId: null,
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+createDepartment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 3,
+    "createdAt": "2026-07-02T11:15:47.223Z",
+    "updatedAt": "2026-07-02T11:15:47.223Z",
+    "deletedAt": null,
+    "archivedAt": null,
+    "schoolId": 198,
+    "parentId": null,
+    "name": "Engineering"
+  }
+}
+```
+```json Error - Parent Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
+}
+```
+</ResponseExample>
+
+## Обновление департамента
+
+```
+PUT /saas/v2/staff/department/{departmentId}/update
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+<Info>
+  Обновляется только название департамента. Родительский департамент (`parentId`) через этот эндпоинт не изменяется.
+</Info>
+
+### Параметры
+
+<ParamField path="departmentId" type="integer" required>
+  ID обновляемого департамента в рамках школы.
+</ParamField>
+
+<ParamField body="name" type="string" required={false}>
+  Новое название департамента. От 1 до 100 символов. Пробелы в начале и конце обрезаются автоматически.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/department/4/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Backend & Infra Team"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function updateDepartment() {
+  const { data } = await axios.put(
+    'https://api.exode.biz/saas/v2/staff/department/4/update',
+    {
+      name: 'Backend & Infra Team',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+updateDepartment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 4,
+    "createdAt": "2026-07-02T11:15:47.234Z",
+    "updatedAt": "2026-07-02T11:15:47.247Z",
+    "deletedAt": null,
+    "archivedAt": null,
+    "schoolId": 198,
+    "parentId": 3,
+    "name": "Backend & Infra Team"
+  }
+}
+```
+</ResponseExample>
+
+## Удаление департамента
+
+```
+DELETE /saas/v2/staff/department/{departmentId}/delete
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+<Warning>
+  Удалить можно только «листовой» департамент без активных сотрудников:
+  - если у департамента есть дочерние подразделения — вернётся ошибка `StaffDepartmentHasChildren` (удаление узла
+    в середине дерева осиротило бы его потомков). Сначала удалите или перенесите дочерние департаменты;
+  - если в департаменте есть активные сотрудники — вернётся ошибка `StaffDepartmentHasActiveEmployments`. Сначала
+    переведите или уволите сотрудников.
+</Warning>
+
+### Параметры
+
+<ParamField path="departmentId" type="integer" required>
+  ID удаляемого департамента в рамках школы.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="deleted" type="boolean" required>
+  Флаг успешного удаления департамента.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/department/4/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function deleteDepartment() {
+  const { data } = await axios.delete(
+    'https://api.exode.biz/saas/v2/staff/department/4/delete',
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+deleteDepartment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "deleted": true
+  }
+}
+```
+```json Error - Has Children
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentHasChildren",
+  "message": "Staff department has child departments",
+  "error": "Staff department has child departments"
+}
+```
+```json Error - Has Active Employments
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentHasActiveEmployments",
+  "message": "Staff department has active employments",
+  "error": "Staff department has active employments"
+}
+```
+```json Error - Forbidden
+{
+  "code": 403,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Доступ к ресурсу ограничен",
+  "message": "Доступ к ресурсу ограничен"
+}
+```
+</ResponseExample>

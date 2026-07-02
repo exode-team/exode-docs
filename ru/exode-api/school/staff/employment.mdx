@@ -1,0 +1,595 @@
+---
+title: "Трудоустройства"
+description: "Наём, перевод, повышение и увольнение сотрудников корпоративной школы"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+    Трудоустройство (`employment`) связывает пользователя школы с департаментом и должностью. У сотрудника может
+    быть несколько записей трудоустройства в истории, но только **одна активная** для конкретной пары
+    департамент + должность.
+</Info>
+
+<Warning>
+    Все эндпоинты модуля staff доступны **только** для школ сегмента `Corporate`. Для остальных сегментов запрос
+    вернёт ошибку `403 Forbidden`.
+</Warning>
+
+<Info>
+    Перевод (`transfer`) и повышение (`promote`) не изменяют текущую запись, а **закрывают** её (`finishAt`, статус
+    `Terminated`) и создают **новую** активную запись в целевом департаменте либо с новой должностью. В ответе
+    возвращается именно новая запись трудоустройства.
+</Info>
+
+## Список трудоустройств
+
+```
+GET /saas/v2/staff/employment/list
+```
+
+Требуется аутентификация и право `StaffView`.
+
+### Параметры запроса
+
+<Info>
+    Параметры-массивы передаются повторением параметра в строке запроса: `userIds=1&userIds=2&userIds=3`.
+</Info>
+
+#### Пагинация
+
+<ParamField query="skip" type="integer" required={false}>
+    Количество записей, которые нужно пропустить. По умолчанию `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Номер страницы (альтернатива `skip`). Начинается с `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Количество записей на странице. По умолчанию `10`.
+</ParamField>
+
+#### Фильтрация
+
+<ParamField query="userIds" type="integer[]" required={false}>
+    Фильтр по ID пользователей. До 250 значений.
+</ParamField>
+
+<ParamField query="departmentIds" type="integer[]" required={false}>
+    Фильтр по ID департаментов. До 250 значений.
+</ParamField>
+
+<ParamField query="positionIds" type="integer[]" required={false}>
+    Фильтр по ID должностей. До 250 значений.
+</ParamField>
+
+<ParamField query="statuses" type="enum[]" required={false}>
+    Фильтр по статусам трудоустройства. Возможные значения: `Active`, `Terminated`. До 250 значений.
+</ParamField>
+
+<ParamField query="activeOnly" type="boolean" required={false}>
+    Если `true` — вернуть только активные трудоустройства.
+</ParamField>
+
+### Поля ответа
+
+<ResponseField name="payload" type="object">
+    Постраничный список трудоустройств.
+
+    <Expandable title="Свойства payload">
+        <ResponseField name="items" type="object[]">
+            Массив трудоустройств.
+
+            <Expandable title="Свойства элемента">
+                <ResponseField name="id" type="integer">ID трудоустройства.</ResponseField>
+                <ResponseField name="schoolId" type="integer">ID школы.</ResponseField>
+                <ResponseField name="userId" type="integer">ID пользователя-сотрудника.</ResponseField>
+                <ResponseField name="positionId" type="integer">ID должности.</ResponseField>
+                <ResponseField name="departmentId" type="integer">ID департамента.</ResponseField>
+                <ResponseField name="startAt" type="string">Дата начала трудоустройства (ISO 8601).</ResponseField>
+                <ResponseField name="finishAt" type="string | null">Дата завершения трудоустройства (ISO 8601) или `null` для активной записи.</ResponseField>
+                <ResponseField name="status" type="enum">Статус: `Active` или `Terminated`.</ResponseField>
+                <ResponseField name="createdAt" type="string">Дата создания записи.</ResponseField>
+                <ResponseField name="updatedAt" type="string">Дата последнего обновления.</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Текущая страница.</ResponseField>
+        <ResponseField name="count" type="integer">Общее количество записей.</ResponseField>
+        <ResponseField name="pages" type="integer">Общее количество страниц.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Признак первой страницы.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Признак последней страницы.</ResponseField>
+        <ResponseField name="next" type="object">Параметры следующей страницы (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Параметры предыдущей страницы (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/list?take=10&activeOnly=true' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listEmployments = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/staff/employment/list', {
+    params: { take: 10, activeOnly: true },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listEmployments();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "items": [
+      {
+        "id": 9,
+        "createdAt": "2026-07-02T11:15:47.312Z",
+        "updatedAt": "2026-07-02T11:15:47.312Z",
+        "deletedAt": null,
+        "archivedAt": null,
+        "schoolId": 198,
+        "userId": 1683,
+        "positionId": 4,
+        "departmentId": 4,
+        "startAt": "2026-07-02T11:15:47.316Z",
+        "finishAt": null,
+        "status": "Active"
+      },
+      {
+        "id": 8,
+        "createdAt": "2026-07-02T11:15:47.295Z",
+        "updatedAt": "2026-07-02T11:15:47.312Z",
+        "deletedAt": null,
+        "archivedAt": null,
+        "schoolId": 198,
+        "userId": 1683,
+        "positionId": 3,
+        "departmentId": 4,
+        "startAt": "2026-07-02T11:15:47.299Z",
+        "finishAt": "2026-07-02T11:15:47.316Z",
+        "status": "Terminated"
+      }
+    ],
+    "page": 1,
+    "count": 4,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "next": { "skip": 0, "take": 10, "page": 1 },
+    "prev": { "skip": 0, "take": 10, "page": 1 }
+  }
+}
+```
+
+```json Error - Forbidden
+{
+  "code": 403,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Доступ к ресурсу ограничен",
+  "message": "Доступ к ресурсу ограничен"
+}
+```
+</ResponseExample>
+
+## Нанять сотрудника
+
+```
+POST /saas/v2/staff/employment/hire
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+Создаёт новую активную запись трудоустройства. Пользователь, департамент и должность должны принадлежать школе.
+У сотрудника не может быть активного дубля с той же парой департамент + должность.
+
+### Параметры запроса
+
+<ParamField body="userId" type="integer" required>
+    ID пользователя, который принимается на работу. Пользователь должен принадлежать школе.
+</ParamField>
+
+<ParamField body="positionId" type="integer" required>
+    ID должности. Должность должна принадлежать школе.
+</ParamField>
+
+<ParamField body="departmentId" type="integer" required>
+    ID департамента. Департамент должен принадлежать школе.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Дата начала трудоустройства в формате ISO 8601. По умолчанию — текущий момент.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/hire' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "userId": 1683,
+    "positionId": 3,
+    "departmentId": 3,
+    "startAt": "2026-07-02T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const hireEmployment = async () => {
+  const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/employment/hire', {
+    userId: 1683,
+    positionId: 3,
+    departmentId: 3,
+    startAt: '2026-07-02T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+hireEmployment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 6,
+    "createdAt": "2026-07-02T11:15:47.273Z",
+    "updatedAt": "2026-07-02T11:15:47.273Z",
+    "deletedAt": null,
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 3,
+    "departmentId": 3,
+    "startAt": "2026-07-02T11:15:47.273Z",
+    "finishAt": null,
+    "status": "Active"
+  }
+}
+```
+
+```json Error - Employment Already Exists
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentAlreadyExists",
+  "message": "Staff active employment already exists",
+  "error": "Staff active employment already exists"
+}
+```
+</ResponseExample>
+
+## Перевести в другой департамент
+
+```
+POST /saas/v2/staff/employment/transfer
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+Закрывает текущую активную запись трудоустройства (`finishAt`, статус `Terminated`) и создаёт **новую** активную
+запись в целевом департаменте с сохранением должности. Целевой департамент должен принадлежать школе, у сотрудника
+не должно быть активного дубля в целевом департаменте.
+
+### Параметры запроса
+
+<ParamField body="employmentId" type="integer" required>
+    ID переводимой активной записи трудоустройства.
+</ParamField>
+
+<ParamField body="toDepartmentId" type="integer" required>
+    ID целевого департамента. Департамент должен принадлежать школе.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Дата перевода в формате ISO 8601. Должна попадать в интервал текущего трудоустройства. По умолчанию — текущий
+    момент.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/transfer' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "employmentId": 6,
+    "toDepartmentId": 4,
+    "startAt": "2026-07-02T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const transferEmployment = async () => {
+  const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/employment/transfer', {
+    employmentId: 6,
+    toDepartmentId: 4,
+    startAt: '2026-07-02T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+transferEmployment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 8,
+    "createdAt": "2026-07-02T11:15:47.295Z",
+    "updatedAt": "2026-07-02T11:15:47.295Z",
+    "deletedAt": null,
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 3,
+    "departmentId": 4,
+    "startAt": "2026-07-02T11:15:47.299Z",
+    "finishAt": null,
+    "status": "Active"
+  }
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
+}
+```
+</ResponseExample>
+
+## Сменить должность
+
+```
+POST /saas/v2/staff/employment/promote
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+Закрывает текущую активную запись трудоустройства (`finishAt`, статус `Terminated`) и создаёт **новую** активную
+запись с новой должностью в том же департаменте. Целевая должность должна принадлежать школе, у сотрудника не
+должно быть активного дубля с новой должностью.
+
+### Параметры запроса
+
+<ParamField body="employmentId" type="integer" required>
+    ID изменяемой активной записи трудоустройства.
+</ParamField>
+
+<ParamField body="toPositionId" type="integer" required>
+    ID целевой должности. Должность должна принадлежать школе.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Дата смены должности в формате ISO 8601. Должна попадать в интервал текущего трудоустройства. По умолчанию —
+    текущий момент.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/promote' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "employmentId": 8,
+    "toPositionId": 4,
+    "startAt": "2026-07-02T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const promoteEmployment = async () => {
+  const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/employment/promote', {
+    employmentId: 8,
+    toPositionId: 4,
+    startAt: '2026-07-02T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+promoteEmployment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 9,
+    "createdAt": "2026-07-02T11:15:47.312Z",
+    "updatedAt": "2026-07-02T11:15:47.312Z",
+    "deletedAt": null,
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 4,
+    "departmentId": 4,
+    "startAt": "2026-07-02T11:15:47.316Z",
+    "finishAt": null,
+    "status": "Active"
+  }
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
+}
+```
+</ResponseExample>
+
+## Уволить сотрудника
+
+```
+POST /saas/v2/staff/employment/terminate
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+Закрывает активную запись трудоустройства: проставляет `finishAt`, переводит статус в `Terminated` и снимает
+сотрудника с руководства департаментами. В ответе возвращается закрытая запись.
+
+### Параметры запроса
+
+<ParamField body="employmentId" type="integer" required>
+    ID увольняемой активной записи трудоустройства.
+</ParamField>
+
+<ParamField body="finishAt" type="string" required={false}>
+    Дата увольнения в формате ISO 8601. Должна попадать в интервал текущего трудоустройства. По умолчанию —
+    текущий момент.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/terminate' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "employmentId": 7,
+    "finishAt": "2026-07-02T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const terminateEmployment = async () => {
+  const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/employment/terminate', {
+    employmentId: 7,
+    finishAt: '2026-07-02T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+terminateEmployment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 7,
+    "createdAt": "2026-07-02T11:15:47.284Z",
+    "updatedAt": "2026-07-02T11:15:47.400Z",
+    "deletedAt": null,
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1684,
+    "positionId": 3,
+    "departmentId": 4,
+    "startAt": "2026-07-02T11:15:47.285Z",
+    "finishAt": "2026-07-02T11:15:47.401Z",
+    "status": "Terminated"
+  }
+}
+```
+
+```json Error - Invalid Transition Date
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInvalidTransitionDate",
+  "message": "Staff employment transition date is outside employment interval",
+  "error": "Staff employment transition date is outside employment interval"
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+    Модуль staff доступен только для школ сегмента `Corporate`. Для чтения списка требуется право `StaffView`, для
+    операций найма, перевода, повышения и увольнения — право `StaffManage`.
+</Check>
+
+<Warning>
+    Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+    школе.
+</Warning>

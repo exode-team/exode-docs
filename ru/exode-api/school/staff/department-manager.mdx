@@ -1,0 +1,208 @@
+---
+title: "Руководители департаментов"
+description: "Назначение и снятие руководителей департаментов корпоративной школы"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+    Руководитель департамента привязывается к **активному трудоустройству** сотрудника. У департамента может быть
+    несколько руководителей, но только один из них — основной (`isPrimary`).
+</Info>
+
+<Warning>
+    Все эндпоинты модуля staff доступны **только** для школ сегмента `Corporate`. Для остальных сегментов запрос
+    вернёт ошибку `403 Forbidden`.
+</Warning>
+
+## Назначить руководителя
+
+```
+POST /saas/v2/staff/department-manager/set
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+Эндпоинт работает как upsert: если руководитель для пары департамент + трудоустройство уже назначен —
+обновляется только флаг `isPrimary`, иначе создаётся новая запись. При `isPrimary=true` предыдущий основной
+руководитель департамента автоматически снимается с этой роли (флаг `isPrimary` у него сбрасывается в `false`).
+Департамент и трудоустройство должны принадлежать школе, трудоустройство должно быть активным.
+
+### Параметры запроса
+
+<ParamField body="departmentId" type="integer" required>
+    ID департамента. Департамент должен принадлежать школе.
+</ParamField>
+
+<ParamField body="employmentId" type="integer" required>
+    ID активного трудоустройства сотрудника, который назначается руководителем.
+</ParamField>
+
+<ParamField body="isPrimary" type="boolean" required={false}>
+    Назначить сотрудника основным руководителем департамента. По умолчанию `false`. При `true` предыдущий основной
+    руководитель автоматически перестаёт быть основным.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/department-manager/set' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "departmentId": 4,
+    "employmentId": 9,
+    "isPrimary": true
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const setManager = async () => {
+  const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/department-manager/set', {
+    departmentId: 4,
+    employmentId: 9,
+    isPrimary: true,
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+setManager();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 2,
+    "createdAt": "2026-07-02T11:15:47.328Z",
+    "updatedAt": "2026-07-02T11:15:47.328Z",
+    "deletedAt": null,
+    "archivedAt": null,
+    "schoolId": 198,
+    "departmentId": 4,
+    "employmentId": 9,
+    "isPrimary": true
+  }
+}
+```
+
+```json Error - Manager Already Exists
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentManagerAlreadyExists",
+  "message": "Staff department manager already exists",
+  "error": "Staff department manager already exists"
+}
+```
+
+```json Error - Forbidden
+{
+  "code": 403,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Доступ к ресурсу ограничен",
+  "message": "Доступ к ресурсу ограничен"
+}
+```
+</ResponseExample>
+
+## Снять руководителя
+
+```
+DELETE /saas/v2/staff/department-manager/{managerId}/remove
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+Удаляет запись руководителя департамента (мягкое удаление). После снятия основного руководителя департамент
+остаётся без основного руководителя, пока не будет назначен новый.
+
+### Параметры запроса
+
+<ParamField path="managerId" type="integer" required>
+    ID записи руководителя департамента (поле `id` из ответа на назначение).
+</ParamField>
+
+### Ответ
+
+<ResponseField name="deleted" type="boolean" required>
+    Флаг успешного снятия руководителя.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/department-manager/2/remove' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const removeManager = async () => {
+  const { data } = await axios.delete('https://api.exode.biz/saas/v2/staff/department-manager/2/remove', {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+removeManager();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "deleted": true
+  }
+}
+```
+
+```json Error - Forbidden
+{
+  "code": 403,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Доступ к ресурсу ограничен",
+  "message": "Доступ к ресурсу ограничен"
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+    Модуль staff доступен только для школ сегмента `Corporate`. Для назначения и снятия руководителей департаментов
+    требуется право `StaffManage`.
+</Check>
+
+<Warning>
+    Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+    школе.
+</Warning>

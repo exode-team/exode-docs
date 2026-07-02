@@ -1,0 +1,405 @@
+---
+title: "Должности"
+description: "REST-эндпоинты для управления должностями сотрудников корпоративной школы"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+  Должности — это справочник наименований позиций сотрудников школы (например, «Backend Engineer»). Должности
+  назначаются сотрудникам при найме и повышении и используются модулем персонала (staff) для описания структуры
+  занятости.
+</Info>
+
+<Warning>
+  Все эндпоинты модуля персонала доступны **только для школ корпоративного сегмента** (`Corporate`).
+  Запрос от школы другого сегмента будет отклонён.
+</Warning>
+
+## Требования к правам доступа
+
+<Check>
+  Чтение (`list`) требует права **`StaffView`**. Создание, обновление и удаление требуют права **`StaffManage`**.
+  Во всех случаях необходима аутентификация по токену и принадлежность школы к сегменту `Corporate`.
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>
+
+<Info>
+  Название должности **уникально в рамках школы** (уникальный индекс `school + name`). Попытка создать или
+  переименовать должность в уже существующее название в этой же школе вернёт ошибку.
+</Info>
+
+## Список должностей
+
+```
+GET /saas/v2/staff/position/list
+```
+
+Требуется аутентификация и право `StaffView`.
+
+<Info>
+  Эндпоинт возвращает пагинированный список должностей. Параметры пагинации и фильтрации передаются как
+  query-параметры.
+</Info>
+
+### Параметры
+
+<ParamField query="skip" type="integer" required={false}>
+  Количество пропускаемых записей (offset-пагинация). Минимум `0`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+  Количество возвращаемых записей на странице. От `1` до `1000`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+  Номер страницы (альтернатива `skip`). Минимум `1`.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+  Поиск по названию должности. Максимум 50 символов.
+</ParamField>
+
+<ParamField query="createdAt" type="enum" required={false}>
+  Направление сортировки по дате создания. Возможные значения: `ASC`, `DESC`.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="payload" type="object" required>
+  Пагинированный объект: `items` (массив должностей), `page`, `count`, `pages`, `isFirst`, `isLast`, `next`,
+  `prev`.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/position/list?take=10&page=1&search=Backend' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function getPositionList() {
+  const { data } = await axios.get(
+    'https://api.exode.biz/saas/v2/staff/position/list',
+    {
+      params: {
+        take: 10,
+        page: 1,
+        search: 'Backend',
+      },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+getPositionList();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "items": [
+      {
+        "id": 4,
+        "createdAt": "2026-07-02T11:15:47.216Z",
+        "updatedAt": "2026-07-02T11:15:47.260Z",
+        "deletedAt": null,
+        "archivedAt": null,
+        "schoolId": 198,
+        "name": "Staff Backend Engineer"
+      },
+      {
+        "id": 3,
+        "createdAt": "2026-07-02T11:15:47.207Z",
+        "updatedAt": "2026-07-02T11:15:47.207Z",
+        "deletedAt": null,
+        "archivedAt": null,
+        "schoolId": 198,
+        "name": "Backend Engineer"
+      }
+    ],
+    "page": 1,
+    "count": 2,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "next": { "skip": 0, "take": 10, "page": 1 },
+    "prev": { "skip": 0, "take": 10, "page": 1 }
+  }
+}
+```
+</ResponseExample>
+
+## Создание должности
+
+```
+POST /saas/v2/staff/position/create
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+### Параметры запроса
+
+<ParamField body="name" type="string" required>
+  Название должности. От 1 до 100 символов. Пробелы в начале и конце обрезаются автоматически. Должно быть
+  уникальным в рамках школы.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/position/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Backend Engineer"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function createPosition() {
+  const { data } = await axios.post(
+    'https://api.exode.biz/saas/v2/staff/position/create',
+    {
+      name: 'Backend Engineer',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+createPosition();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 3,
+    "createdAt": "2026-07-02T11:15:47.207Z",
+    "updatedAt": "2026-07-02T11:15:47.207Z",
+    "deletedAt": null,
+    "archivedAt": null,
+    "schoolId": 198,
+    "name": "Backend Engineer"
+  }
+}
+```
+```json Error - Name Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNameIsNotUniq",
+  "message": "Staff position name is not uniq",
+  "error": "Staff position name is not uniq"
+}
+```
+```json Error - Forbidden
+{
+  "code": 403,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Доступ к ресурсу ограничен",
+  "message": "Доступ к ресурсу ограничен"
+}
+```
+</ResponseExample>
+
+## Обновление должности
+
+```
+PUT /saas/v2/staff/position/{positionId}/update
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+### Параметры
+
+<ParamField path="positionId" type="integer" required>
+  ID обновляемой должности в рамках школы.
+</ParamField>
+
+<ParamField body="name" type="string" required={false}>
+  Новое название должности. От 1 до 100 символов. Пробелы в начале и конце обрезаются автоматически. Должно быть
+  уникальным в рамках школы.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/position/4/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Staff Backend Engineer"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function updatePosition() {
+  const { data } = await axios.put(
+    'https://api.exode.biz/saas/v2/staff/position/4/update',
+    {
+      name: 'Staff Backend Engineer',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+updatePosition();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 4,
+    "createdAt": "2026-07-02T11:15:47.216Z",
+    "updatedAt": "2026-07-02T11:15:47.260Z",
+    "deletedAt": null,
+    "archivedAt": null,
+    "schoolId": 198,
+    "name": "Staff Backend Engineer"
+  }
+}
+```
+```json Error - Name Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNameIsNotUniq",
+  "message": "Staff position name is not uniq",
+  "error": "Staff position name is not uniq"
+}
+```
+</ResponseExample>
+
+## Удаление должности
+
+```
+DELETE /saas/v2/staff/position/{positionId}/delete
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+<Warning>
+  Должность нельзя удалить, если на ней есть активные сотрудники. Сначала переведите сотрудников на другую
+  должность или уволите их.
+</Warning>
+
+### Параметры
+
+<ParamField path="positionId" type="integer" required>
+  ID удаляемой должности в рамках школы.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="deleted" type="boolean" required>
+  Флаг успешного удаления должности.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/position/4/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function deletePosition() {
+  const { data } = await axios.delete(
+    'https://api.exode.biz/saas/v2/staff/position/4/delete',
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+deletePosition();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "deleted": true
+  }
+}
+```
+```json Error - Has Active Employments
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionHasActiveEmployments",
+  "message": "Staff position has active employments",
+  "error": "Staff position has active employments"
+}
+```
+```json Error - Forbidden
+{
+  "code": 403,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Доступ к ресурсу ограничен",
+  "message": "Доступ к ресурсу ограничен"
+}
+```
+</ResponseExample>
