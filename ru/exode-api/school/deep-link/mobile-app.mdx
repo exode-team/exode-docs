@@ -1,26 +1,24 @@
 ---
-title: "Deep link в мобильное приложение"
-description: "Как из вашего приложения или сайта открыть конкретный урок (или другой экран) прямо в приложении ExodeBiz, с опциональной авторизацией по токену"
+title: "Мобильное приложение"
+description: "Как из вашего приложения открыть конкретный урок (или другой экран) прямо в приложении ExodeBiz через deep link, с опциональной авторизацией по токену"
 ---
 
 <Info>
-  Вы размещаете у себя обычную <b>https-ссылку</b>. Пользователь по ней переходит на устройстве с
-  установленным приложением ExodeBiz → приложение открывается сразу на нужном экране (выбирается школа
-  и открывается урок). Дополнительно ссылка может авторизовать пользователя по токену.
+  Из вашего <b>нативного приложения</b> можно открыть приложение ExodeBiz сразу на нужном экране —
+  выбрать школу, при необходимости авторизовать пользователя по токену и открыть урок. Достаточно открыть
+  ссылку-схему штатным способом (`Intent.ACTION_VIEW` на Android / `UIApplication.open` на iOS).
 </Info>
-
-Интегрировать SDK не нужно — достаточно сформировать корректную ссылку и открыть её штатным способом
-(клик по ссылке / `Intent.ACTION_VIEW` на Android / `UIApplication.open` на iOS).
 
 ## Формат ссылки
 
-Базовый адрес — служебный редиректор в приложение:
+Deep link использует URL-схему приложения `exodebizapp://`. Все параметры кладутся в один параметр
+`data` — это <b>URL-кодированная query-строка</b>:
 
 ```
-https://cdn.exode.biz/static/utils/openapp.html
+exodebizapp://?data=<url-encoded "action=open-page&domain=...&pageId=...&params=...&extra=...">
 ```
 
-К нему добавляются query-параметры:
+Параметры внутри `data`:
 
 <ParamField query="action" type="string" required>
   Всегда `open-page`.
@@ -38,18 +36,15 @@ https://cdn.exode.biz/static/utils/openapp.html
   JSON с параметрами экрана, например `{"page":"1","courseId":"42","lessonId":"123"}`.
 </ParamField>
 
-<ParamField query="appUrlScheme" type="string" required>
-  Всегда `exodebizapp`.
-</ParamField>
-
 <ParamField query="extra" type="string (base64url)" required={false}>
   Список дополнительных действий (например авторизация). См. раздел «extra».
 </ParamField>
 
 <Warning>
-  Значения параметров (особенно `pageId` и `params`) содержат спецсимволы и <b>обязаны быть
-  URL-кодированы</b>. Не собирайте ссылку конкатенацией строк — используйте стандартный сборщик query
-  (`URLSearchParams`, `Uri.Builder`, `URLComponents`). `params` — это сначала JSON, затем URL-кодирование.
+  Значения параметров содержат спецсимволы и требуют <b>двойного кодирования</b>: сначала соберите
+  query-строку `action=...&domain=...` (значения URL-кодированы), затем закодируйте её целиком и положите
+  в `data`. Не собирайте вручную — используйте стандартные сборщики (`URLSearchParams`, `Uri.Builder`,
+  `URLComponents`), см. примеры кода ниже.
 </Warning>
 
 ## Открыть урок
@@ -62,10 +57,10 @@ https://cdn.exode.biz/static/utils/openapp.html
 - `page` — страница в списке курсов; для перехода на урок укажите `"1"`.
 - `courseId`, `lessonId` — идентификаторы курса и урока в вашей школе.
 
-Готовый шаблон — подставьте `DOMAIN`, `COURSE_ID`, `LESSON_ID`:
+Готовая ссылка — подставьте `DOMAIN`, `COURSE_ID`, `LESSON_ID`:
 
 ```
-https://cdn.exode.biz/static/utils/openapp.html?action=open-page&domain=DOMAIN&pageId=%2Fcourses%2F%3Apage%28%5B0-9%5D%2B%29%2F%3AcourseId%28%5B0-9%5D%2B%29%2Fstudy%2F%3AlessonId%28%5B0-9%5D%2B%29&params=%7B%22page%22%3A%221%22%2C%22courseId%22%3A%22COURSE_ID%22%2C%22lessonId%22%3A%22LESSON_ID%22%7D&appUrlScheme=exodebizapp
+exodebizapp://?data=action%3Dopen-page%26domain%3DDOMAIN%26pageId%3D%252Fcourses%252F%253Apage%2528%255B0-9%255D%252B%2529%252F%253AcourseId%2528%255B0-9%255D%252B%2529%252Fstudy%252F%253AlessonId%2528%255B0-9%255D%252B%2529%26params%3D%257B%2522page%2522%253A%25221%2522%252C%2522courseId%2522%253A%2522COURSE_ID%2522%252C%2522lessonId%2522%253A%2522LESSON_ID%2522%257D
 ```
 
 ### Другие экраны
@@ -105,7 +100,7 @@ https://cdn.exode.biz/static/utils/openapp.html?action=open-page&domain=DOMAIN&p
 
 <Info>
   <b>Порядок выполнения гарантирован:</b> сначала — действия из `extra` (по порядку в массиве), затем —
-  навигация из top-level `open-page`. То есть ссылка `open-page` + `extra:[{login-by-token}]` даёт ровно:
+  навигация из `open-page`. То есть ссылка `open-page` + `extra:[{login-by-token}]` даёт ровно:
   <b>открыть приложение → авторизоваться → открыть страницу</b>.
 </Info>
 
@@ -125,15 +120,16 @@ https://cdn.exode.biz/static/utils/openapp.html?action=open-page&domain=DOMAIN&p
   ```
 </Step>
 
-<Step title="Добавьте extra к ссылке open-page">
-  `...&extra=<значение выше>` — приложение переключит школу, авторизует пользователя и откроет урок.
+<Step title="Добавьте extra в data">
+  Добавьте `extra` к query-строке внутри `data` — приложение переключит школу, авторизует пользователя
+  и откроет урок.
 </Step>
 </Steps>
 
 <Warning>
   Ссылка с `login-by-token` даёт вход под конкретным пользователем — любой, у кого есть ссылка,
   залогинится под ним. Такие ссылки должны быть <b>короткоживущими / персональными</b> и не
-  публиковаться. Ссылки без токена (только навигация) можно раздавать свободно.
+  публиковаться.
 </Warning>
 
 <Note>
@@ -141,11 +137,11 @@ https://cdn.exode.biz/static/utils/openapp.html?action=open-page&domain=DOMAIN&p
   некорректно пройти через query-строку.
 </Note>
 
-## Сборка ссылки в коде
+## Сборка и открытие ссылки в коде
 
 <CodeGroup>
 ```js JavaScript
-const BASE = 'https://cdn.exode.biz/static/utils/openapp.html';
+const SCHEME = 'exodebizapp';
 const LESSON = '/courses/:page([0-9]+)/:courseId([0-9]+)/study/:lessonId([0-9]+)';
 
 const b64url = (obj) =>
@@ -153,22 +149,21 @@ const b64url = (obj) =>
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
 function buildLessonLink({ domain, courseId, lessonId, page = 1, token }) {
-  const params = new URLSearchParams({
+  const inner = new URLSearchParams({
     action: 'open-page',
     domain,
     pageId: LESSON,
     params: JSON.stringify({
       page: String(page), courseId: String(courseId), lessonId: String(lessonId),
     }),
-    appUrlScheme: 'exodebizapp',
   });
 
   // опционально: автологин
   if (token) {
-    params.set('extra', b64url({ actions: [{ type: 'login-by-token', token }] }));
+    inner.set('extra', b64url({ actions: [{ type: 'login-by-token', token }] }));
   }
 
-  return `${BASE}?${params}`;
+  return `${SCHEME}://?data=${encodeURIComponent(inner.toString())}`;
 }
 ```
 
@@ -176,75 +171,62 @@ function buildLessonLink({ domain, courseId, lessonId, page = 1, token }) {
 fun buildLessonLink(domain: String, courseId: Long, lessonId: Long, page: Int = 1): String {
   val pageId = "/courses/:page([0-9]+)/:courseId([0-9]+)/study/:lessonId([0-9]+)"
   val paramsJson = """{"page":"$page","courseId":"$courseId","lessonId":"$lessonId"}"""
-  val query = Uri.Builder()
+  val inner = Uri.Builder()
     .appendQueryParameter("action", "open-page")
     .appendQueryParameter("domain", domain)
     .appendQueryParameter("pageId", pageId)
     .appendQueryParameter("params", paramsJson)
-    .appendQueryParameter("appUrlScheme", "exodebizapp")
-    .build().encodedQuery
-  return "https://cdn.exode.biz/static/utils/openapp.html?$query"
+    .build().encodedQuery ?: ""
+  return "exodebizapp://?data=" + Uri.encode(inner)
 }
 
-// открыть
-startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+// открыть с fallback
+try {
+  startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+} catch (e: ActivityNotFoundException) {
+  // приложение не установлено → откройте магазин / сайт
+}
 ```
 
 ```swift iOS
 func buildLessonLink(domain: String, courseId: Int, lessonId: Int, page: Int = 1) -> URL {
   let pageId = "/courses/:page([0-9]+)/:courseId([0-9]+)/study/:lessonId([0-9]+)"
   let paramsJson = "{\"page\":\"\(page)\",\"courseId\":\"\(courseId)\",\"lessonId\":\"\(lessonId)\"}"
-  var c = URLComponents(string: "https://cdn.exode.biz/static/utils/openapp.html")!
-  c.queryItems = [
+
+  var inner = URLComponents()
+  inner.queryItems = [
     .init(name: "action", value: "open-page"),
     .init(name: "domain", value: domain),
     .init(name: "pageId", value: pageId),
     .init(name: "params", value: paramsJson),
-    .init(name: "appUrlScheme", value: "exodebizapp"),
   ]
-  return c.url!
+
+  let data = (inner.percentEncodedQuery ?? "")
+    .addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
+  return URL(string: "exodebizapp://?data=\(data)")!
 }
 
-// открыть
-UIApplication.shared.open(link)
-```
-
-```html HTML
-<a href="https://cdn.exode.biz/static/utils/openapp.html?action=open-page&domain=my-school.com&pageId=...&params=...&appUrlScheme=exodebizapp">
-  Открыть урок в приложении
-</a>
+// открыть с fallback
+UIApplication.shared.open(link, options: [:]) { success in
+  if !success { /* приложение не установлено → откройте магазин / сайт */ }
+}
 ```
 </CodeGroup>
 
-## App-to-app — прямая схема
-
-Если у вас <b>нативное приложение</b>, можно открыть ExodeBiz напрямую, без страницы-редиректора. Все
-параметры кладутся в один параметр `data` (URL-кодированная query-строка):
-
-```
-exodebizapp://?data=<url-encoded "action=open-page&domain=...&pageId=...&params=...&extra=...">
-```
-
-<Warning>
-  Прямая схема <b>работает только если приложение установлено</b> и распознаётся не во всех контекстах.
-  Обработайте случай «приложение не установлено» сами (на Android — `ActivityNotFoundException`, на iOS —
-  completion-handler `open`) и покажите fallback (магазин приложений или https-ссылку через `openapp.html`).
-</Warning>
-
 ## Поведение
 
-- <b>Приложение установлено</b> → откроется сразу на нужном экране.
-- <b>Не установлено</b> → откроется страница-редиректор с кнопкой «Открыть». Автоперехода в App Store /
-  Google Play нет — при необходимости разместите рядом отдельную ссылку на установку.
+- Deep link <b>срабатывает только если приложение установлено</b>. Если нет — ОС ничего не откроет:
+  обработайте это сами и покажите fallback (магазин приложений или сайт школы). На Android ловите
+  `ActivityNotFoundException`, на iOS — `success == false` в completion-handler `open`.
 - Если школа ещё не была добавлена в приложении — она <b>добавится автоматически</b> и станет активной.
-
-Навигация подчиняется обычной авторизации: без `extra`-логина неавторизованный пользователь увидит экран входа.
+- Навигация подчиняется обычной авторизации: без `extra`-логина неавторизованный пользователь увидит
+  экран входа.
 
 ## Диагностика
 
 | Симптом | Причина / решение |
 |---------|-------------------|
-| Открывается страница «Open app», приложение не запускается | Приложение не установлено, либо браузер блокирует кастомные схемы. Установите приложение / откройте во внешнем браузере. |
-| Открылось не на том уроке | Проверьте `pageId` (символ-в-символ) и значения в `params`; убедитесь, что `params` URL-кодирован. |
+| Ничего не происходит при открытии ссылки | Приложение не установлено, либо контекст не распознаёт кастомные схемы. Реализуйте fallback. |
+| Открылось не на том уроке | Проверьте `pageId` (символ-в-символ) и значения в `params`; убедитесь, что `data` собран корректно (двойное кодирование). |
 | «Школа не найдена» | Неверный `domain`. Укажите точный FQDN школы. |
 | Открывается экран входа | Пользователь не авторизован / нет доступа. Для автологина используйте `extra` с `login-by-token`. |
