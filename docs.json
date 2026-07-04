@@ -101,6 +101,7 @@
             "group": "Интеграции и кастомизация",
             "pages": [
               "ru/exode-api/school/iframe/tg-mini-app",
+              "ru/exode-api/school/deep-link/mobile-app",
               "ru/exode-api/school/custom-code/js-config"
             ]
           },
