@@ -57,9 +57,6 @@ GET /saas/v2/course/:courseId/progresses
                     Статус прогресса по уроку. Возможные значения: `NotInitialized`, `NotStarted`, `OnTheory`,
                     `OnPractice`, `OnReview`, `OnCorrection`, `Completed` и др.
                 </ResponseField>
-                <ResponseField name="scheduleStatus" type="enum | null">
-                    Статус расписания: `OnTimeChoose`, `WaitingStart`, `InProgress`, `Completed`, `Canceled`.
-                </ResponseField>
                 <ResponseField name="scheduleStartAt" type="string | null">Дата старта по расписанию (ISO 8601).</ResponseField>
                 <ResponseField name="scheduleFinishAt" type="string | null">Дата окончания по расписанию (ISO 8601).</ResponseField>
                 <ResponseField name="practiceDeadlineAt" type="string | null">Дедлайн практической части (ISO 8601).</ResponseField>
@@ -186,7 +183,6 @@ print(response.json())
         "userId": 123,
         "lessonId": 55,
         "status": "Completed",
-        "scheduleStatus": "InProgress",
         "isCompleted": true,
         "completedAt": "2025-01-15T10:30:00Z",
         "createdAt": "2025-01-10T09:00:00Z",

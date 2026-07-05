@@ -249,7 +249,7 @@ export type { ExodeAPIConfig, RequestOptions }
 // NOTE: zod schemas themselves are NOT exported — there is no runtime validation in the client
 //   (the backend validates via @ZodResponse), so zod stays out of the runtime bundle.
 // enums: Language, ProfileRole, UserSexType, UserStateKey, AppServeDomain, AppServeProduct, CourseType,
-//   CourseParticipationType, CourseProgressLessonStatus, CourseProgressScheduleStatus, InvoiceType,
+//   CourseParticipationType, CourseProgressLessonStatus, InvoiceType,
 //   InvoiceStatus, ProductCurrency, ProductBillingType, ProductAccessBillingStatus,
 //   ProductPriceBillingInterval, ProductParticipantStatus, FormLayoutMode, FormLayoutStatus,
 //   FormResubmitMode, GroupSpace, GroupTgConnectionMode, WorkflowExecutionStatus, WorkflowExecutionFlow,
