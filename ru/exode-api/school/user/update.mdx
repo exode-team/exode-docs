@@ -27,7 +27,8 @@ PUT /saas/v2/user/:userId/update
 </ParamField>
 
 <ParamField body="domain" type="string" required={false}>
-  Доменный логин пользователя. До 65 символов: латинские буквы, цифры и `_` (автоматически приводится к нижнему
+  Доменный логин пользователя. До 65 символов: латинские буквы, цифры, `_` и точки — точка не может быть первой/последней и не может
+  идти подряд (автоматически приводится к нижнему
   регистру). Должен быть уникальным в рамках школы. Используется для входа наряду с `email` и `phone`.
 </ParamField>
 
@@ -36,8 +37,8 @@ PUT /saas/v2/user/:userId/update
 </ParamField>
 
 <ParamField body="extId" type="string" required={false}>
-  Внешний идентификатор пользователя из вашей системы. Строка или `null`. Логином не является — используется только
-  для связи с вашей CRM/LMS и поиска пользователя.
+  Внешний идентификатор пользователя из вашей системы. Строка до 50 символов или `null` (пустая строка сбрасывает
+  значение в `null`). Логином не является — используется только для связи с вашей CRM/LMS и поиска пользователя.
 </ParamField>
 
 <ParamField body="banned" type="boolean" required={false}>
@@ -62,10 +63,16 @@ PUT /saas/v2/user/:userId/update
   `ForbiddenModifySchoolOwner`.
 </Warning>
 
+<ParamField body="extra" type="object" required={false}>
+  Контейнер связанных данных — как в
+  [`user/create`](/ru/exode-api/school/user/create#дополнительные-агрегаты-extra): блок `staff.employments`
+  (массив 1–10). Только для корпоративных школ; в отличие от создания — **необязателен**. Трудоустройства
+  применяются идемпотентно: повторная передача той же активной пары департамент + должность не создаёт дубль.
+</ParamField>
+
 <Info>
-  Блок `extra` (трудоустройства) в `update` **не применяется** — для изменения трудоустройств существующего
-  сотрудника используйте эндпоинты раздела [Сотрудники (HR)](/ru/exode-api/school/staff/employment) или
-  [`user/upsert`](/ru/exode-api/school/user/upsert).
+  Через `extra` в `update` можно только **донанять** сотрудника. Переводы, смена должности и увольнение —
+  через эндпоинты раздела [Сотрудники (HR)](/ru/exode-api/school/staff/employment).
 </Info>
 
 ### Параметры профиля
@@ -403,8 +410,26 @@ except requests.exceptions.RequestException as e:
   "code": 400,
   "success": false,
   "cause": "TgIdIsBusy",
-  "message": "Telegram ID is busy",
-  "error": "Telegram ID is busy"
+  "message": "Tg id is busy",
+  "error": "Tg id is busy"
+}
+```
+```json Error - Domain Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "DomainIsBusy",
+  "message": "This domain is already taken",
+  "error": "This domain is already taken"
+}
+```
+```json Error - Domain Is Invalid
+{
+  "code": 400,
+  "success": false,
+  "cause": "DomainIsInvalid",
+  "message": "Domain is invalid",
+  "error": "Domain is invalid"
 }
 ```
 ```json Error - Invalid Email
@@ -441,6 +466,82 @@ except requests.exceptions.RequestException as e:
   "cause": "ForbiddenModifySchoolOwner",
   "message": "Not allowed to modify school owner",
   "error": "Not allowed to modify school owner"
+}
+```
+</ResponseExample>
+
+## Обновление пользователя по внешнему идентификатору
+
+```
+PUT /saas/v2/user/ext/{extId}/update
+```
+
+Требуется аутентификация и право `SchoolManageUsers`.
+
+<Info>
+  То же самое, что и обновление по `userId`, но пользователь адресуется по внешнему идентификатору `extId`
+  в рамках школы — удобно для интеграций (CRM/1С), где внутренние id Exode не хранятся. Тело запроса, ответ,
+  защита владельца школы и поддержка `extra` — идентичны обычному `update`.
+</Info>
+
+### Параметры
+
+<ParamField path="extId" type="string" required>
+  Внешний идентификатор пользователя в рамках школы. Значение в пути должно быть **URL-encoded**
+  (`encodeURIComponent`): у пользователя `extId` может содержать любые символы, включая `/` и пробелы.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/user/ext/i.ivanov.01011990/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "email": "updated@example.com",
+    "profile": {
+      "firstName": "UpdatedFirstname"
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateUserByExtId = async (extId) => {
+  const { data } = await axios.put(
+    `https://api.exode.biz/saas/v2/user/ext/${encodeURIComponent(extId)}/update`,
+    {
+      email: 'updated@example.com',
+      profile: {
+        firstName: 'UpdatedFirstname',
+      },
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload.user);
+};
+
+updateUserByExtId('i.ivanov.01011990');
+```
+</RequestExample>
+
+<ResponseExample>
+```json Error - User Not Found
+{
+  "code": 404,
+  "success": false,
+  "cause": "NotFound",
+  "message": "User not found",
+  "error": "User not found"
 }
 ```
 </ResponseExample>

@@ -42,7 +42,7 @@ PUT /saas/v2/form/layout/:layoutId/update
 </ParamField>
 
 <ParamField body="slug" type="string" required={false}>
-  Символьный код макета. От 1 до 50 символов. Должен быть уникальным в рамках школы.
+  Символьный код макета. От 1 до 50 символов. Должен быть уникальным в рамках продавца (школы).
 </ParamField>
 
 <ParamField body="note" type="string" required={false}>
@@ -248,20 +248,29 @@ except requests.exceptions.RequestException as e:
   }
 }
 ```
-```json Error - Layout Not Found
+```json Error - Layout Not Found / Not Owned
 {
-  "code": 404,
+  "code": 401,
   "success": false,
-  "cause": "FormLayoutNotFound",
-  "message": "Form layout not found",
-  "error": "Form layout not found"
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
+}
+```
+```json Error - Duplicate Slug
+{
+  "code": 400,
+  "success": false,
+  "cause": "LayoutWithSlugAlreadyExists",
+  "message": "Form layout with slug \"client-extra\" already exists",
+  "error": "Form layout with slug \"client-extra\" already exists"
 }
 ```
 ```json Error - Forbidden
 {
   "code": 401,
   "success": false,
-  "cause": "ForbiddenSellerResource",
+  "cause": "Forbidden",
   "message": "Forbidden seller resource - permissions FormManage",
   "error": "Forbidden seller resource - permissions FormManage"
 }

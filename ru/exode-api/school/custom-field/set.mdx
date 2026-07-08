@@ -348,17 +348,26 @@ except requests.exceptions.RequestException as e:
   "code": 400,
   "success": false,
   "cause": "UserNotBelongsToSchool",
-  "message": "User does not belong to this school",
-  "error": "User does not belong to this school"
+  "message": "User does not belong to the school",
+  "error": "User does not belong to the school"
+}
+```
+```json Error - Layout Not Owned By Seller
+{
+  "code": 400,
+  "success": false,
+  "cause": "LayoutNotOwnedBySeller",
+  "message": "Layout does not belong to this seller",
+  "error": "Layout does not belong to this seller"
 }
 ```
 ```json Error - Write Denied
 {
-  "code": 403,
+  "code": 400,
   "success": false,
   "cause": "FieldWritePermissionDenied",
-  "message": "Write access denied for one or more fields",
-  "error": "Write access denied for one or more fields"
+  "message": "No Write permission for field 12",
+  "error": "No Write permission for field 12"
 }
 ```
 </ResponseExample>

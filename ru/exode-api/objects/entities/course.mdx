@@ -76,12 +76,12 @@ description: "Структуры объектов курса, прогресса
 ## `courseLessonPractice`
 
 <ResponseField name="id" type="integer" required>ID практики.</ResponseField>
-<ResponseField name="name" type="string" required>Название.</ResponseField>
+<ResponseField name="name" type="string | null">Название.</ResponseField>
 <ResponseField name="description" type="string" required>Описание.</ResponseField>
-<ResponseField name="questionMode" type="enum" required>Режим вопросов.</ResponseField>
-<ResponseField name="resultMode" type="enum" required>Режим результатов.</ResponseField>
-<ResponseField name="variantMode" type="enum" required>Режим вариантов.</ResponseField>
-<ResponseField name="retryVariantMode" type="enum" required>Режим вариантов при пересдаче.</ResponseField>
+<ResponseField name="questionMode" type="enum" required>Режим вопросов: `List`, `Sequence`.</ResponseField>
+<ResponseField name="resultMode" type="enum" required>Режим результатов: `ResultOnly`, `ShowCorrect`, `ShowIncorrect`.</ResponseField>
+<ResponseField name="variantMode" type="enum" required>Режим вариантов: `Random`, `Sequence`.</ResponseField>
+<ResponseField name="retryVariantMode" type="enum" required>Режим вариантов при пересдаче: `Random`, `Sequence`.</ResponseField>
 <ResponseField name="maxAttempts" type="integer | null">Макс. число попыток.</ResponseField>
 <ResponseField name="timeLimitInMinutes" type="integer | null">Лимит времени (мин).</ResponseField>
 <ResponseField name="deadlineInDays" type="integer | null">Дедлайн (дней).</ResponseField>

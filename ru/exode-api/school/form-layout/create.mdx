@@ -39,7 +39,7 @@ POST /saas/v2/form/layout/create
 </ParamField>
 
 <ParamField body="slug" type="string" required={false}>
-  Символьный код макета. От 1 до 50 символов. Должен быть уникальным в рамках школы.
+  Символьный код макета. От 1 до 50 символов. Должен быть уникальным в рамках продавца (школы).
 </ParamField>
 
 <ParamField body="note" type="string" required={false}>
@@ -64,7 +64,7 @@ POST /saas/v2/form/layout/create
 </ParamField>
 
 <Info>
-  Для режимов `Signup` и `Welcome` допускается только один макет на школу. При попытке создать второй — существующий макет будет обновлён.
+  Для режимов `Signup` и `Welcome` допускается только один макет на продавца (школу). При попытке создать второй макет с тем же режимом будет возвращена ошибка `LayoutWithModeAlreadyExists`.
 </Info>
 
 <RequestExample>
@@ -273,9 +273,18 @@ except requests.exceptions.RequestException as e:
 {
   "code": 400,
   "success": false,
-  "cause": "QueryFailedError",
-  "message": "duplicate key value violates unique constraint",
-  "error": "duplicate key value violates unique constraint"
+  "cause": "LayoutWithSlugAlreadyExists",
+  "message": "Form layout with slug \"client-extra\" already exists",
+  "error": "Form layout with slug \"client-extra\" already exists"
+}
+```
+```json Error - Duplicate Mode (Signup / Welcome)
+{
+  "code": 400,
+  "success": false,
+  "cause": "LayoutWithModeAlreadyExists",
+  "message": "Form layout with mode \"Signup\" already exists",
+  "error": "Form layout with mode \"Signup\" already exists"
 }
 ```
 ```json Error - Validation

@@ -203,15 +203,20 @@ except requests.exceptions.RequestException as e:
         "id": 1227,
         "createdAt": "2025-07-19T15:45:51.212Z",
         "updatedAt": "2025-07-19T15:45:51.212Z",
+        "groupId": 501,
+        "userId": 15,
+        "inviterId": 42,
         "active": true,
         "blockedUntil": null,
+        "isAddedToTg": false,
         "user": {
           "id": 15,
           "uuid": "YRnh3REH1Wbd",
+          "status": "Active",
           "active": true,
           "activated": true,
-          "verified": false,
           "banned": false,
+          "domain": "id15",
           "email": "user@example.com",
           "phone": "+987654321",
           "extId": "crm_12345",
@@ -235,15 +240,20 @@ except requests.exceptions.RequestException as e:
         "id": 1226,
         "createdAt": "2025-07-19T15:45:51.212Z",
         "updatedAt": "2025-07-19T15:45:51.212Z",
+        "groupId": 501,
+        "userId": 8,
+        "inviterId": 42,
         "active": true,
         "blockedUntil": null,
+        "isAddedToTg": false,
         "user": {
           "id": 8,
           "uuid": "YRnh3REH1Wbd",
+          "status": "Active",
           "active": true,
           "activated": true,
-          "verified": false,
           "banned": false,
+          "domain": "id8",
           "email": "test+school+omar@exode.ru",
           "phone": null,
           "extId": "crm_54321",
@@ -258,22 +268,22 @@ except requests.exceptions.RequestException as e:
   }
 }
 ```
-```json Error - Group Not Found
+```json Error - Group Not Found / Not Owned
 {
-  "code": 404,
+  "code": 401,
   "success": false,
-  "cause": "GroupNotFound",
-  "message": "Group not found",
-  "error": "Group not found"
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
 }
 ```
-```json Error - User Not Found
+```json Error - Insufficient Permissions
 {
-  "code": 400,
+  "code": 401,
   "success": false,
-  "cause": "UserNotFound",
-  "message": "One or more users not found",
-  "error": "One or more users not found"
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - permissions SchoolManageUsers",
+  "error": "Forbidden seller resource - permissions SchoolManageUsers"
 }
 ```
 ```json Error - Too Many Users
@@ -285,13 +295,22 @@ except requests.exceptions.RequestException as e:
   "error": "Bad Request"
 }
 ```
-```json Error - Access Denied
+```json Error - userIds Is Not An Array
 {
-  "code": 403,
+  "code": 400,
   "success": false,
-  "cause": "AccessDenied",
-  "message": "Access denied",
-  "error": "Access denied"
+  "cause": "validation",
+  "message": "ids must be an array",
+  "error": "Bad Request"
+}
+```
+```json Error - Group Not Tied To Product
+{
+  "code": 400,
+  "success": false,
+  "cause": "GroupNotBindToProduct",
+  "message": "Group not tied to product",
+  "error": "Group not tied to product"
 }
 ```
 </ResponseExample>
@@ -314,11 +333,31 @@ except requests.exceptions.RequestException as e:
             Дата и время последнего обновления записи участника.
         </ResponseField>
 
+        <ResponseField name="groupId" type="integer | null">
+            ID группы.
+        </ResponseField>
+
+        <ResponseField name="userId" type="integer | null">
+            ID пользователя.
+        </ResponseField>
+
+        <ResponseField name="inviterId" type="integer | null">
+            ID пользователя, добавившего участника.
+        </ResponseField>
+
         <ResponseField name="active" type="boolean" required>
             Статус активности участника в группе.
         </ResponseField>
 
-        <ResponseField name="user" type="object" required>
+        <ResponseField name="blockedUntil" type="timestamp | null">
+            Дата, до которой участник заблокирован (если применимо).
+        </ResponseField>
+
+        <ResponseField name="isAddedToTg" type="boolean | null">
+            Добавлен ли участник в Telegram-чат/канал группы.
+        </ResponseField>
+
+        <ResponseField name="user" type="object">
             Объект пользователя.
 
             <Expandable title="Свойства пользователя">
@@ -330,12 +369,52 @@ except requests.exceptions.RequestException as e:
                     UUID пользователя.
                 </ResponseField>
 
-                <ResponseField name="email" type="string">
+                <ResponseField name="status" type="enum">
+                    Статус пользователя: `Active`, `OnLeave`, `Blocked`, `Terminated`.
+                </ResponseField>
+
+                <ResponseField name="active" type="boolean">
+                    Активен ли пользователь.
+                </ResponseField>
+
+                <ResponseField name="activated" type="boolean">
+                    Подтвердил ли пользователь вход.
+                </ResponseField>
+
+                <ResponseField name="banned" type="boolean">
+                    Заблокирован ли пользователь.
+                </ResponseField>
+
+                <ResponseField name="domain" type="string">
+                    Домен регистрации пользователя.
+                </ResponseField>
+
+                <ResponseField name="email" type="string | null">
                     Email адрес пользователя.
                 </ResponseField>
 
-                <ResponseField name="phone" type="string">
+                <ResponseField name="phone" type="string | null">
                     Номер телефона пользователя.
+                </ResponseField>
+
+                <ResponseField name="extId" type="string | null">
+                    Внешний идентификатор пользователя.
+                </ResponseField>
+
+                <ResponseField name="language" type="enum | null">
+                    Язык интерфейса пользователя.
+                </ResponseField>
+
+                <ResponseField name="timezone" type="integer | null">
+                    Часовой пояс пользователя (смещение).
+                </ResponseField>
+
+                <ResponseField name="lastOnlineAt" type="timestamp | null">
+                    Дата и время последней активности.
+                </ResponseField>
+
+                <ResponseField name="starsBalance" type="integer">
+                    Баланс звёзд пользователя.
                 </ResponseField>
             </Expandable>
         </ResponseField>
@@ -343,29 +422,8 @@ except requests.exceptions.RequestException as e:
 </ResponseField>
 
 <ResponseField name="created" type="array">
-    Массив пользователей, которые были добавлены в группу.
-
-    <Expandable title="Свойства созданного участника">
-        <ResponseField name="id" type="integer" required>
-            Уникальный идентификатор участника группы.
-        </ResponseField>
-
-        <ResponseField name="createdAt" type="timestamp" required>
-            Дата и время создания записи участника.
-        </ResponseField>
-
-        <ResponseField name="updatedAt" type="timestamp" required>
-            Дата и время последнего обновления записи участника.
-        </ResponseField>
-
-        <ResponseField name="active" type="boolean" required>
-            Статус активности участника в группе.
-        </ResponseField>
-
-        <ResponseField name="user" type="object" required>
-            Объект пользователя с теми же свойствами, что и в массиве `exist`.
-        </ResponseField>
-    </Expandable>
+    Массив пользователей, которые были добавлены в группу. Каждый элемент имеет ту же структуру, что и элементы
+    массива `exist`.
 </ResponseField>
 
 ## Требования к правам доступа

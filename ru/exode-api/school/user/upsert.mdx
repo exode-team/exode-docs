@@ -43,7 +43,8 @@ PUT /saas/v2/user/upsert
 </ParamField>
 
 <ParamField body="domain" type="string" required={false}>
-  Доменный логин пользователя. До 65 символов: латинские буквы, цифры и `_` (автоматически приводится к нижнему
+  Доменный логин пользователя. До 65 символов: латинские буквы, цифры, `_` и точки — точка не может быть первой/последней и не может
+  идти подряд (автоматически приводится к нижнему
   регистру). Должен быть уникальным в рамках школы. Если не передан при создании — генерируется автоматически в
   формате `id12345`. Используется для входа наряду с `email` и `phone`.
 </ParamField>
@@ -496,8 +497,53 @@ except requests.exceptions.RequestException as e:
   "code": 400,
   "success": false,
   "cause": "TgIdIsBusy",
-  "message": "Telegram ID is busy",
-  "error": "Telegram ID is busy"
+  "message": "Tg id is busy",
+  "error": "Tg id is busy"
+}
+```
+```json Error - Domain Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "DomainIsBusy",
+  "message": "This domain is already taken",
+  "error": "This domain is already taken"
+}
+```
+```json Error - Domain Is Invalid
+{
+  "code": 400,
+  "success": false,
+  "cause": "DomainIsInvalid",
+  "message": "Domain is invalid",
+  "error": "Domain is invalid"
+}
+```
+```json Error - Forbidden Modify School Owner
+{
+  "code": 400,
+  "success": false,
+  "cause": "ForbiddenModifySchoolOwner",
+  "message": "Not allowed to modify school owner",
+  "error": "Not allowed to modify school owner"
+}
+```
+```json Error - Staff Is Required (Corporate)
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInputRequired",
+  "message": "Staff employment input is required for Corporate school user",
+  "error": "Staff employment input is required for Corporate school user"
+}
+```
+```json Error - Staff Only For Corporate School
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffOnlyForCorporateSchool",
+  "message": "Staff is available only for Corporate school",
+  "error": "Staff is available only for Corporate school"
 }
 ```
 ```json Error - Invalid Email

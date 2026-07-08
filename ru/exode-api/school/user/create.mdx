@@ -51,9 +51,12 @@ POST /saas/v2/user/create
 </ParamField>
 
 <ParamField body="domain" type="string" required={false}>
-  Доменный логин пользователя. До 65 символов: латинские буквы, цифры и `_` (автоматически приводится к нижнему
-  регистру). Должен быть уникальным в рамках школы. Если не передан — генерируется автоматически в формате
-  `id12345`. Удобен, когда логины формируются на вашей стороне и у пользователя нет email или телефона.
+  Доменный логин пользователя. До 65 символов: латинские буквы, цифры, `_` и точки — точка не может быть первой/последней и не может
+  идти подряд (автоматически приводится к нижнему
+  регистру). Должен быть уникальным в рамках школы. Чисто числовые значения и значения вида `id12345`
+  зарезервированы системой — задать их вручную нельзя (вернётся `DomainIsBusy`). Если не передан — генерируется
+  автоматически в формате `id12345`. Удобен, когда логины формируются на вашей стороне и у пользователя нет email
+  или телефона.
 </ParamField>
 
 ### Идентификаторы для интеграции
@@ -503,16 +506,7 @@ except requests.exceptions.RequestException as e:
   }
 }
 ```
-```json Error - User Already Exists
-{
-  "code": 400,
-  "success": false,
-  "cause": "UserAlreadyExists",
-  "message": "User already exists",
-  "error": "User already exists"
-}
-```
-```json Error - Invalid Email
+```json Error - Email Is Busy
 {
   "code": 400,
   "success": false,
@@ -521,22 +515,31 @@ except requests.exceptions.RequestException as e:
   "error": "Email is busy"
 }
 ```
-```json Error - Invalid Phone
+```json Error - Phone Is Busy
 {
   "code": 400,
   "success": false,
-  "cause": "InvalidPhone",
-  "message": "Phone must be a valid phone number",
-  "error": "Phone must be a valid phone number"
+  "cause": "PhoneIsBusy",
+  "message": "Phone is busy",
+  "error": "Phone is busy"
 }
 ```
-```json Error - Invalid First Name
+```json Error - Telegram ID Is Busy
 {
   "code": 400,
   "success": false,
-  "cause": "InvalidFirstName",
-  "message": "First name must match required format",
-  "error": "First name must match required format"
+  "cause": "TgIdIsBusy",
+  "message": "Tg id is busy",
+  "error": "Tg id is busy"
+}
+```
+```json Error - Ext ID Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "ExtIdIsBusy",
+  "message": "Ext id is busy",
+  "error": "Ext id is busy"
 }
 ```
 ```json Error - Domain Is Busy
@@ -557,6 +560,24 @@ except requests.exceptions.RequestException as e:
   "error": "Domain is invalid"
 }
 ```
+```json Error - Invalid Phone
+{
+  "code": 400,
+  "success": false,
+  "cause": "InvalidPhone",
+  "message": "Phone must be a valid phone number",
+  "error": "Phone must be a valid phone number"
+}
+```
+```json Error - Invalid First Name
+{
+  "code": 400,
+  "success": false,
+  "cause": "InvalidFirstName",
+  "message": "First name must match required format",
+  "error": "First name must match required format"
+}
+```
 ```json Error - Staff Is Required (Corporate)
 {
   "code": 400,
@@ -564,6 +585,33 @@ except requests.exceptions.RequestException as e:
   "cause": "StaffEmploymentInputRequired",
   "message": "Staff employment input is required for Corporate school user",
   "error": "Staff employment input is required for Corporate school user"
+}
+```
+```json Error - Staff Only For Corporate School
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffOnlyForCorporateSchool",
+  "message": "Staff is available only for Corporate school",
+  "error": "Staff is available only for Corporate school"
+}
+```
+```json Error - Staff Department Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Department not found",
+  "error": "Department not found"
+}
+```
+```json Error - Staff Position Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotFound",
+  "message": "Position not found",
+  "error": "Position not found"
 }
 ```
 </ResponseExample>

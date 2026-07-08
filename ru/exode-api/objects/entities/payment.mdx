@@ -49,6 +49,7 @@ description: "Структуры объектов платежа, счёта, п
 <ResponseField name="currency" type="enum" required>Валюта: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ResponseField>
 <ResponseField name="expireAt" type="string | null">Дата истечения (ISO 8601).</ResponseField>
 <ResponseField name="isActive" type="boolean | null">Счёт активен.</ResponseField>
+<ResponseField name="meta" type="object | null">Служебные метаданные счёта.</ResponseField>
 <ResponseField name="user" type="object | null">
     Покупатель — объект [пользователя с профилем](./user); дополнительно может содержать `school`.
 </ResponseField>
@@ -74,7 +75,7 @@ description: "Структуры объектов платежа, счёта, п
 <ResponseField name="name" type="string | null">Название.</ResponseField>
 <ResponseField name="description" type="string | null">Описание.</ResponseField>
 <ResponseField name="hasProviderCommission" type="boolean | null">Есть комиссия провайдера.</ResponseField>
-<ResponseField name="provider" type="object | null">Провайдер: `{ id, type, active }`.</ResponseField>
+<ResponseField name="provider" type="object | null">Провайдер: `{ id, type, name, active }`.</ResponseField>
 
 <Note>
     Секреты провайдера (apiKey, конфигурация) и платёжный метод/номер карты в публичной схеме не возвращаются.

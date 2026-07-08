@@ -33,6 +33,10 @@ GET /saas/v2/form/custom-field/value/get
   Количество записей на странице. От `1` до `1000`. По умолчанию `100`.
 </ParamField>
 
+<ParamField query="page" type="integer" required={false}>
+  Номер страницы (от `1`). Альтернатива `skip` — смещение вычисляется автоматически как `(page - 1) * take`.
+</ParamField>
+
 ### Сортировка
 
 <ParamField query="id" type="enum" required={false}>
@@ -45,6 +49,10 @@ GET /saas/v2/form/custom-field/value/get
 
 <ParamField query="updatedAt" type="enum" required={false}>
   Сортировка по дате обновления. Возможные значения: `ASC`, `DESC`.
+</ParamField>
+
+<ParamField query="order" type="enum" required={false}>
+  Сортировка по порядковому номеру поля. Возможные значения: `ASC`, `DESC`.
 </ParamField>
 
 ### Фильтрация
@@ -240,8 +248,8 @@ except requests.exceptions.RequestException as e:
           "id": 10,
           "slug": "city",
           "type": "Text",
-          "name": "Город",
-          "order": 0
+          "order": 0,
+          "layoutId": 5
         }
       },
       {
@@ -256,8 +264,8 @@ except requests.exceptions.RequestException as e:
           "id": 11,
           "slug": "company",
           "type": "Text",
-          "name": "Компания",
-          "order": 1
+          "order": 1,
+          "layoutId": 5
         }
       },
       {
@@ -272,8 +280,8 @@ except requests.exceptions.RequestException as e:
           "id": 10,
           "slug": "city",
           "type": "Text",
-          "name": "Город",
-          "order": 0
+          "order": 0,
+          "layoutId": 5
         }
       }
     ]
@@ -309,7 +317,7 @@ except requests.exceptions.RequestException as e:
 {
   "code": 401,
   "success": false,
-  "cause": "ForbiddenSellerResource",
+  "cause": "Forbidden",
   "message": "Forbidden seller resource - permissions FormManage",
   "error": "Forbidden seller resource - permissions FormManage"
 }
@@ -321,8 +329,9 @@ except requests.exceptions.RequestException as e:
 <Info>
   Каждый элемент содержит:
   - `value` — значение поля (строка, число, boolean, дата или JSON-объект в зависимости от типа поля)
-  - `field` — вложенный объект с информацией о поле (`id`, `slug`, `type`, `name`, `order`)
+  - `field` — вложенный объект с информацией о поле (`id`, `slug`, `type`, `order`, `layoutId`, `props`, `preference`, `permissions`)
   - `userId`, `fieldId` — идентификаторы для связи
+  - типизированные столбцы (`text`, `number`, `boolean`, `date`, `json`) также присутствуют в ответе в зависимости от типа поля; удобное поле `value` содержит уже приведённое значение
 </Info>
 
 ## Требования к правам доступа

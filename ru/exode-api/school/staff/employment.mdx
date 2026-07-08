@@ -59,7 +59,7 @@ GET /saas/v2/staff/employment/list
 </ParamField>
 
 <ParamField query="take" type="integer" required={false}>
-    Количество записей на странице. По умолчанию `10`.
+    Количество записей на странице. По умолчанию `100`, максимум `1000`.
 </ParamField>
 
 #### Фильтрация
@@ -532,6 +532,16 @@ transferEmployment();
   "error": "Staff employment transition date is outside employment interval"
 }
 ```
+
+```json Error - Employment Already Exists
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentAlreadyExists",
+  "message": "Staff active employment already exists",
+  "error": "Staff active employment already exists"
+}
+```
 </ResponseExample>
 
 ## Перевести по внешнему идентификатору
@@ -751,6 +761,16 @@ promoteEmployment();
   "cause": "StaffEmploymentInvalidTransitionDate",
   "message": "Staff employment transition date is outside employment interval",
   "error": "Staff employment transition date is outside employment interval"
+}
+```
+
+```json Error - Employment Already Exists
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentAlreadyExists",
+  "message": "Staff active employment already exists",
+  "error": "Staff active employment already exists"
 }
 ```
 </ResponseExample>

@@ -50,8 +50,36 @@ description: "Выгрузка участников групп с прогрес
       Фильтр по ID пользователей.
     </ParamField>
 
+    <ParamField body="currentLessonIds" type="integer[]">
+      Фильтр по ID текущих уроков участников.
+    </ParamField>
+
+    <ParamField body="participantCuratorIds" type="integer[]">
+      Фильтр по ID кураторов (ID менеджеров продавца).
+    </ParamField>
+
+    <ParamField body="inviterUserIds" type="integer[]">
+      Фильтр по ID пользователей, добавивших участника.
+    </ParamField>
+
     <ParamField body="active" type="boolean">
       Фильтр по статусу доступа. `true` — только активные, `false` — только деактивированные.
+    </ParamField>
+
+    <ParamField body="participantStatuses" type="string[]">
+      Фильтр по статусам участника продукта. Массив из значений: `InUse`, `Completed`.
+    </ParamField>
+
+    <ParamField body="search" type="string">
+      Поиск по тексту (до 50 символов).
+    </ParamField>
+
+    <ParamField body="progressPercentRange" type="object">
+      Фильтр по диапазону прогресса (в процентах). Свойства `from` и `to` — числа.
+    </ParamField>
+
+    <ParamField body="createdAtDateRange" type="object">
+      Фильтр по диапазону дат создания доступа. Свойства `from` и `to` — даты в формате ISO 8601.
     </ParamField>
   </Expandable>
 </ParamField>
@@ -70,6 +98,18 @@ description: "Выгрузка участников групп с прогрес
 
     <ParamField body="updatedAt" type="string">
       Сортировка по дате обновления. `ASC` | `DESC`.
+    </ParamField>
+
+    <ParamField body="order" type="string">
+      Сортировка по порядковому номеру. `ASC` | `DESC`.
+    </ParamField>
+
+    <ParamField body="progressPercent" type="string">
+      Сортировка по прогрессу (%). `ASC` | `DESC`.
+    </ParamField>
+
+    <ParamField body="userLastOnlineAt" type="string">
+      Сортировка по дате последней активности пользователя. `ASC` | `DESC`.
     </ParamField>
   </Expandable>
 </ParamField>
@@ -120,7 +160,7 @@ const exportGroupMembers = async () => {
       }
     });
 
-    const { uuid } = response.data;
+    const { uuid } = response.data.payload;
     console.log('Execution UUID:', uuid);
   } catch (error) {
     console.error('Error:', error.response?.data || error.message);
@@ -167,7 +207,7 @@ curl_close($ch);
 
 if ($httpCode === 200 || $httpCode === 201) {
   $result = json_decode($response, true);
-  echo "Execution UUID: " . $result['uuid'] . "\n";
+  echo "Execution UUID: " . $result['payload']['uuid'] . "\n";
 } else {
   echo "Error: HTTP $httpCode\n";
   echo $response;
@@ -205,7 +245,7 @@ try:
   response.raise_for_status()
 
   result = response.json()
-  print(f"Execution UUID: {result['uuid']}")
+  print(f"Execution UUID: {result['payload']['uuid']}")
 
 except requests.exceptions.RequestException as e:
   print(f'Error: {e}')

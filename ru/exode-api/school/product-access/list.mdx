@@ -149,6 +149,25 @@ GET /saas/v2/product-access/list/raw
     </Expandable>
 </ParamField>
 
+<ParamField query="price" type="object" required={false}>
+    Фильтр по тарифу (цене) продукта.
+
+    <Expandable title="Свойства price">
+        <ParamField query="priceIds" type="integer[]">ID тарифов.</ParamField>
+        <ParamField query="productId" type="integer">ID продукта.</ParamField>
+        <ParamField query="productIds" type="integer[]">ID продуктов.</ParamField>
+        <ParamField query="launchIds" type="integer[]">ID запусков (потоков).</ParamField>
+        <ParamField query="groupIds" type="integer[]">ID групп.</ParamField>
+        <ParamField query="types" type="enum[]">Типы тарифа (`ProductPriceType`).</ParamField>
+        <ParamField query="active" type="boolean">Активен.</ParamField>
+        <ParamField query="isActive" type="boolean">Активен в текущий момент.</ParamField>
+        <ParamField query="archived" type="boolean">Включать архивные.</ParamField>
+        <ParamField query="hidden" type="boolean">Скрытые тарифы.</ParamField>
+        <ParamField query="search" type="string">Поиск по тарифу (до 50 символов).</ParamField>
+        <ParamField query="activeDateRange" type="object">Диапазон периода активности (`from`/`to`).</ParamField>
+    </Expandable>
+</ParamField>
+
 <ParamField query="user" type="object" required={false}>
     Фильтр по пользователю.
 

@@ -147,20 +147,20 @@ except requests.exceptions.RequestException as e:
   }
 }
 ```
-```json Error - Layout Not Found
+```json Error - Layout Not Found / Not Owned
 {
-  "success": true,
-  "code": 200,
-  "payload": {
-    "affected": 0
-  }
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
 }
 ```
 ```json Error - Forbidden
 {
   "code": 401,
   "success": false,
-  "cause": "ForbiddenSellerResource",
+  "cause": "Forbidden",
   "message": "Forbidden seller resource - permissions FormManage",
   "error": "Forbidden seller resource - permissions FormManage"
 }

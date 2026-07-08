@@ -209,22 +209,22 @@ except requests.exceptions.RequestException as e:
   }
 }
 ```
-```json Error - Group Not Found
+```json Error - Group Not Found / Not Owned
 {
-  "code": 404,
+  "code": 401,
   "success": false,
-  "cause": "GroupNotFound",
-  "message": "Group not found",
-  "error": "Group not found"
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
 }
 ```
-```json Error - User Not Found
+```json Error - Insufficient Permissions
 {
-  "code": 400,
+  "code": 401,
   "success": false,
-  "cause": "UserNotFound",
-  "message": "One or more users not found",
-  "error": "One or more users not found"
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - permissions SchoolManageUsers",
+  "error": "Forbidden seller resource - permissions SchoolManageUsers"
 }
 ```
 ```json Error - Too Many Users
@@ -236,13 +236,13 @@ except requests.exceptions.RequestException as e:
   "error": "Bad Request"
 }
 ```
-```json Error - Access Denied
+```json Error - userIds Is Not An Array
 {
-  "code": 403,
+  "code": 400,
   "success": false,
-  "cause": "AccessDenied",
-  "message": "Access denied",
-  "error": "Access denied"
+  "cause": "validation",
+  "message": "ids must be an array",
+  "error": "Bad Request"
 }
 ```
 </ResponseExample>

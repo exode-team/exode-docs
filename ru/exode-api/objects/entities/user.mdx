@@ -20,7 +20,7 @@ description: "Структура объекта пользователя (user) 
 <ResponseField name="uuid" type="string" required>UUID пользователя.</ResponseField>
 <ResponseField name="domain" type="string" required>
     Доменный логин. Наряду с `email` и `phone` используется как поле для входа в школу. По умолчанию генерируется
-    в формате `id12345`; свой логин (латинские буквы, цифры, `_`, до 65 символов) можно задать при
+    в формате `id12345`; свой логин (латинские буквы, цифры, `_` и точки не по краям, до 65 символов) можно задать при
     `user/create`/`update`/`upsert`.
 </ResponseField>
 <ResponseField name="email" type="string | null">Email пользователя.</ResponseField>
