@@ -1,20 +1,22 @@
 ---
 title: "Студенты школы"
-description: "Выгрузка студентов школы с профилем, статусами и активностью"
+description: "Выгрузка студентов школы (доступов к курсам) с прогрессом, группами, кураторами и тарифами"
 ---
 
 **type:** `QUERY_EXPORT_TYPE_SCHOOL_STUDENT_FIND_MANY`
 
-Выгружает список студентов школы (пользователей с ролью `Student`) с данными профиля, статусами доступа и
-активностью.
+Выгружает студентов школы через их доступы к курсам: прогресс по курсу, группы, куратора, тариф и статус доступа
+(один студент = один доступ к продукту).
 
 Это тип отчёта для метода [`query-export/generate`](/ru/exode-api/school/query-export/generate): передайте его
 в поле `type`, а фильтр и сортировку — в `variables`.
 
 <Info>
-  `variables` имеют ту же структуру `{ filter, sort }`, что и отчёт
-  [«Пользователи школы»](/ru/exode-api/school/query-export/school-user-find-many), с выборкой, ограниченной
-  студентами. Итоговый набор допустимых полей валидирует сервис экспорта — неизвестные поля игнорируются.
+  Студенты выгружаются из доступов к продуктам (`productAccessManageFindMany`): один студент = один доступ к курсу.
+  Поэтому `variables` — это фильтр и сортировка доступов (`FilterAccessProductInput` / `SortAccessProductInput`),
+  та же структура, что у отчёта
+  [«Биллинг доступов»](/ru/exode-api/school/query-export/product-billing-access-find-many). Неизвестные поля
+  сервис экспорта игнорирует.
 </Info>
 
 ---
@@ -22,32 +24,33 @@ description: "Выгрузка студентов школы с профилем
 ### Переменные (`variables`)
 
 <ParamField body="filter" type="object">
-  Параметры фильтрации.
+  Параметры фильтрации доступов.
 
   <Expandable title="Свойства filter">
-    <ParamField body="userIds" type="integer[]">
-      Фильтр по ID пользователей.
+    <ParamField body="userIds" type="integer[]">Фильтр по ID пользователей.</ParamField>
+    <ParamField body="accessIds" type="integer[]">Фильтр по ID доступов.</ParamField>
+    <ParamField body="active" type="boolean">Только активные (`true`) или деактивированные (`false`) доступы.</ParamField>
+    <ParamField body="search" type="string">Поиск по тексту (имя, email, телефон, домен), до 50 символов.</ParamField>
+    <ParamField body="currentLessonIds" type="integer[]">Фильтр по ID текущих уроков студентов.</ParamField>
+    <ParamField body="participantCuratorIds" type="integer[]">Фильтр по ID кураторов (ID менеджеров продавца).</ParamField>
+    <ParamField body="enrolledByUserIds" type="integer[]">Фильтр по ID тех, кто выдал доступ.</ParamField>
+    <ParamField body="participantStatuses" type="string[]">
+      Статус участника продукта. Массив из значений: `InUse`, `Completed`.
     </ParamField>
-
-    <ParamField body="search" type="string">
-      Поиск по тексту (имя, email, телефон, домен), до 50 символов.
+    <ParamField body="progressPercentRange" type="object">
+      Диапазон прогресса (в процентах). Свойства `from` и `to` — числа.
     </ParamField>
-
-    <ParamField body="active" type="boolean">
-      Только активные (`true`) или отключённые (`false`).
-    </ParamField>
-
-    <ParamField body="statuses" type="string[]">
-      Фильтр по статусам учётной записи. Массив из значений: `Active`, `OnLeave`, `Blocked`, `Terminated`.
-    </ParamField>
-
     <ParamField body="createdAtDateRange" type="object">
-      Диапазон дат регистрации. Свойства `from` и `to` — даты в формате ISO 8601.
+      Диапазон дат выдачи доступа. Свойства `from` и `to` — даты ISO 8601.
     </ParamField>
-
-    <ParamField body="lastOnlineAtDateRange" type="object">
-      Диапазон дат последней активности. Свойства `from` и `to` — даты в формате ISO 8601.
+    <ParamField body="expireAtDateRange" type="object">
+      Диапазон дат истечения доступа. Свойства `from` и `to` — даты ISO 8601.
     </ParamField>
+    <ParamField body="product" type="object">
+      Вложенный фильтр по продукту (`productIds`, `launchIds` и т.д.). При фильтре по продукту в отчёт
+      добавляются колонки «Последняя активность» и «Статус доступа».
+    </ParamField>
+    <ParamField body="price" type="object">Вложенный фильтр по тарифу.</ParamField>
   </Expandable>
 </ParamField>
 
@@ -56,11 +59,20 @@ description: "Выгрузка студентов школы с профилем
 
   <Expandable title="Свойства sort">
     <ParamField body="id" type="string">Сортировка по ID. `ASC` | `DESC`.</ParamField>
-    <ParamField body="createdAt" type="string">Сортировка по дате регистрации. `ASC` | `DESC`.</ParamField>
+    <ParamField body="createdAt" type="string">Сортировка по дате выдачи доступа. `ASC` | `DESC`.</ParamField>
     <ParamField body="updatedAt" type="string">Сортировка по дате обновления. `ASC` | `DESC`.</ParamField>
-    <ParamField body="lastOnlineAt" type="string">Сортировка по последней активности. `ASC` | `DESC`.</ParamField>
+    <ParamField body="expireAt" type="string">Сортировка по дате истечения доступа. `ASC` | `DESC`.</ParamField>
+    <ParamField body="progressPercent" type="string">Сортировка по прогрессу (%). `ASC` | `DESC`.</ParamField>
+    <ParamField body="userLastOnlineAt" type="string">Сортировка по последней активности студента. `ASC` | `DESC`.</ParamField>
   </Expandable>
 </ParamField>
+
+### Колонки отчёта
+
+ID пользователя, Фамилия Имя, Способ входа, ID курса, Название курса, ID группы, Группа, Куратор, Текущий урок,
+Прогресс (%), Кол-во завершённых уроков, Всего уроков, Дата добавления, Дата истечения доступа, ID тарифа, Тариф.
+При фильтре по продукту добавляются «Последняя активность» и «Статус доступа». Для составных продуктов
+формируется дополнительный лист «Прогресс по курсу» с разбивкой по вложенным курсам.
 
 <RequestExample>
 ```bash cURL
