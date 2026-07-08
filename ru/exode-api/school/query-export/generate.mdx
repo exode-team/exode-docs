@@ -43,8 +43,12 @@ POST /saas/v2/query-export/generate
 <ParamField body="type" type="string" required>
   Тип отчета. Определяет, какие данные будут выгружены. Доступные значения:
 
+  - `QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY` — [пользователи школы](/ru/exode-api/school/query-export/school-user-find-many)
+  - `QUERY_EXPORT_TYPE_SCHOOL_STUDENT_FIND_MANY` — [студенты школы](/ru/exode-api/school/query-export/school-student-find-many)
   - `QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY` — [участники группы](/ru/exode-api/school/query-export/group-member-find-many)
   - `QUERY_EXPORT_TYPE_COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY` — [попытки практических заданий](/ru/exode-api/school/query-export/practice-attempt-find-many)
+  - `QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY` — [счета](/ru/exode-api/school/query-export/invoice-manage-find-many)
+  - `QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY` — [биллинг доступов к продуктам](/ru/exode-api/school/query-export/product-billing-access-find-many)
 </ParamField>
 
 <ParamField body="variables" type="object" required>

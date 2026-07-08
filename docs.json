@@ -49,7 +49,8 @@
               "ru/exode-api/school/staff/position",
               "ru/exode-api/school/staff/employment",
               "ru/exode-api/school/staff/department-manager",
-              "ru/exode-api/school/staff/absence"
+              "ru/exode-api/school/staff/absence",
+              "ru/exode-api/school/integrations/examples/1c-staff-sync"
             ]
           },
           {
@@ -79,8 +80,12 @@
             "pages": [
               "ru/exode-api/school/query-export/generate",
               "ru/exode-api/school/query-export/result",
+              "ru/exode-api/school/query-export/school-user-find-many",
+              "ru/exode-api/school/query-export/school-student-find-many",
               "ru/exode-api/school/query-export/group-member-find-many",
-              "ru/exode-api/school/query-export/practice-attempt-find-many"
+              "ru/exode-api/school/query-export/practice-attempt-find-many",
+              "ru/exode-api/school/query-export/invoice-manage-find-many",
+              "ru/exode-api/school/query-export/product-billing-access-find-many"
             ]
           },
           {

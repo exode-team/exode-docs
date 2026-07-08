@@ -1,0 +1,271 @@
+---
+title: "Биллинг доступов к продуктам"
+description: "Выгрузка биллинговых записей доступов к продуктам: статусы списаний, даты продления и завершения"
+---
+
+**type:** `QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY`
+
+Выгружает биллинговые записи доступов к продуктам: статусы списаний (подписки/рассрочки), даты старта,
+завершения и повторных попыток списания.
+
+Это тип отчёта для метода [`query-export/generate`](/ru/exode-api/school/query-export/generate): передайте его
+в поле `type`, а описанные ниже поля — в `variables`.
+
+<Info>
+  Фильтр связан с методом [Список доступов к продуктам](/ru/exode-api/school/product-access/list). Итоговый
+  контракт `variables` валидирует сервис экспорта — неизвестные поля игнорируются.
+</Info>
+
+---
+
+### Переменные (`variables`)
+
+<ParamField body="filter" type="object">
+  Параметры фильтрации.
+
+  <Expandable title="Свойства filter">
+    <ParamField body="billingIds" type="integer[]">
+      Фильтр по ID биллинговых записей.
+    </ParamField>
+
+    <ParamField body="userIds" type="integer[]">
+      Фильтр по ID пользователей.
+    </ParamField>
+
+    <ParamField body="invoiceIds" type="integer[]">
+      Фильтр по ID счетов.
+    </ParamField>
+
+    <ParamField body="statuses" type="string[]">
+      Фильтр по статусам биллинга. Массив из значений: `Scheduled`, `Processing`, `WaitingEntryFee`, `Paid`,
+      `Failed`, `CanceledByUser`, `CanceledByFailedAutoCharge`, `CanceledByFailedManualCharge`,
+      `CanceledByPreviousCancellation`, `CanceledByReinitialization`.
+    </ParamField>
+
+    <ParamField body="finishDateRange" type="object">
+      Диапазон дат завершения доступа. Свойства `from` и `to` — даты в формате ISO 8601.
+    </ParamField>
+
+    <ParamField body="retryDateRange" type="object">
+      Диапазон дат повторной попытки списания. Свойства `from` и `to` — даты в формате ISO 8601.
+    </ParamField>
+
+    <ParamField body="access" type="object">
+      Вложенный фильтр по доступу к продукту (продукт, тариф, группа и т.д.).
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="sort" type="object">
+  Параметры сортировки. Значения: `ASC` (по возрастанию) или `DESC` (по убыванию).
+
+  <Expandable title="Свойства sort">
+    <ParamField body="id" type="string">Сортировка по ID. `ASC` | `DESC`.</ParamField>
+    <ParamField body="createdAt" type="string">Сортировка по дате создания. `ASC` | `DESC`.</ParamField>
+    <ParamField body="updatedAt" type="string">Сортировка по дате обновления. `ASC` | `DESC`.</ParamField>
+    <ParamField body="status" type="string">Сортировка по статусу биллинга. `ASC` | `DESC`.</ParamField>
+    <ParamField body="startDate" type="string">Сортировка по дате старта. `ASC` | `DESC`.</ParamField>
+    <ParamField body="finishDate" type="string">Сортировка по дате завершения. `ASC` | `DESC`.</ParamField>
+    <ParamField body="billingPercent" type="string">Сортировка по проценту оплаты. `ASC` | `DESC`.</ParamField>
+  </Expandable>
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/query-export/generate' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data '{
+    "type": "QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY",
+    "variables": {
+      "filter": {
+        "statuses": ["Paid", "Failed"]
+      },
+      "sort": {
+        "finishDate": "ASC"
+      }
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const exportBillingAccess = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/query-export/generate', {
+      type: 'QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY',
+      variables: {
+        filter: {
+          statuses: ['Paid', 'Failed']
+        },
+        sort: {
+          finishDate: 'ASC'
+        }
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    const { uuid } = response.data.payload;
+    console.log('Execution UUID:', uuid);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+exportBillingAccess();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/query-export/generate';
+$data = [
+  'type' => 'QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY',
+  'variables' => [
+    'filter' => [
+      'statuses' => ['Paid', 'Failed']
+    ],
+    'sort' => [
+      'finishDate' => 'ASC'
+    ]
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200 || $httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Execution UUID: " . $result['payload']['uuid'] . "\n";
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/query-export/generate'
+
+data = {
+  'type': 'QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY',
+  'variables': {
+    'filter': {
+      'statuses': ['Paid', 'Failed']
+    },
+    'sort': {
+      'finishDate': 'ASC'
+    }
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print(f"Execution UUID: {result['payload']['uuid']}")
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+```
+
+```bsl 1С
+Статусы = Новый Массив;
+Статусы.Добавить("Paid");
+Статусы.Добавить("Failed");
+
+Фильтр = Новый Структура;
+Фильтр.Вставить("statuses", Статусы);
+
+Сортировка = Новый Структура;
+Сортировка.Вставить("finishDate", "ASC");
+
+Переменные = Новый Структура;
+Переменные.Вставить("filter", Фильтр);
+Переменные.Вставить("sort", Сортировка);
+
+Данные = Новый Структура;
+Данные.Вставить("type", "QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY");
+Данные.Вставить("variables", Переменные);
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/query-export/generate");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Экспорт запущен");
+Иначе
+    Сообщить("Ошибка: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "total": 100,
+    "completed": 100,
+    "status": "Completed",
+    "result": {
+      "fileUrl": "https://static.exode.biz/generated/reports/79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
+      "fileName": "79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
+      "fileSize": 6748
+    }
+  }
+}
+```
+</ResponseExample>
