@@ -26,17 +26,47 @@ PUT /saas/v2/user/:userId/update
   Номер телефона пользователя. Должен быть в международном формате (например, +9876543210). При передаче пустой строки — преобразуется в `null`.
 </ParamField>
 
+<ParamField body="domain" type="string" required={false}>
+  Доменный логин пользователя. До 65 символов: латинские буквы, цифры и `_` (автоматически приводится к нижнему
+  регистру). Должен быть уникальным в рамках школы. Используется для входа наряду с `email` и `phone`.
+</ParamField>
+
 <ParamField body="tgId" type="integer" required={false}>
-  Telegram ID пользователя. Целое число или `null`.
+  Telegram ID пользователя. Целое число или `null`. Логином не является — используется для связи аккаунта с Telegram.
 </ParamField>
 
 <ParamField body="extId" type="string" required={false}>
-  Внешний идентификатор пользователя из вашей системы. Строка или `null`.
+  Внешний идентификатор пользователя из вашей системы. Строка или `null`. Логином не является — используется только
+  для связи с вашей CRM/LMS и поиска пользователя.
 </ParamField>
 
 <ParamField body="banned" type="boolean" required={false}>
   Статус блокировки пользователя. При установке `true` все активные сессии пользователя будут завершены.
 </ParamField>
+
+<ParamField body="status" type="enum" required={false}>
+  Статус учётной записи: `Active`, `OnLeave`, `Blocked` или `Terminated`.
+  - `Active` — обычный доступ;
+  - `OnLeave` — «в отсутствии»: информационный статус, доступ **не блокирует**. Управляется автоматически модулем
+    [отсутствий](/ru/exode-api/school/staff/absence) — вручную устанавливать не рекомендуется;
+  - `Blocked` — заблокирован: вход запрещён, активные сессии завершаются, зачисления на продукты блокируются.
+    Возврат в `Active` восстанавливает доступ;
+  - `Terminated` — уволен: доступ закрыт так же, как у `Blocked`. Управляется автоматически модулем
+    [трудоустройств](/ru/exode-api/school/staff/employment) (увольнение с последнего активного трудоустройства);
+    при увольнении используйте `staff/employment/terminate`, а не прямую установку статуса.
+</ParamField>
+
+<Warning>
+  Владелец школы защищён: другой администратор не может изменить его данные, а перевод владельца в `banned: true`
+  или блокирующий статус (`Blocked`/`Terminated`) запрещён даже для него самого — вернётся ошибка
+  `ForbiddenModifySchoolOwner`.
+</Warning>
+
+<Info>
+  Блок `extra` (трудоустройства) в `update` **не применяется** — для изменения трудоустройств существующего
+  сотрудника используйте эндпоинты раздела [Сотрудники (HR)](/ru/exode-api/school/staff/employment) или
+  [`user/upsert`](/ru/exode-api/school/user/upsert).
+</Info>
 
 ### Параметры профиля
 
@@ -59,7 +89,7 @@ PUT /saas/v2/user/:userId/update
     </ParamField>
 
     <ParamField body="sex" type="enum" required={false}>
-      Пол пользователя. Возможные значения: `Women`, `Men`.
+      Пол пользователя. Возможные значения: `Ufo`, `Women`, `Men`.
     </ParamField>
 
     <ParamField body="role" type="enum" required={false}>
@@ -284,6 +314,7 @@ except requests.exceptions.RequestException as e:
       "active": true,
       "activated": true,
       "banned": false,
+      "status": "Active",
       "alive": true,
       "domain": "id1683",
       "email": "updated@example.com",
@@ -401,6 +432,15 @@ except requests.exceptions.RequestException as e:
   "cause": "InvalidFirstName",
   "message": "First name must match required format",
   "error": "First name must match required format"
+}
+```
+```json Error - Forbidden Modify School Owner
+{
+  "code": 400,
+  "success": false,
+  "cause": "ForbiddenModifySchoolOwner",
+  "message": "Not allowed to modify school owner",
+  "error": "Not allowed to modify school owner"
 }
 ```
 </ResponseExample>

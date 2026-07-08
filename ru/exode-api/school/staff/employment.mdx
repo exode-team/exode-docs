@@ -22,8 +22,16 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 <Info>
     Перевод (`transfer`) и повышение (`promote`) не изменяют текущую запись, а **закрывают** её (`finishAt`, статус
     `Terminated`) и создают **новую** активную запись в целевом департаменте либо с новой должностью. Условия
-    занятости (`kind`, `type`, `rate`) переносятся в новую запись без изменений. В ответе возвращается именно
-    новая запись трудоустройства.
+    занятости (`kind`, `type`, `rate`) и внешний идентификатор `extId` переносятся в новую запись без изменений.
+    В ответе возвращается именно новая запись трудоустройства.
+</Info>
+
+<Info>
+    У трудоустройства может быть внешний идентификатор `extId` — ID записи в системе клиента (например, HR-системе).
+    От 1 до 50 символов, без `/` и пробелов. Уникален в рамках школы **среди открытых (не завершённых)**
+    трудоустройств: при переводе или повышении `extId` переносится на новую активную запись (закрытая сохраняет
+    копию). По `extId` доступны отдельные роуты `ext/{extId}/transfer`, `ext/{extId}/promote` и
+    `ext/{extId}/terminate`.
 </Info>
 
 ## Список трудоустройств
@@ -56,6 +64,10 @@ GET /saas/v2/staff/employment/list
 
 #### Фильтрация
 
+<ParamField query="extIds" type="string[]" required={false}>
+    Фильтр по внешним идентификаторам (`extId`) трудоустройств. До 250 значений, каждое до 50 символов.
+</ParamField>
+
 <ParamField query="userIds" type="integer[]" required={false}>
     Фильтр по ID пользователей. До 250 значений.
 </ParamField>
@@ -64,8 +76,16 @@ GET /saas/v2/staff/employment/list
     Фильтр по ID департаментов. До 250 значений.
 </ParamField>
 
+<ParamField query="departmentExtIds" type="string[]" required={false}>
+    Фильтр по внешним идентификаторам (`extId`) департаментов. До 250 значений, каждое до 50 символов.
+</ParamField>
+
 <ParamField query="positionIds" type="integer[]" required={false}>
     Фильтр по ID должностей. До 250 значений.
+</ParamField>
+
+<ParamField query="positionExtIds" type="string[]" required={false}>
+    Фильтр по внешним идентификаторам (`extId`) должностей. До 250 значений, каждое до 50 символов.
 </ParamField>
 
 <ParamField query="statuses" type="enum[]" required={false}>
@@ -91,6 +111,7 @@ GET /saas/v2/staff/employment/list
                 <ResponseField name="userId" type="integer">ID пользователя-сотрудника.</ResponseField>
                 <ResponseField name="positionId" type="integer">ID должности.</ResponseField>
                 <ResponseField name="departmentId" type="integer">ID департамента.</ResponseField>
+                <ResponseField name="extId" type="string | null">Внешний идентификатор трудоустройства из системы клиента или `null`. Уникален в рамках школы среди открытых (не завершённых) записей; при переводе/повышении переносится на новую запись.</ResponseField>
                 <ResponseField name="startAt" type="string">Дата начала трудоустройства (ISO 8601).</ResponseField>
                 <ResponseField name="finishAt" type="string | null">Дата завершения трудоустройства (ISO 8601) или `null` для активной записи.</ResponseField>
                 <ResponseField name="status" type="enum">Статус: `Active` или `Terminated`.</ResponseField>
@@ -161,6 +182,7 @@ listEmployments();
         "userId": 1683,
         "positionId": 4,
         "departmentId": 4,
+        "extId": "emp-1683",
         "startAt": "2026-07-02T11:15:47.316Z",
         "finishAt": null,
         "status": "Active",
@@ -177,6 +199,7 @@ listEmployments();
         "userId": 1683,
         "positionId": 3,
         "departmentId": 4,
+        "extId": "emp-1683",
         "startAt": "2026-07-02T11:15:47.299Z",
         "finishAt": "2026-07-02T11:15:47.316Z",
         "status": "Terminated",
@@ -219,7 +242,11 @@ POST /saas/v2/staff/employment/hire
 Требуется аутентификация и право `StaffManage`.
 
 Создаёт новую активную запись трудоустройства. Пользователь, департамент и должность должны принадлежать школе.
-У сотрудника не может быть активного дубля с той же парой департамент + должность.
+У сотрудника не может быть активного дубля с той же парой департамент + должность. Если пользователь ранее был
+уволен и имеет статус `Terminated`, найм автоматически возвращает ему статус `Active`.
+
+Должность и департамент указываются либо по ID, либо по внешнему идентификатору: в каждой из пар
+`positionId` / `positionExtId` и `departmentId` / `departmentExtId` передаётся ровно один параметр.
 
 ### Параметры запроса
 
@@ -227,12 +254,27 @@ POST /saas/v2/staff/employment/hire
     ID пользователя, который принимается на работу. Пользователь должен принадлежать школе.
 </ParamField>
 
-<ParamField body="positionId" type="integer" required>
-    ID должности. Должность должна принадлежать школе.
+<ParamField body="extId" type="string" required={false}>
+    Внешний идентификатор трудоустройства из системы клиента. От 1 до 50 символов, без `/` и пробелов.
+    Должен быть уникален в рамках школы среди открытых (не завершённых) трудоустройств.
 </ParamField>
 
-<ParamField body="departmentId" type="integer" required>
-    ID департамента. Департамент должен принадлежать школе.
+<ParamField body="positionId" type="integer" required={false}>
+    ID должности. Должность должна принадлежать школе. Передаётся ровно один параметр из пары
+    `positionId` / `positionExtId`.
+</ParamField>
+
+<ParamField body="positionExtId" type="string" required={false}>
+    Внешний идентификатор (`extId`) должности — альтернатива `positionId`.
+</ParamField>
+
+<ParamField body="departmentId" type="integer" required={false}>
+    ID департамента. Департамент должен принадлежать школе. Передаётся ровно один параметр из пары
+    `departmentId` / `departmentExtId`.
+</ParamField>
+
+<ParamField body="departmentExtId" type="string" required={false}>
+    Внешний идентификатор (`extId`) департамента — альтернатива `departmentId`.
 </ParamField>
 
 <ParamField body="startAt" type="string" required={false}>
@@ -261,6 +303,7 @@ curl --location 'https://api.exode.biz/saas/v2/staff/employment/hire' \
   --header 'Authorization: Bearer YOUR_TOKEN' \
   --data-raw '{
     "userId": 1683,
+    "extId": "emp-1683",
     "positionId": 3,
     "departmentId": 3,
     "startAt": "2026-07-02T00:00:00.000Z",
@@ -276,6 +319,7 @@ const axios = require('axios');
 const hireEmployment = async () => {
   const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/employment/hire', {
     userId: 1683,
+    extId: 'emp-1683',
     positionId: 3,
     departmentId: 3,
     startAt: '2026-07-02T00:00:00.000Z',
@@ -312,6 +356,7 @@ hireEmployment();
     "userId": 1683,
     "positionId": 3,
     "departmentId": 3,
+    "extId": "emp-1683",
     "startAt": "2026-07-02T11:15:47.273Z",
     "finishAt": null,
     "status": "Active",
@@ -329,6 +374,36 @@ hireEmployment();
   "cause": "StaffEmploymentAlreadyExists",
   "message": "Staff active employment already exists",
   "error": "Staff active employment already exists"
+}
+```
+
+```json Error - ExtId Is Not Uniq
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentExtIdIsNotUniq",
+  "message": "Staff employment extId is not uniq",
+  "error": "Staff employment extId is not uniq"
+}
+```
+
+```json Error - Position Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotFound",
+  "message": "Staff position not found",
+  "error": "Staff position not found"
+}
+```
+
+```json Error - Department Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
 }
 ```
 
@@ -361,8 +436,13 @@ POST /saas/v2/staff/employment/transfer
     ID переводимой активной записи трудоустройства.
 </ParamField>
 
-<ParamField body="toDepartmentId" type="integer" required>
-    ID целевого департамента. Департамент должен принадлежать школе.
+<ParamField body="toDepartmentId" type="integer" required={false}>
+    ID целевого департамента. Департамент должен принадлежать школе. Передаётся ровно один параметр из пары
+    `toDepartmentId` / `toDepartmentExtId`.
+</ParamField>
+
+<ParamField body="toDepartmentExtId" type="string" required={false}>
+    Внешний идентификатор (`extId`) целевого департамента — альтернатива `toDepartmentId`.
 </ParamField>
 
 <ParamField body="startAt" type="string" required={false}>
@@ -422,6 +502,122 @@ transferEmployment();
     "userId": 1683,
     "positionId": 3,
     "departmentId": 4,
+    "extId": "emp-1683",
+    "startAt": "2026-07-02T11:15:47.299Z",
+    "finishAt": null,
+    "status": "Active",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
+  }
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
+}
+```
+
+```json Error - Invalid Transition Date
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInvalidTransitionDate",
+  "message": "Staff employment transition date is outside employment interval",
+  "error": "Staff employment transition date is outside employment interval"
+}
+```
+</ResponseExample>
+
+## Перевести по внешнему идентификатору
+
+```
+POST /saas/v2/staff/employment/ext/{extId}/transfer
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+Аналог перевода по `employmentId`, но активная запись трудоустройства находится по внешнему идентификатору
+`extId` в рамках школы. Тело запроса — как у обычного перевода, без поля `employmentId`.
+
+### Параметры запроса
+
+<ParamField path="extId" type="string" required>
+    Внешний идентификатор активной записи трудоустройства. Значение в пути должно быть URL-encoded.
+</ParamField>
+
+<ParamField body="toDepartmentId" type="integer" required={false}>
+    ID целевого департамента. Департамент должен принадлежать школе. Передаётся ровно один параметр из пары
+    `toDepartmentId` / `toDepartmentExtId`.
+</ParamField>
+
+<ParamField body="toDepartmentExtId" type="string" required={false}>
+    Внешний идентификатор (`extId`) целевого департамента — альтернатива `toDepartmentId`.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Дата перевода в формате ISO 8601. Должна попадать в интервал текущего трудоустройства. По умолчанию — текущий
+    момент.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/ext/emp-1683/transfer' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "toDepartmentExtId": "dep-sales",
+    "startAt": "2026-07-02T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const transferEmploymentByExtId = async () => {
+  const extId = encodeURIComponent('emp-1683');
+
+  const { data } = await axios.post(`https://api.exode.biz/saas/v2/staff/employment/ext/${extId}/transfer`, {
+    toDepartmentExtId: 'dep-sales',
+    startAt: '2026-07-02T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+transferEmploymentByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 8,
+    "createdAt": "2026-07-02T11:15:47.295Z",
+    "updatedAt": "2026-07-02T11:15:47.295Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 3,
+    "departmentId": 4,
+    "extId": "emp-1683",
     "startAt": "2026-07-02T11:15:47.299Z",
     "finishAt": null,
     "status": "Active",
@@ -461,8 +657,13 @@ POST /saas/v2/staff/employment/promote
     ID изменяемой активной записи трудоустройства.
 </ParamField>
 
-<ParamField body="toPositionId" type="integer" required>
-    ID целевой должности. Должность должна принадлежать школе.
+<ParamField body="toPositionId" type="integer" required={false}>
+    ID целевой должности. Должность должна принадлежать школе. Передаётся ровно один параметр из пары
+    `toPositionId` / `toPositionExtId`.
+</ParamField>
+
+<ParamField body="toPositionExtId" type="string" required={false}>
+    Внешний идентификатор (`extId`) целевой должности — альтернатива `toPositionId`.
 </ParamField>
 
 <ParamField body="startAt" type="string" required={false}>
@@ -522,6 +723,122 @@ promoteEmployment();
     "userId": 1683,
     "positionId": 4,
     "departmentId": 4,
+    "extId": "emp-1683",
+    "startAt": "2026-07-02T11:15:47.316Z",
+    "finishAt": null,
+    "status": "Active",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
+  }
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
+}
+```
+
+```json Error - Invalid Transition Date
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInvalidTransitionDate",
+  "message": "Staff employment transition date is outside employment interval",
+  "error": "Staff employment transition date is outside employment interval"
+}
+```
+</ResponseExample>
+
+## Сменить должность по внешнему идентификатору
+
+```
+POST /saas/v2/staff/employment/ext/{extId}/promote
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+Аналог смены должности по `employmentId`, но активная запись трудоустройства находится по внешнему идентификатору
+`extId` в рамках школы. Тело запроса — как у обычной смены должности, без поля `employmentId`.
+
+### Параметры запроса
+
+<ParamField path="extId" type="string" required>
+    Внешний идентификатор активной записи трудоустройства. Значение в пути должно быть URL-encoded.
+</ParamField>
+
+<ParamField body="toPositionId" type="integer" required={false}>
+    ID целевой должности. Должность должна принадлежать школе. Передаётся ровно один параметр из пары
+    `toPositionId` / `toPositionExtId`.
+</ParamField>
+
+<ParamField body="toPositionExtId" type="string" required={false}>
+    Внешний идентификатор (`extId`) целевой должности — альтернатива `toPositionId`.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Дата смены должности в формате ISO 8601. Должна попадать в интервал текущего трудоустройства. По умолчанию —
+    текущий момент.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/ext/emp-1683/promote' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "toPositionExtId": "pos-lead",
+    "startAt": "2026-07-02T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const promoteEmploymentByExtId = async () => {
+  const extId = encodeURIComponent('emp-1683');
+
+  const { data } = await axios.post(`https://api.exode.biz/saas/v2/staff/employment/ext/${extId}/promote`, {
+    toPositionExtId: 'pos-lead',
+    startAt: '2026-07-02T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+promoteEmploymentByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 9,
+    "createdAt": "2026-07-02T11:15:47.312Z",
+    "updatedAt": "2026-07-02T11:15:47.312Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 4,
+    "departmentId": 4,
+    "extId": "emp-1683",
     "startAt": "2026-07-02T11:15:47.316Z",
     "finishAt": null,
     "status": "Active",
@@ -553,6 +870,17 @@ POST /saas/v2/staff/employment/terminate
 
 Закрывает активную запись трудоустройства: проставляет `finishAt`, переводит статус в `Terminated` и снимает
 сотрудника с руководства департаментами. В ответе возвращается закрытая запись.
+
+<Warning>
+    Увольнение с **последнего активного** трудоустройства автоматически переводит пользователя в статус
+    `Terminated` — доступ к платформе закрывается: вход запрещён, активные сессии завершаются. Повторный найм
+    (`hire`) пользователя со статусом `Terminated` автоматически возвращает ему статус `Active`.
+</Warning>
+
+<Info>
+    Защиты при увольнении с последнего активного трудоустройства: нельзя уволить самого себя
+    (`StaffCannotTerminateSelf`) и владельца школы (`StaffCannotTerminateSchoolOwner`).
+</Info>
 
 ### Параметры запроса
 
@@ -615,6 +943,7 @@ terminateEmployment();
     "userId": 1684,
     "positionId": 3,
     "departmentId": 4,
+    "extId": "emp-1684",
     "startAt": "2026-07-02T11:15:47.285Z",
     "finishAt": "2026-07-02T11:15:47.401Z",
     "status": "Terminated",
@@ -632,6 +961,122 @@ terminateEmployment();
   "cause": "StaffEmploymentInvalidTransitionDate",
   "message": "Staff employment transition date is outside employment interval",
   "error": "Staff employment transition date is outside employment interval"
+}
+```
+
+```json Error - Cannot Terminate Self
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffCannotTerminateSelf",
+  "message": "Staff cannot terminate himself",
+  "error": "Staff cannot terminate himself"
+}
+```
+
+```json Error - Cannot Terminate School Owner
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffCannotTerminateSchoolOwner",
+  "message": "Staff school owner cannot be terminated",
+  "error": "Staff school owner cannot be terminated"
+}
+```
+</ResponseExample>
+
+## Уволить по внешнему идентификатору
+
+```
+POST /saas/v2/staff/employment/ext/{extId}/terminate
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+Аналог увольнения по `employmentId`, но активная запись трудоустройства находится по внешнему идентификатору
+`extId` в рамках школы. Тело запроса — как у обычного увольнения, без поля `employmentId`. Действуют те же
+защиты и та же логика перевода пользователя в статус `Terminated` при увольнении с последнего активного
+трудоустройства.
+
+### Параметры запроса
+
+<ParamField path="extId" type="string" required>
+    Внешний идентификатор активной записи трудоустройства. Значение в пути должно быть URL-encoded.
+</ParamField>
+
+<ParamField body="finishAt" type="string" required={false}>
+    Дата увольнения в формате ISO 8601. Должна попадать в интервал текущего трудоустройства. По умолчанию —
+    текущий момент.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/ext/emp-1684/terminate' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "finishAt": "2026-07-02T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const terminateEmploymentByExtId = async () => {
+  const extId = encodeURIComponent('emp-1684');
+
+  const { data } = await axios.post(`https://api.exode.biz/saas/v2/staff/employment/ext/${extId}/terminate`, {
+    finishAt: '2026-07-02T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+terminateEmploymentByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 7,
+    "createdAt": "2026-07-02T11:15:47.284Z",
+    "updatedAt": "2026-07-02T11:15:47.400Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1684,
+    "positionId": 3,
+    "departmentId": 4,
+    "extId": "emp-1684",
+    "startAt": "2026-07-02T11:15:47.285Z",
+    "finishAt": "2026-07-02T11:15:47.401Z",
+    "status": "Terminated",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
+  }
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
 }
 ```
 </ResponseExample>

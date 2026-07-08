@@ -26,18 +26,39 @@ POST /saas/v2/staff/department-manager/set
 Требуется аутентификация и право `StaffManage`.
 
 Эндпоинт работает как upsert: если руководитель для пары департамент + трудоустройство уже назначен —
-обновляется только флаг `isPrimary`, иначе создаётся новая запись. При `isPrimary=true` предыдущий основной
-руководитель департамента автоматически снимается с этой роли (флаг `isPrimary` у него сбрасывается в `false`).
-Департамент и трудоустройство должны принадлежать школе, трудоустройство должно быть активным.
+обновляются флаг `isPrimary` и `extId`, иначе создаётся новая запись. У департамента может быть только один
+основной руководитель: при `isPrimary=true` предыдущий основной руководитель департамента автоматически
+понижается (флаг `isPrimary` у него сбрасывается в `false`). Департамент и трудоустройство должны принадлежать
+школе, трудоустройство должно быть активным — иначе вернутся ошибки `StaffDepartmentNotFound` /
+`StaffEmploymentNotFound`.
+
+Департамент и трудоустройство можно указывать как по числовому ID, так и по внешнему идентификатору:
+в каждой из пар `departmentId`/`departmentExtId` и `employmentId`/`employmentExtId` передаётся ровно одно поле.
 
 ### Параметры запроса
 
-<ParamField body="departmentId" type="integer" required>
-    ID департамента. Департамент должен принадлежать школе.
+<ParamField body="departmentId" type="integer" required={false}>
+    ID департамента. Департамент должен принадлежать школе. Обязателен, если не передан `departmentExtId`.
 </ParamField>
 
-<ParamField body="employmentId" type="integer" required>
-    ID активного трудоустройства сотрудника, который назначается руководителем.
+<ParamField body="departmentExtId" type="string" required={false}>
+    Внешний идентификатор департамента (`extId`). Альтернатива `departmentId` — передаётся ровно одно поле из пары.
+</ParamField>
+
+<ParamField body="employmentId" type="integer" required={false}>
+    ID активного трудоустройства сотрудника, который назначается руководителем. Обязателен, если не передан
+    `employmentExtId`.
+</ParamField>
+
+<ParamField body="employmentExtId" type="string" required={false}>
+    Внешний идентификатор трудоустройства (`extId`). Альтернатива `employmentId` — передаётся ровно одно поле
+    из пары.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+    Внешний идентификатор записи руководителя из системы клиента (CRM/1C). От 1 до 50 символов, не может содержать
+    `/` и пробельные символы — значение используется в путях `ext/{extId}`. Должен быть уникальным в рамках школы
+    среди неудалённых записей, иначе вернётся ошибка `StaffDepartmentManagerExtIdIsNotUniq`.
 </ParamField>
 
 <ParamField body="isPrimary" type="boolean" required={false}>
@@ -55,6 +76,7 @@ curl --location 'https://api.exode.biz/saas/v2/staff/department-manager/set' \
   --data-raw '{
     "departmentId": 4,
     "employmentId": 9,
+    "extId": "dm-4b6a-9c2e",
     "isPrimary": true
   }'
 ```
@@ -66,6 +88,7 @@ const setManager = async () => {
   const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/department-manager/set', {
     departmentId: 4,
     employmentId: 9,
+    extId: 'dm-4b6a-9c2e',
     isPrimary: true,
   }, {
     headers: {
@@ -96,7 +119,8 @@ setManager();
     "schoolId": 198,
     "departmentId": 4,
     "employmentId": 9,
-    "isPrimary": true
+    "isPrimary": true,
+    "extId": "dm-4b6a-9c2e"
   }
 }
 ```
@@ -108,6 +132,36 @@ setManager();
   "cause": "StaffDepartmentManagerAlreadyExists",
   "message": "Staff department manager already exists",
   "error": "Staff department manager already exists"
+}
+```
+
+```json Error - ExtId Is Not Uniq
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentManagerExtIdIsNotUniq",
+  "message": "Staff department manager extId is not uniq",
+  "error": "Staff department manager extId is not uniq"
+}
+```
+
+```json Error - Department Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
 }
 ```
 
@@ -141,8 +195,8 @@ DELETE /saas/v2/staff/department-manager/{managerId}/remove
 
 ### Ответ
 
-<ResponseField name="deleted" type="boolean" required>
-    Флаг успешного снятия руководителя.
+<ResponseField name="affected" type="integer" required>
+    Количество удалённых записей (`1` при успешном снятии руководителя).
 </ResponseField>
 
 <RequestExample>
@@ -178,8 +232,93 @@ removeManager();
   "success": true,
   "code": 200,
   "payload": {
-    "deleted": true
+    "affected": 1
   }
+}
+```
+
+```json Error - Forbidden
+{
+  "code": 403,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Доступ к ресурсу ограничен",
+  "message": "Доступ к ресурсу ограничен"
+}
+```
+</ResponseExample>
+
+## Снять руководителя по extId
+
+```
+DELETE /saas/v2/staff/department-manager/ext/{extId}/remove
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+Аналог снятия по `managerId`, но запись руководителя ищется по внешнему идентификатору (`extId`) в рамках школы.
+Удаляет запись руководителя департамента (мягкое удаление). Если запись с указанным `extId` не найдена среди
+неудалённых записей школы — вернётся ошибка `StaffDepartmentManagerNotFound`.
+
+### Параметры запроса
+
+<ParamField path="extId" type="string" required>
+    Внешний идентификатор записи руководителя департамента (`extId`). Значение в пути должно быть URL-encoded.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="affected" type="integer" required>
+    Количество удалённых записей (`1` при успешном снятии руководителя).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/department-manager/ext/dm-4b6a-9c2e/remove' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const removeManagerByExtId = async () => {
+  const extId = encodeURIComponent('dm-4b6a-9c2e');
+
+  const { data } = await axios.delete(`https://api.exode.biz/saas/v2/staff/department-manager/ext/${extId}/remove`, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+removeManagerByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+
+```json Error - Manager Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentManagerNotFound",
+  "message": "Staff department manager not found",
+  "error": "Staff department manager not found"
 }
 ```
 

@@ -18,7 +18,11 @@ description: "Структура объекта пользователя (user) 
 
 <ResponseField name="id" type="integer" required>ID пользователя в Exode.</ResponseField>
 <ResponseField name="uuid" type="string" required>UUID пользователя.</ResponseField>
-<ResponseField name="domain" type="string" required>Доменный логин вида `id12345`.</ResponseField>
+<ResponseField name="domain" type="string" required>
+    Доменный логин. Наряду с `email` и `phone` используется как поле для входа в школу. По умолчанию генерируется
+    в формате `id12345`; свой логин (латинские буквы, цифры, `_`, до 65 символов) можно задать при
+    `user/create`/`update`/`upsert`.
+</ResponseField>
 <ResponseField name="email" type="string | null">Email пользователя.</ResponseField>
 <ResponseField name="phone" type="string | null">Телефон в международном формате.</ResponseField>
 <ResponseField name="tgId" type="integer | null">Telegram ID.</ResponseField>
@@ -26,7 +30,8 @@ description: "Структура объекта пользователя (user) 
 <ResponseField name="appleId" type="string | null">Apple ID (при авторизации через Apple).</ResponseField>
 <ResponseField name="extId" type="string | null">
     Внешний идентификатор из вашей системы (CRM/LMS). Задаётся при `user/create`/`update`/`upsert` и используется
-    для поиска в `user/find` — связывает пользователя Exode с записью в вашей базе.
+    для поиска в `user/find` — связывает пользователя Exode с записью в вашей базе. Логином не является —
+    авторизоваться по `extId` нельзя.
 </ResponseField>
 <ResponseField name="schoolId" type="integer | null">ID школы пользователя.</ResponseField>
 
@@ -35,7 +40,16 @@ description: "Структура объекта пользователя (user) 
 <ResponseField name="active" type="boolean" required>Пользователь не отключён администратором.</ResponseField>
 <ResponseField name="activated" type="boolean" required>Пользователь подтвердил вход (через код/оплату).</ResponseField>
 <ResponseField name="banned" type="boolean" required>Пользователь заблокирован и не может входить.</ResponseField>
-<ResponseField name="alive" type="boolean | null">«Живой» доступ: `active === true` и `banned === false`.</ResponseField>
+<ResponseField name="status" type="enum" required>
+    Статус учётной записи: `Active`, `OnLeave`, `Blocked`, `Terminated`. `Active` — обычный доступ; `OnLeave` —
+    «в отсутствии» (информационный, доступ не блокирует; синхронизируется автоматически с отсутствиями сотрудника);
+    `Blocked` — заблокирован администратором; `Terminated` — уволен (ставится автоматически при увольнении с
+    последнего активного трудоустройства, повторный найм возвращает `Active`). `Blocked` и `Terminated` закрывают
+    доступ: вход запрещён, сессии завершаются, зачисления на продукты блокируются.
+</ResponseField>
+<ResponseField name="alive" type="boolean | null">
+    «Живой» доступ: `active === true`, `banned === false` и `status` не входит в `Blocked`/`Terminated`.
+</ResponseField>
 
 ### Локаль и активность
 
@@ -102,6 +116,7 @@ description: "Структура объекта пользователя (user) 
   "active": true,
   "activated": true,
   "banned": false,
+  "status": "Active",
   "alive": true,
   "language": "Ru",
   "timezone": 5,

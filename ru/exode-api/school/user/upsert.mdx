@@ -6,8 +6,9 @@ description: "Создание нового пользователя или об
 import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <Tip>
-    **Upsert** — это операция "создать или обновить". Если пользователь с указанным email, телефоном, Telegram ID или
-    внешним идентификатором `extId` уже существует — его данные будут обновлены. Если пользователя нет — он будет создан.
+    **Upsert** — это операция "создать или обновить". Если пользователь с указанным логином (`phone`, `email` или
+    `domain` — в этом порядке приоритета), Telegram ID (`tgId`) или внешним идентификатором (`extId`) уже
+    существует — его данные будут обновлены. Если пользователя нет — он будет создан.
 </Tip>
 
 <HeaderParamFields/>
@@ -20,12 +21,17 @@ PUT /saas/v2/user/upsert
 
 ## Параметры запроса
 
-##### Для определения существующего пользователя по логину — передайте хотя бы один из ниже перечисленных параметров, в противном случае пользователь будет создаваться при каждом запросе.
+##### Для определения существующего пользователя — передайте хотя бы один из ниже перечисленных параметров, в противном случае пользователь будет создаваться при каждом запросе.
 
 <Info>
   В случае если **пользователь найден** по указанным ниже полям — произойдет только его обновление.
   **В случае создания** — логин и пароль для входа отправятся новому пользователю **автоматически**.
 </Info>
+
+<Warning>
+  Полями для входа (логином) являются только `email`, `phone` и `domain`. `extId` и `tgId` участвуют в поиске
+  существующего пользователя, но **авторизоваться по ним нельзя**.
+</Warning>
 
 <ParamField body="email" type="string" required={false}>
   Email адрес пользователя. Должен быть валидным email форматом. При передаче пустой строки — преобразуется в `null`.
@@ -36,13 +42,40 @@ PUT /saas/v2/user/upsert
   — преобразуется в `null`.
 </ParamField>
 
+<ParamField body="domain" type="string" required={false}>
+  Доменный логин пользователя. До 65 символов: латинские буквы, цифры и `_` (автоматически приводится к нижнему
+  регистру). Должен быть уникальным в рамках школы. Если не передан при создании — генерируется автоматически в
+  формате `id12345`. Используется для входа наряду с `email` и `phone`.
+</ParamField>
+
 <ParamField body="tgId" type="integer" required={false}>
-  Telegram ID пользователя. Целое число или `null`.
+  Telegram ID пользователя. Целое число или `null`. Логином не является.
 </ParamField>
 
 <ParamField body="extId" type="string" required={false}>
-  Внешний идентификатор пользователя из вашей системы. Строка или `null`.
+  Внешний идентификатор пользователя из вашей системы (например, GUID из CRM/1С). Строка или `null`.
+  Логином не является — используется только для связи и поиска.
 </ParamField>
+
+### Дополнительные параметры
+
+<ParamField body="banned" type="boolean" required={false}>
+  Статус блокировки пользователя. При установке `true` все активные сессии пользователя будут завершены.
+</ParamField>
+
+<ParamField body="status" type="enum" required={false}>
+  Статус учётной записи: `Active`, `OnLeave`, `Blocked` или `Terminated`.
+  `OnLeave` — информационный (доступ не блокирует, управляется модулем
+  [отсутствий](/ru/exode-api/school/staff/absence)); `Blocked` и `Terminated` закрывают доступ: вход запрещён,
+  активные сессии завершаются, зачисления блокируются. `Terminated` управляется автоматически модулем
+  [трудоустройств](/ru/exode-api/school/staff/employment). Подробнее — в
+  [`user/create`](/ru/exode-api/school/user/create).
+</ParamField>
+
+<Warning>
+  Владелец школы защищён: если апсерт находит владельца, перевод его в `banned: true` или блокирующий статус
+  (`Blocked`/`Terminated`) запрещён — вернётся ошибка `ForbiddenModifySchoolOwner`.
+</Warning>
 
 ### Параметры профиля
 
@@ -65,7 +98,7 @@ PUT /saas/v2/user/upsert
     </ParamField>
 
     <ParamField body="sex" type="enum" required={false}>
-      Пол пользователя. Возможные значения: `Women`, `Men`.
+      Пол пользователя. Возможные значения: `Ufo`, `Women`, `Men`.
     </ParamField>
 
     <ParamField body="role" type="enum" required={false}>
@@ -77,6 +110,25 @@ PUT /saas/v2/user/upsert
 <Info>
   При создании пользователя автоматически создается связанный профиль с указанными данными. Если профиль не указан,
   создается пустой профиль, поля `firstName` и `lastName` будут заполнены пользователем при первом входе в аккаунт.
+</Info>
+
+### Дополнительные агрегаты (`extra`)
+
+<ParamField body="extra" type="object" required={false}>
+  Контейнер связанных данных, применяемых вместе с апсертом. Сейчас содержит блок `staff.employments` —
+  массив трудоустройств (от 1 до 10): департамент, должность, вид и тип занятости. Доступно **только для
+  корпоративных школ**. Если апсерт приводит к созданию пользователя — блок **обязателен** (сотрудник не может
+  существовать без трудоустройства). Для существующего пользователя трудоустройства применяются идемпотентно:
+  повторная передача той же активной пары департамент + должность не создаёт дубль.
+
+  Состав полей элемента `employments` — как в
+  [`user/create`](/ru/exode-api/school/user/create#дополнительные-агрегаты-extra):
+  `extId`, `positionId`/`positionExtId`, `departmentId`/`departmentExtId`, `kind`, `type`, `startAt`, `rate`.
+</ParamField>
+
+<Info>
+  Данные, которых нет в этой схеме (город, произвольный статус из CRM и т.п.), передаются через
+  [кастомные поля](/ru/exode-api/school/custom-field/set).
 </Info>
 
 <RequestExample>
@@ -292,6 +344,7 @@ except requests.exceptions.RequestException as e:
       "active": true,
       "activated": true,
       "banned": false,
+      "status": "Active",
       "alive": true,
       "domain": "id1684",
       "email": "user@example.com",
@@ -363,6 +416,7 @@ except requests.exceptions.RequestException as e:
       "active": true,
       "activated": true,
       "banned": false,
+      "status": "Active",
       "alive": true,
       "domain": "id1684",
       "email": "user@example.com",

@@ -13,6 +13,13 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
   персонала (staff) для распределения сотрудников по подразделениям и назначения руководителей.
 </Info>
 
+<Info>
+  Поле `extId` — внешний идентификатор департамента из системы клиента (CRM, 1C и т.п.). Он уникален в рамках
+  школы среди неудалённых записей, имеет длину от 1 до 50 символов и не может содержать `/` и пробельные символы
+  (значение должно быть URL-safe — оно используется в путях `ext/{extId}`). По `extId` доступны отдельные
+  эндпоинты обновления и удаления.
+</Info>
+
 <Warning>
   Все эндпоинты модуля персонала доступны **только для школ корпоративного сегмента** (`Corporate`).
   Запрос от школы другого сегмента будет отклонён.
@@ -93,6 +100,7 @@ getDepartmentTree();
       "archivedAt": null,
       "schoolId": 198,
       "parentId": null,
+      "extId": "dep_engineering",
       "name": "Engineering"
     },
     {
@@ -102,6 +110,7 @@ getDepartmentTree();
       "archivedAt": null,
       "schoolId": 198,
       "parentId": 3,
+      "extId": null,
       "name": "Backend & Infra Team"
     }
   ]
@@ -148,6 +157,10 @@ GET /saas/v2/staff/department/list
 <ParamField query="parentIds" type="array" required={false}>
   Массив ID родительских департаментов для фильтрации (до 250 значений). Возвращает только дочерние департаменты
   указанных родителей.
+</ParamField>
+
+<ParamField query="extIds" type="array" required={false}>
+  Массив внешних идентификаторов (`extId`) для фильтрации (до 250 значений, каждый — до 50 символов).
 </ParamField>
 
 <ParamField query="search" type="string" required={false}>
@@ -219,6 +232,7 @@ getDepartmentList();
         "archivedAt": null,
         "schoolId": 198,
         "parentId": 3,
+        "extId": null,
         "name": "Backend & Infra Team"
       },
       {
@@ -228,6 +242,7 @@ getDepartmentList();
         "archivedAt": null,
         "schoolId": 198,
         "parentId": null,
+        "extId": "dep_engineering",
         "name": "Engineering"
       }
     ],
@@ -260,9 +275,22 @@ POST /saas/v2/staff/department/create
   Название департамента. От 1 до 100 символов. Пробелы в начале и конце обрезаются автоматически.
 </ParamField>
 
+<ParamField body="extId" type="string" required={false}>
+  Внешний идентификатор департамента из системы клиента (CRM/1C). От 1 до 50 символов, не может содержать `/` и
+  пробельные символы (URL-safe — используется в путях `ext/{extId}`). Должен быть уникален в рамках школы среди
+  неудалённых департаментов, иначе будет возвращена ошибка `StaffDepartmentExtIdIsNotUniq`.
+</ParamField>
+
 <ParamField body="parentId" type="integer" required={false}>
-  ID родительского департамента. Если указан — должен принадлежать той же школе, иначе будет возвращена ошибка
-  `StaffDepartmentNotFound`. Если не указан — департамент создаётся корневым.
+  ID родительского департамента. Родитель указывается через `parentId` **или** `parentExtId` — передаётся ровно
+  одно поле из пары. Если указан — должен принадлежать той же школе, иначе будет возвращена ошибка
+  `StaffDepartmentNotFound`. Если родитель не указан ни одним из полей — департамент создаётся корневым.
+</ParamField>
+
+<ParamField body="parentExtId" type="string" required={false}>
+  Внешний идентификатор (`extId`) родительского департамента — альтернатива `parentId` (передаётся ровно одно
+  поле из пары). От 1 до 50 символов. Родитель должен принадлежать той же школе, иначе будет возвращена ошибка
+  `StaffDepartmentNotFound`.
 </ParamField>
 
 <RequestExample>
@@ -274,6 +302,7 @@ curl --location 'https://api.exode.biz/saas/v2/staff/department/create' \
   --header 'Authorization: Bearer YOUR_TOKEN' \
   --data-raw '{
     "name": "Engineering",
+    "extId": "dep_engineering",
     "parentId": null
   }'
 ```
@@ -286,6 +315,7 @@ async function createDepartment() {
     'https://api.exode.biz/saas/v2/staff/department/create',
     {
       name: 'Engineering',
+      extId: 'dep_engineering',
       parentId: null,
     },
     {
@@ -316,6 +346,7 @@ createDepartment();
     "archivedAt": null,
     "schoolId": 198,
     "parentId": null,
+    "extId": "dep_engineering",
     "name": "Engineering"
   }
 }
@@ -329,6 +360,15 @@ createDepartment();
   "error": "Staff department not found"
 }
 ```
+```json Error - ExtId Is Not Uniq
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentExtIdIsNotUniq",
+  "message": "Staff department extId is not uniq",
+  "error": "Staff department extId is not uniq"
+}
+```
 </ResponseExample>
 
 ## Обновление департамента
@@ -340,7 +380,8 @@ PUT /saas/v2/staff/department/{departmentId}/update
 Требуется аутентификация и право `StaffManage`.
 
 <Info>
-  Обновляется только название департамента. Родительский департамент (`parentId`) через этот эндпоинт не изменяется.
+  Обновляются название и внешний идентификатор (`extId`) департамента. Родительский департамент (`parentId`)
+  через этот эндпоинт не изменяется.
 </Info>
 
 ### Параметры
@@ -351,6 +392,12 @@ PUT /saas/v2/staff/department/{departmentId}/update
 
 <ParamField body="name" type="string" required={false}>
   Новое название департамента. От 1 до 100 символов. Пробелы в начале и конце обрезаются автоматически.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  Новый внешний идентификатор департамента (можно переустановить). От 1 до 50 символов, не может содержать `/`
+  и пробельные символы (URL-safe). Должен быть уникален в рамках школы среди неудалённых департаментов, иначе
+  будет возвращена ошибка `StaffDepartmentExtIdIsNotUniq`.
 </ParamField>
 
 <RequestExample>
@@ -402,8 +449,106 @@ updateDepartment();
     "archivedAt": null,
     "schoolId": 198,
     "parentId": 3,
+    "extId": null,
     "name": "Backend & Infra Team"
   }
+}
+```
+```json Error - ExtId Is Not Uniq
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentExtIdIsNotUniq",
+  "message": "Staff department extId is not uniq",
+  "error": "Staff department extId is not uniq"
+}
+```
+</ResponseExample>
+
+## Обновление департамента по extId
+
+```
+PUT /saas/v2/staff/department/ext/{extId}/update
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+<Info>
+  Аналог обычного обновления, но департамент ищется по внешнему идентификатору (`extId`) в рамках школы.
+  Тело запроса — то же, что и у `PUT /saas/v2/staff/department/{departmentId}/update`. Значение `extId` в пути
+  должно быть URL-encoded. Если департамент с таким `extId` не найден в рамках школы — будет возвращена ошибка
+  `StaffDepartmentNotFound`.
+</Info>
+
+### Параметры
+
+<ParamField path="extId" type="string" required>
+  Внешний идентификатор департамента в рамках школы. Должен быть URL-encoded.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/department/ext/dep_engineering/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Engineering & Research"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function updateDepartmentByExtId() {
+  const extId = encodeURIComponent('dep_engineering');
+
+  const { data } = await axios.put(
+    `https://api.exode.biz/saas/v2/staff/department/ext/${extId}/update`,
+    {
+      name: 'Engineering & Research',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+updateDepartmentByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 3,
+    "createdAt": "2026-07-02T11:15:47.223Z",
+    "updatedAt": "2026-07-02T11:15:47.247Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "parentId": null,
+    "extId": "dep_engineering",
+    "name": "Engineering & Research"
+  }
+}
+```
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
 }
 ```
 </ResponseExample>
@@ -432,8 +577,8 @@ DELETE /saas/v2/staff/department/{departmentId}/delete
 
 ### Ответ
 
-<ResponseField name="deleted" type="boolean" required>
-  Флаг успешного удаления департамента.
+<ResponseField name="affected" type="integer" required>
+  Количество затронутых (удалённых) записей. При успешном удалении — `1`.
 </ResponseField>
 
 <RequestExample>
@@ -471,7 +616,7 @@ deleteDepartment();
   "success": true,
   "code": 200,
   "payload": {
-    "deleted": true
+    "affected": 1
   }
 }
 ```
@@ -500,6 +645,104 @@ deleteDepartment();
   "cause": "Forbidden",
   "error": "Доступ к ресурсу ограничен",
   "message": "Доступ к ресурсу ограничен"
+}
+```
+</ResponseExample>
+
+## Удаление департамента по extId
+
+```
+DELETE /saas/v2/staff/department/ext/{extId}/delete
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+<Info>
+  Аналог обычного удаления, но департамент ищется по внешнему идентификатору (`extId`) в рамках школы. Действуют
+  те же правила: удалить можно только «листовой» департамент без дочерних подразделений и активных сотрудников
+  (иначе — `StaffDepartmentHasChildren` / `StaffDepartmentHasActiveEmployments`). Значение `extId` в пути должно
+  быть URL-encoded. Если департамент с таким `extId` не найден в рамках школы — будет возвращена ошибка
+  `StaffDepartmentNotFound`.
+</Info>
+
+### Параметры
+
+<ParamField path="extId" type="string" required>
+  Внешний идентификатор департамента в рамках школы. Должен быть URL-encoded.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="affected" type="integer" required>
+  Количество затронутых (удалённых) записей. При успешном удалении — `1`.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/department/ext/dep_engineering/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function deleteDepartmentByExtId() {
+  const extId = encodeURIComponent('dep_engineering');
+
+  const { data } = await axios.delete(
+    `https://api.exode.biz/saas/v2/staff/department/ext/${extId}/delete`,
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+deleteDepartmentByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
+}
+```
+```json Error - Has Children
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentHasChildren",
+  "message": "Staff department has child departments",
+  "error": "Staff department has child departments"
+}
+```
+```json Error - Has Active Employments
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentHasActiveEmployments",
+  "message": "Staff department has active employments",
+  "error": "Staff department has active employments"
 }
 ```
 </ResponseExample>

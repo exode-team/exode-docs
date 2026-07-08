@@ -35,6 +35,12 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
   переименовать должность в уже существующее название в этой же школе вернёт ошибку.
 </Info>
 
+<Info>
+  Поле `extId` — внешний идентификатор должности из системы клиента (CRM/1C, например GUID). Уникален в рамках
+  школы среди неудалённых записей (уникальный индекс `school + extId`). От 1 до 50 символов, не может содержать
+  `/` и пробельные символы — значение используется в путях `ext/{extId}`.
+</Info>
+
 ## Список должностей
 
 ```
@@ -64,6 +70,10 @@ GET /saas/v2/staff/position/list
 
 <ParamField query="search" type="string" required={false}>
   Поиск по названию должности. Максимум 50 символов.
+</ParamField>
+
+<ParamField query="extIds" type="string[]" required={false}>
+  Фильтр по списку внешних идентификаторов (`extId`). До 250 значений, каждое — максимум 50 символов.
 </ParamField>
 
 <ParamField query="createdAt" type="enum" required={false}>
@@ -129,7 +139,8 @@ getPositionList();
         "updatedAt": "2026-07-02T11:15:47.260Z",
         "archivedAt": null,
         "schoolId": 198,
-        "name": "Staff Backend Engineer"
+        "name": "Staff Backend Engineer",
+        "extId": "e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47"
       },
       {
         "id": 3,
@@ -137,7 +148,8 @@ getPositionList();
         "updatedAt": "2026-07-02T11:15:47.207Z",
         "archivedAt": null,
         "schoolId": 198,
-        "name": "Backend Engineer"
+        "name": "Backend Engineer",
+        "extId": null
       }
     ],
     "next": {
@@ -168,6 +180,11 @@ POST /saas/v2/staff/position/create
 <ParamField body="name" type="string" required>
   Название должности. От 1 до 100 символов. Пробелы в начале и конце обрезаются автоматически. Должно быть
   уникальным в рамках школы.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  Внешний идентификатор должности из системы клиента (CRM/1C). От 1 до 50 символов, не может содержать `/` и
+  пробельные символы. Должен быть уникальным в рамках школы среди неудалённых записей.
 </ParamField>
 
 <RequestExample>
@@ -218,7 +235,8 @@ createPosition();
     "updatedAt": "2026-07-02T11:15:47.207Z",
     "archivedAt": null,
     "schoolId": 198,
-    "name": "Backend Engineer"
+    "name": "Backend Engineer",
+    "extId": null
   }
 }
 ```
@@ -229,6 +247,15 @@ createPosition();
   "cause": "StaffPositionNameIsNotUniq",
   "message": "Staff position name is not uniq",
   "error": "Staff position name is not uniq"
+}
+```
+```json Error - ExtId Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionExtIdIsNotUniq",
+  "message": "Staff position extId is not uniq",
+  "error": "Staff position extId is not uniq"
 }
 ```
 ```json Error - Forbidden
@@ -259,6 +286,11 @@ PUT /saas/v2/staff/position/{positionId}/update
 <ParamField body="name" type="string" required={false}>
   Новое название должности. От 1 до 100 символов. Пробелы в начале и конце обрезаются автоматически. Должно быть
   уникальным в рамках школы.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  Внешний идентификатор должности из системы клиента (CRM/1C). От 1 до 50 символов, не может содержать `/` и
+  пробельные символы. Должен быть уникальным в рамках школы среди неудалённых записей.
 </ParamField>
 
 <RequestExample>
@@ -309,7 +341,8 @@ updatePosition();
     "updatedAt": "2026-07-02T11:15:47.260Z",
     "archivedAt": null,
     "schoolId": 198,
-    "name": "Staff Backend Engineer"
+    "name": "Staff Backend Engineer",
+    "extId": null
   }
 }
 ```
@@ -320,6 +353,128 @@ updatePosition();
   "cause": "StaffPositionNameIsNotUniq",
   "message": "Staff position name is not uniq",
   "error": "Staff position name is not uniq"
+}
+```
+```json Error - ExtId Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionExtIdIsNotUniq",
+  "message": "Staff position extId is not uniq",
+  "error": "Staff position extId is not uniq"
+}
+```
+</ResponseExample>
+
+## Обновление должности по extId
+
+```
+PUT /saas/v2/staff/position/ext/{extId}/update
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+<Info>
+  Эндпоинт-аналог обновления по ID: должность находится по внешнему идентификатору `extId` в рамках школы.
+  Значение `extId` в пути должно быть URL-encoded.
+</Info>
+
+### Параметры
+
+<ParamField path="extId" type="string" required>
+  Внешний идентификатор (`extId`) обновляемой должности в рамках школы. Должен быть URL-encoded.
+</ParamField>
+
+<ParamField body="name" type="string" required={false}>
+  Новое название должности. От 1 до 100 символов. Пробелы в начале и конце обрезаются автоматически. Должно быть
+  уникальным в рамках школы.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  Новый внешний идентификатор должности. От 1 до 50 символов, не может содержать `/` и пробельные символы.
+  Должен быть уникальным в рамках школы среди неудалённых записей.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/position/ext/e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Staff Backend Engineer"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function updatePositionByExtId() {
+  const extId = encodeURIComponent('e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47');
+
+  const { data } = await axios.put(
+    `https://api.exode.biz/saas/v2/staff/position/ext/${extId}/update`,
+    {
+      name: 'Staff Backend Engineer',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+updatePositionByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 4,
+    "createdAt": "2026-07-02T11:15:47.216Z",
+    "updatedAt": "2026-07-02T11:15:47.260Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "name": "Staff Backend Engineer",
+    "extId": "e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47"
+  }
+}
+```
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotFound",
+  "message": "Staff position not found",
+  "error": "Staff position not found"
+}
+```
+```json Error - Name Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNameIsNotUniq",
+  "message": "Staff position name is not uniq",
+  "error": "Staff position name is not uniq"
+}
+```
+```json Error - ExtId Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionExtIdIsNotUniq",
+  "message": "Staff position extId is not uniq",
+  "error": "Staff position extId is not uniq"
 }
 ```
 </ResponseExample>
@@ -345,8 +500,8 @@ DELETE /saas/v2/staff/position/{positionId}/delete
 
 ### Ответ
 
-<ResponseField name="deleted" type="boolean" required>
-  Флаг успешного удаления должности.
+<ResponseField name="affected" type="integer" required>
+  Количество удалённых записей (`1` при успешном удалении).
 </ResponseField>
 
 <RequestExample>
@@ -384,7 +539,7 @@ deletePosition();
   "success": true,
   "code": 200,
   "payload": {
-    "deleted": true
+    "affected": 1
   }
 }
 ```
@@ -404,6 +559,97 @@ deletePosition();
   "cause": "Forbidden",
   "error": "Доступ к ресурсу ограничен",
   "message": "Доступ к ресурсу ограничен"
+}
+```
+</ResponseExample>
+
+## Удаление должности по extId
+
+```
+DELETE /saas/v2/staff/position/ext/{extId}/delete
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+<Warning>
+  Должность нельзя удалить, если на ней есть активные сотрудники. Сначала переведите сотрудников на другую
+  должность или уволите их.
+</Warning>
+
+<Info>
+  Эндпоинт-аналог удаления по ID: должность находится по внешнему идентификатору `extId` в рамках школы.
+  Значение `extId` в пути должно быть URL-encoded.
+</Info>
+
+### Параметры
+
+<ParamField path="extId" type="string" required>
+  Внешний идентификатор (`extId`) удаляемой должности в рамках школы. Должен быть URL-encoded.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="affected" type="integer" required>
+  Количество удалённых записей (`1` при успешном удалении).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/position/ext/e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function deletePositionByExtId() {
+  const extId = encodeURIComponent('e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47');
+
+  const { data } = await axios.delete(
+    `https://api.exode.biz/saas/v2/staff/position/ext/${extId}/delete`,
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+deletePositionByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotFound",
+  "message": "Staff position not found",
+  "error": "Staff position not found"
+}
+```
+```json Error - Has Active Employments
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionHasActiveEmployments",
+  "message": "Staff position has active employments",
+  "error": "Staff position has active employments"
 }
 ```
 </ResponseExample>

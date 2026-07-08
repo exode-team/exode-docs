@@ -8,8 +8,19 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 <HeaderParamFields/>
 
 <Info>
-    Отсутствие (`absence`) фиксирует период, когда сотрудник не работает: отпуск (`Vacation`), больничный
-    (`SickLeave`) или командировку (`BusinessTrip`). Отсутствие привязывается к трудоустройству сотрудника.
+    Отсутствие (`absence`) фиксирует период, когда сотрудник не работает: отсутствие без уточнения причины
+    (`Absent`), отпуск (`Vacation`), отгул (`DayOff`), командировку (`BusinessTrip`), больничный (`SickLeave`),
+    отпуск по уходу за ребёнком (`ParentalLeave`) или учебный отпуск (`StudyLeave`). Отсутствие привязывается
+    к трудоустройству сотрудника.
+</Info>
+
+<Info>
+    Создание, обновление и удаление отсутствия автоматически синхронизирует статус пользователя `Active` ↔
+    `OnLeave`: если у пользователя есть текущее (действующее на данный момент) отсутствие — статус становится
+    `OnLeave`, если текущих отсутствий не осталось — возвращается `Active`. `OnLeave` — информационный статус:
+    вход и доступ к платформе он **не** блокирует. Переходы не затрагивают пользователей в статусах `Blocked`
+    и `Terminated`. Синхронизация происходит в момент API-вызова: отсутствие с будущей датой начала не переключит
+    статус само по себе в момент наступления этой даты.
 </Info>
 
 <Warning>
@@ -47,6 +58,10 @@ GET /saas/v2/staff/absence/list
 
 #### Фильтрация
 
+<ParamField query="extIds" type="string[]" required={false}>
+    Фильтр по внешним идентификаторам (`extId`) отсутствий. До 250 значений, каждое до 50 символов.
+</ParamField>
+
 <ParamField query="employmentIds" type="integer[]" required={false}>
     Фильтр по ID трудоустройств. До 250 значений.
 </ParamField>
@@ -56,7 +71,8 @@ GET /saas/v2/staff/absence/list
 </ParamField>
 
 <ParamField query="types" type="enum[]" required={false}>
-    Фильтр по типам отсутствия. Возможные значения: `Vacation`, `SickLeave`, `BusinessTrip`. До 250 значений.
+    Фильтр по типам отсутствия. Возможные значения: `Absent`, `Vacation`, `DayOff`, `BusinessTrip`, `SickLeave`,
+    `ParentalLeave`, `StudyLeave`. До 250 значений.
 </ParamField>
 
 <ParamField query="currentOnly" type="boolean" required={false}>
@@ -76,7 +92,8 @@ GET /saas/v2/staff/absence/list
                 <ResponseField name="id" type="integer">ID отсутствия.</ResponseField>
                 <ResponseField name="schoolId" type="integer">ID школы.</ResponseField>
                 <ResponseField name="employmentId" type="integer">ID трудоустройства сотрудника.</ResponseField>
-                <ResponseField name="type" type="enum">Тип отсутствия: `Vacation`, `SickLeave` или `BusinessTrip`.</ResponseField>
+                <ResponseField name="extId" type="string | null">Внешний идентификатор из системы клиента. Уникален в рамках школы среди неудалённых записей.</ResponseField>
+                <ResponseField name="type" type="enum">Тип отсутствия: `Absent`, `Vacation`, `DayOff`, `BusinessTrip`, `SickLeave`, `ParentalLeave` или `StudyLeave`.</ResponseField>
                 <ResponseField name="startAt" type="string">Дата начала отсутствия (ISO 8601).</ResponseField>
                 <ResponseField name="finishAt" type="string | null">Дата окончания отсутствия (ISO 8601) или `null`.</ResponseField>
                 <ResponseField name="note" type="string | null">Комментарий к отсутствию.</ResponseField>
@@ -142,6 +159,7 @@ listAbsences();
         "archivedAt": null,
         "schoolId": 198,
         "employmentId": 9,
+        "extId": "1c-absence-2024-001",
         "type": "Vacation",
         "startAt": "2026-07-06T00:00:00.000Z",
         "finishAt": "2026-07-20T00:00:00.000Z",
@@ -183,13 +201,28 @@ POST /saas/v2/staff/absence/create
 
 ### Параметры запроса
 
-<ParamField body="employmentId" type="integer" required>
-    ID трудоустройства сотрудника, к которому относится отсутствие.
+<Info>
+    Трудоустройство указывается **ровно одним** из двух полей: `employmentId` или `employmentExtId`.
+</Info>
+
+<ParamField body="extId" type="string" required={false}>
+    Внешний идентификатор отсутствия из системы клиента. От 1 до 50 символов, без `/` и пробелов. Должен быть
+    уникален в рамках школы среди неудалённых записей — иначе вернётся ошибка `StaffAbsenceExtIdIsNotUniq`.
+</ParamField>
+
+<ParamField body="employmentId" type="integer" required={false}>
+    ID трудоустройства сотрудника, к которому относится отсутствие. Обязателен, если не передан `employmentExtId`.
+</ParamField>
+
+<ParamField body="employmentExtId" type="string" required={false}>
+    Внешний идентификатор (`extId`) трудоустройства. Альтернатива `employmentId` — обязателен, если не передан
+    `employmentId`. Если трудоустройство не найдено в школе — вернётся ошибка `StaffEmploymentNotFound`.
 </ParamField>
 
 <ParamField body="type" type="enum" required>
-    Тип отсутствия. Возможные значения: `Vacation` (отпуск), `SickLeave` (больничный), `BusinessTrip`
-    (командировка).
+    Тип отсутствия. Возможные значения: `Absent` (отсутствует), `Vacation` (отпуск), `DayOff` (отгул),
+    `BusinessTrip` (командировка), `SickLeave` (больничный), `ParentalLeave` (отпуск по уходу за ребёнком),
+    `StudyLeave` (учебный отпуск).
 </ParamField>
 
 <ParamField body="startAt" type="string" required>
@@ -212,6 +245,7 @@ curl --location 'https://api.exode.biz/saas/v2/staff/absence/create' \
   --header 'Content-Type: application/json' \
   --header 'Authorization: Bearer YOUR_TOKEN' \
   --data-raw '{
+    "extId": "1c-absence-2024-001",
     "employmentId": 9,
     "type": "Vacation",
     "startAt": "2026-07-06T00:00:00.000Z",
@@ -225,6 +259,7 @@ const axios = require('axios');
 
 const createAbsence = async () => {
   const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/absence/create', {
+    extId: '1c-absence-2024-001',
     employmentId: 9,
     type: 'Vacation',
     startAt: '2026-07-06T00:00:00.000Z',
@@ -258,6 +293,7 @@ createAbsence();
     "archivedAt": null,
     "schoolId": 198,
     "employmentId": 9,
+    "extId": "1c-absence-2024-001",
     "type": "Vacation",
     "startAt": "2026-07-06T00:00:00.000Z",
     "finishAt": "2026-07-20T00:00:00.000Z",
@@ -266,13 +302,33 @@ createAbsence();
 }
 ```
 
-```json Error - Invalid Date Range
+```json Error - Invalid Interval
 {
   "code": 400,
   "success": false,
-  "cause": "BadRequest",
-  "message": "startAt must be same or before finishAt",
-  "error": "startAt must be same or before finishAt"
+  "cause": "StaffAbsenceInvalidInterval",
+  "message": "Staff absence interval is invalid",
+  "error": "Staff absence interval is invalid"
+}
+```
+
+```json Error - ExtId Is Not Uniq
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffAbsenceExtIdIsNotUniq",
+  "message": "Staff absence extId is not uniq",
+  "error": "Staff absence extId is not uniq"
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff employment not found",
+  "error": "Staff employment not found"
 }
 ```
 </ResponseExample>
@@ -294,8 +350,14 @@ PUT /saas/v2/staff/absence/{absenceId}/update
     ID обновляемого отсутствия.
 </ParamField>
 
+<ParamField body="extId" type="string" required={false}>
+    Внешний идентификатор отсутствия из системы клиента. От 1 до 50 символов, без `/` и пробелов. Должен быть
+    уникален в рамках школы среди неудалённых записей — иначе вернётся ошибка `StaffAbsenceExtIdIsNotUniq`.
+</ParamField>
+
 <ParamField body="type" type="enum" required={false}>
-    Тип отсутствия. Возможные значения: `Vacation`, `SickLeave`, `BusinessTrip`.
+    Тип отсутствия. Возможные значения: `Absent`, `Vacation`, `DayOff`, `BusinessTrip`, `SickLeave`,
+    `ParentalLeave`, `StudyLeave`.
 </ParamField>
 
 <ParamField body="startAt" type="string" required={false}>
@@ -356,11 +418,139 @@ updateAbsence();
     "archivedAt": null,
     "schoolId": 198,
     "employmentId": 9,
+    "extId": "1c-absence-2024-001",
     "type": "Vacation",
     "startAt": "2026-07-06T00:00:00.000Z",
     "finishAt": "2026-07-20T00:00:00.000Z",
     "note": "Summer vacation (updated)"
   }
+}
+```
+
+```json Error - Invalid Interval
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffAbsenceInvalidInterval",
+  "message": "Staff absence interval is invalid",
+  "error": "Staff absence interval is invalid"
+}
+```
+
+```json Error - ExtId Is Not Uniq
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffAbsenceExtIdIsNotUniq",
+  "message": "Staff absence extId is not uniq",
+  "error": "Staff absence extId is not uniq"
+}
+```
+</ResponseExample>
+
+## Обновить отсутствие по extId
+
+```
+PUT /saas/v2/staff/absence/ext/{extId}/update
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+Аналог обновления по `absenceId`, но отсутствие идентифицируется внешним идентификатором (`extId`) в рамках
+школы. Тело запроса такое же, как у `PUT /saas/v2/staff/absence/{absenceId}/update`.
+
+### Параметры запроса
+
+<ParamField path="extId" type="string" required>
+    Внешний идентификатор обновляемого отсутствия. Передаётся в URL-encoded виде.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+    Новый внешний идентификатор отсутствия. От 1 до 50 символов, без `/` и пробелов. Должен быть уникален
+    в рамках школы среди неудалённых записей.
+</ParamField>
+
+<ParamField body="type" type="enum" required={false}>
+    Тип отсутствия. Возможные значения: `Absent`, `Vacation`, `DayOff`, `BusinessTrip`, `SickLeave`,
+    `ParentalLeave`, `StudyLeave`.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Дата начала отсутствия в формате ISO 8601. Должна быть не позже `finishAt`.
+</ParamField>
+
+<ParamField body="finishAt" type="string" required={false}>
+    Дата окончания отсутствия в формате ISO 8601. Должна быть не раньше `startAt`.
+</ParamField>
+
+<ParamField body="note" type="string" required={false}>
+    Комментарий к отсутствию. Максимум 500 символов.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/absence/ext/1c-absence-2024-001/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "note": "Summer vacation (updated)"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateAbsenceByExtId = async () => {
+  const extId = encodeURIComponent('1c-absence-2024-001');
+
+  const { data } = await axios.put(`https://api.exode.biz/saas/v2/staff/absence/ext/${extId}/update`, {
+    note: 'Summer vacation (updated)',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+updateAbsenceByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 2,
+    "createdAt": "2026-07-02T11:15:47.341Z",
+    "updatedAt": "2026-07-02T11:15:47.354Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "employmentId": 9,
+    "extId": "1c-absence-2024-001",
+    "type": "Vacation",
+    "startAt": "2026-07-06T00:00:00.000Z",
+    "finishAt": "2026-07-20T00:00:00.000Z",
+    "note": "Summer vacation (updated)"
+  }
+}
+```
+
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffAbsenceNotFound",
+  "message": "Staff absence not found",
+  "error": "Staff absence not found"
 }
 ```
 </ResponseExample>
@@ -381,8 +571,8 @@ DELETE /saas/v2/staff/absence/{absenceId}/delete
 
 ### Ответ
 
-<ResponseField name="deleted" type="boolean" required>
-    Флаг успешного удаления.
+<ResponseField name="affected" type="integer" required>
+    Количество удалённых записей (`1` при успешном удалении).
 </ResponseField>
 
 <RequestExample>
@@ -418,7 +608,7 @@ deleteAbsence();
   "success": true,
   "code": 200,
   "payload": {
-    "deleted": true
+    "affected": 1
   }
 }
 ```
@@ -430,6 +620,79 @@ deleteAbsence();
   "cause": "Forbidden",
   "error": "Доступ к ресурсу ограничен",
   "message": "Доступ к ресурсу ограничен"
+}
+```
+</ResponseExample>
+
+## Удалить отсутствие по extId
+
+```
+DELETE /saas/v2/staff/absence/ext/{extId}/delete
+```
+
+Требуется аутентификация и право `StaffManage`.
+
+Аналог удаления по `absenceId`, но отсутствие идентифицируется внешним идентификатором (`extId`) в рамках школы.
+
+### Параметры запроса
+
+<ParamField path="extId" type="string" required>
+    Внешний идентификатор удаляемого отсутствия. Передаётся в URL-encoded виде.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="affected" type="integer" required>
+    Количество удалённых записей (`1` при успешном удалении).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/absence/ext/1c-absence-2024-001/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const deleteAbsenceByExtId = async () => {
+  const extId = encodeURIComponent('1c-absence-2024-001');
+
+  const { data } = await axios.delete(`https://api.exode.biz/saas/v2/staff/absence/ext/${extId}/delete`, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+deleteAbsenceByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffAbsenceNotFound",
+  "message": "Staff absence not found",
+  "error": "Staff absence not found"
 }
 ```
 </ResponseExample>

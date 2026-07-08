@@ -15,7 +15,15 @@ POST /saas/v2/user/create
 
 ## Параметры запроса
 
-##### Для определения логина — передайте хотя бы один из ниже перечисленных параметров
+### Поля для входа (логин)
+
+Логином для входа в школу являются поля **`email`, `phone` и `domain`** — для автоматической отправки данных входа
+передайте хотя бы одно из них.
+
+<Warning>
+  `extId` и `tgId` **не являются логином** — авторизоваться по ним нельзя. Они используются только как
+  идентификаторы: `extId` — для связи с вашей CRM/LMS, `tgId` — для связи аккаунта с Telegram.
+</Warning>
 
 <Info>
   Логин и пароль для входа отправляется **автоматически**.
@@ -29,7 +37,7 @@ POST /saas/v2/user/create
 </Info>
 
 <Info>
-  Для отпарвки логина и пароля в Telegram — пользователь должен дать разрешение писать боту или иметь активный чат с
+  Для отправки логина и пароля в Telegram — пользователь должен дать разрешение писать боту или иметь активный чат с
   этим ботом
 </Info>
 
@@ -42,17 +50,39 @@ POST /saas/v2/user/create
   Номер телефона пользователя. Должен быть в международном формате (например, +9876543210). При передаче пустой строки — преобразуется в `null`.
 </ParamField>
 
+<ParamField body="domain" type="string" required={false}>
+  Доменный логин пользователя. До 65 символов: латинские буквы, цифры и `_` (автоматически приводится к нижнему
+  регистру). Должен быть уникальным в рамках школы. Если не передан — генерируется автоматически в формате
+  `id12345`. Удобен, когда логины формируются на вашей стороне и у пользователя нет email или телефона.
+</ParamField>
+
+### Идентификаторы для интеграции
+
+<ParamField body="extId" type="string" required={false}>
+  Внешний идентификатор пользователя из вашей системы (например, GUID из CRM/1С). Строка до 50 символов или `null`.
+  При передаче пустой строки — преобразуется в `null`. Используется для связи и поиска пользователя
+  (`user/find`, `user/upsert`), **для входа не используется**.
+</ParamField>
+
 <ParamField body="tgId" type="integer" required={false}>
   Telegram ID пользователя. Целое число или `null`.
 </ParamField>
 
-<ParamField body="extId" type="string" required={false}>
-  Внешний идентификатор пользователя из вашей системы. Строка до 50 символов или `null`. При передаче пустой
-  строки — преобразуется в `null`.
-</ParamField>
+### Дополнительные параметры
 
 <ParamField body="banned" type="boolean" required={false}>
   Создать пользователя сразу заблокированным. По умолчанию `false`.
+</ParamField>
+
+<ParamField body="status" type="enum" required={false}>
+  Статус учётной записи: `Active`, `OnLeave`, `Blocked` или `Terminated`. По умолчанию `Active`.
+  - `Active` — обычный доступ;
+  - `OnLeave` — «в отсутствии» (отпуск, больничный и т.п.): информационный статус, вход и доступ **не блокирует**.
+    Управляется автоматически модулем [отсутствий](/ru/exode-api/school/staff/absence);
+  - `Blocked` — заблокирован администратором: вход запрещён, активные сессии завершаются, зачисления на продукты
+    блокируются. Пользователь остаётся видимым в отчётах; возврат в `Active` восстанавливает доступ;
+  - `Terminated` — уволен: доступ закрыт так же, как у `Blocked`. Ставится автоматически при увольнении с последнего
+    активного трудоустройства; повторный найм возвращает `Active`.
 </ParamField>
 
 <ParamField body="password" type="string" required={false}>
@@ -96,6 +126,79 @@ POST /saas/v2/user/create
   создается пустой профиль, поля `firstName` и `lastName` будут заполнены пользователем при первом входе в аккаунт.
 </Info>
 
+### Дополнительные агрегаты (`extra`)
+
+<ParamField body="extra" type="object" required={false}>
+  Контейнер связанных данных, применяемых вместе с созданием пользователя. Сейчас содержит блок `staff`
+  (трудоустройства); в будущем будет расширяться другими агрегатами.
+
+  <Expandable title="Свойства extra">
+    <ParamField body="staff" type="object" required={false}>
+      Данные о трудоустройстве создаваемого сотрудника. Доступно **только для корпоративных школ**, для них блок
+      **обязателен** — сотрудник не может существовать без трудоустройства.
+
+      <Expandable title="Свойства staff">
+        <ParamField body="employments" type="array" required>
+          Массив трудоустройств (от 1 до 10). Несколько элементов — это совместительство: например, основное место
+          работы + внутреннее совместительство в другом департаменте.
+
+          Должность в каждом элементе указывается через `positionId` **или** `positionExtId`, департамент — через
+          `departmentId` **или** `departmentExtId` (внешние идентификаторы из вашей системы, см. разделы
+          [Должности](/ru/exode-api/school/staff/position) и [Департаменты](/ru/exode-api/school/staff/department)).
+
+          <Expandable title="Свойства элемента employments">
+            <ParamField body="extId" type="string" required={false}>
+              Внешний идентификатор трудоустройства из вашей системы. От 1 до 50 символов, без `/` и пробелов.
+              Уникален в рамках школы среди открытых трудоустройств.
+            </ParamField>
+
+            <ParamField body="positionId" type="integer" required={false}>
+              ID должности в Exode. Обязателен, если не передан `positionExtId`.
+            </ParamField>
+
+            <ParamField body="positionExtId" type="string" required={false}>
+              Внешний идентификатор должности из вашей системы. От 1 до 50 символов. Обязателен, если не передан
+              `positionId`.
+            </ParamField>
+
+            <ParamField body="departmentId" type="integer" required={false}>
+              ID департамента в Exode. Обязателен, если не передан `departmentExtId`.
+            </ParamField>
+
+            <ParamField body="departmentExtId" type="string" required={false}>
+              Внешний идентификатор департамента из вашей системы. От 1 до 50 символов. Обязателен, если не передан
+              `departmentId`.
+            </ParamField>
+
+            <ParamField body="kind" type="enum" required={false}>
+              Вид занятости: `Main` (основное место работы), `InternalSecondary` (внутреннее совместительство),
+              `ExternalSecondary` (внешнее совместительство). По умолчанию `Main`.
+            </ParamField>
+
+            <ParamField body="type" type="enum" required={false}>
+              Тип занятости: `FullTime` (полная) или `PartTime` (частичная). По умолчанию `FullTime`.
+            </ParamField>
+
+            <ParamField body="startAt" type="string" required={false}>
+              Дата начала трудоустройства в формате ISO 8601. По умолчанию — текущий момент.
+            </ParamField>
+
+            <ParamField body="rate" type="number" required={false}>
+              Ставка — доля полной ставки, от `0.01` до `1`. По умолчанию `1`.
+            </ParamField>
+          </Expandable>
+        </ParamField>
+      </Expandable>
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<Info>
+  Данные, которых нет в этой схеме (город, произвольный статус из CRM и т.п.), передаются через
+  [кастомные поля](/ru/exode-api/school/custom-field/set). Управление департаментами, должностями и
+  трудоустройствами после создания — в разделе [Сотрудники (HR)](/ru/exode-api/school/staff/employment).
+</Info>
+
 <RequestExample>
 ```bash cURL
 curl --location 'https://api.exode.biz/saas/v2/user/create' \
@@ -106,6 +209,7 @@ curl --location 'https://api.exode.biz/saas/v2/user/create' \
   --data-raw '{
     "email": "user@example.com",
     "phone": "+9876543210",
+    "domain": "i_ivanov",
     "extId": "crm_12345",
     "tgId": null,
     "password": "SecurePass123",
@@ -119,6 +223,39 @@ curl --location 'https://api.exode.biz/saas/v2/user/create' \
   }'
 ```
 
+```bash cURL (Corporate + staff)
+curl --location 'https://api.exode.biz/saas/v2/user/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "email": "user@example.com",
+    "domain": "i_ivanov",
+    "extId": "guid-1c-4f2a",
+    "status": "Active",
+    "profile": {
+      "firstName": "Firstname",
+      "lastName": "Lastname"
+    },
+    "extra": {
+      "staff": {
+        "employments": [
+          {
+            "extId": "emp-1c-0042",
+            "positionExtId": "pos_manager",
+            "departmentExtId": "dep_sales",
+            "kind": "Main",
+            "type": "FullTime",
+            "startAt": "2026-07-01T00:00:00Z",
+            "rate": 1
+          }
+        ]
+      }
+    }
+  }'
+```
+
 ```javascript Node.js
 const axios = require('axios');
 
@@ -127,6 +264,7 @@ const createUser = async () => {
     const response = await axios.post('https://api.exode.biz/saas/v2/user/create', {
       email: 'user@example.com',
       phone: '+9876543210',
+      domain: 'i_ivanov',
       extId: 'crm_12345',
       tgId: null,
       password: 'SecurePass123',
@@ -162,6 +300,7 @@ $url = 'https://api.exode.biz/saas/v2/user/create';
 $data = [
   'email' => 'user@example.com',
   'phone' => '+9876543210',
+  'domain' => 'i_ivanov',
   'extId' => 'crm_12345',
   'tgId' => null,
   'password' => 'SecurePass123',
@@ -212,6 +351,7 @@ url = 'https://api.exode.biz/saas/v2/user/create'
 data = {
   'email': 'user@example.com',
   'phone': '+9876543210',
+  'domain': 'i_ivanov',
   'extId': 'crm_12345',
   'tgId': None,
   'password': 'SecurePass123',
@@ -256,6 +396,7 @@ except requests.exceptions.RequestException as e:
 Данные = Новый Структура;
 Данные.Вставить("email", "user@example.com");
 Данные.Вставить("phone", "+9876543210");
+Данные.Вставить("domain", "i_ivanov");
 Данные.Вставить("extId", "crm_12345");
 Данные.Вставить("tgId", Неопределено);
 Данные.Вставить("password", "SecurePass123");
@@ -305,8 +446,9 @@ except requests.exceptions.RequestException as e:
       "active": true,
       "activated": true,
       "banned": false,
+      "status": "Active",
       "alive": true,
-      "domain": "id1683",
+      "domain": "i_ivanov",
       "email": "user@example.com",
       "phone": "+9876543210",
       "tgId": null,
@@ -395,6 +537,33 @@ except requests.exceptions.RequestException as e:
   "cause": "InvalidFirstName",
   "message": "First name must match required format",
   "error": "First name must match required format"
+}
+```
+```json Error - Domain Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "DomainIsBusy",
+  "message": "This domain is already taken",
+  "error": "This domain is already taken"
+}
+```
+```json Error - Domain Is Invalid
+{
+  "code": 400,
+  "success": false,
+  "cause": "DomainIsInvalid",
+  "message": "Domain is invalid",
+  "error": "Domain is invalid"
+}
+```
+```json Error - Staff Is Required (Corporate)
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInputRequired",
+  "message": "Staff employment input is required for Corporate school user",
+  "error": "Staff employment input is required for Corporate school user"
 }
 ```
 </ResponseExample>
