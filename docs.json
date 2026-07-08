@@ -44,6 +44,7 @@
           {
             "group": "Сотрудники (HR)",
             "pages": [
+              "ru/exode-api/school/staff/sync-guide",
               "ru/exode-api/school/staff/department",
               "ru/exode-api/school/staff/position",
               "ru/exode-api/school/staff/employment",
