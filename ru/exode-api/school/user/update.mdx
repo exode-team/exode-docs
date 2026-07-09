@@ -487,8 +487,8 @@ PUT /saas/v2/user/ext/{extId}/update
 ### Параметры
 
 <ParamField path="extId" type="string" required>
-  Внешний идентификатор пользователя в рамках школы. Значение в пути должно быть **URL-encoded**
-  (`encodeURIComponent`): у пользователя `extId` может содержать любые символы, включая `/` и пробелы.
+  Внешний идентификатор пользователя в рамках школы. Не может содержать `/` и пробельные символы;
+  не-ASCII значения (кириллица и т.п.) в пути должны быть **URL-encoded** (`encodeURIComponent`).
 </ParamField>
 
 <RequestExample>
