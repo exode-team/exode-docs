@@ -3,7 +3,7 @@
 Self-contained reference for the `@exode-team/sdk` package. Feed it to an LLM so the model
 can write correct integration code for the Exode platform without extra context.
 
-Package version: **0.1.2**
+Package version: **0.2.0**
 Repository: https://github.com/exode-team/exode-sdk
 npm: https://www.npmjs.com/package/@exode-team/sdk
 
@@ -23,7 +23,6 @@ Requirements: Node.js >= 18; TypeScript >= 5.7 (optional, types ship with packag
 React >= 17 (optional peer dep, only for `miniapp/react`). Dependency: `zod@^4`.
 
 Install: `npm install @exode-team/sdk`. CDN (miniapp IIFE):
-`https://cdn.exode.biz/sdk/v0.1.2/miniapp.global.js` (global `ExodeMiniAppSDK`).
 
 No root export — always import from a specific subpath.
 
