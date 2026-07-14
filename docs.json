@@ -36,6 +36,7 @@
               "ru/exode-api/school/user/upsert",
               "ru/exode-api/school/user/find",
               "ru/exode-api/school/user/find-many",
+              "ru/exode-api/school/user/list",
               "ru/exode-api/school/user/state",
               "ru/exode-api/school/user/delete-many",
               "ru/exode-api/school/user/session/auth-token"
@@ -98,6 +99,7 @@
           {
             "group": "Формы",
             "pages": [
+              "ru/exode-api/school/form-layout/list",
               "ru/exode-api/school/form-layout/create",
               "ru/exode-api/school/form-layout/update",
               "ru/exode-api/school/form-layout/delete"

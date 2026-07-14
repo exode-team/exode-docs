@@ -265,6 +265,9 @@ def exode_webhook():
     `data.payment` — объект [платежа](/ru/exode-api/objects/entities/payment) с полным деревом: `invoice`
     (счёт), `invoice.user` (покупатель с профилем и школой), `invoice.products` (позиции с продуктом/курсом,
     ценой и скидкой), `acquiring` (эквайринг и провайдер, без секретов). Денежные поля — числа.
+
+    Событие отправляется только при **реальном списании денег**: инициализация рекуррента (привязка карты,
+    нулевой платёж со статусом `BindingCompleted`) вебхук не вызывает.
 </Accordion>
 
 <Accordion title="ProductEnrolledToFree — выдан бесплатный доступ">

@@ -12,6 +12,12 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
     будут пропущены и возвращены в поле `skipped`.
 </Warning>
 
+<Info>
+    Удалённый пользователь получает статус `Deleted`: учётные данные затираются, вход невозможен, но данные
+    остаются для отчётов. В [`user/list`](/ru/exode-api/school/user/list) такие пользователи находятся фильтром
+    `statuses=Deleted`.
+</Info>
+
 ```
 DELETE /saas/v2/user/delete-many
 ```

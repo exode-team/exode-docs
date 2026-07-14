@@ -73,6 +73,7 @@ exodeApi.school.user.create(input: UserCreateInput): Promise<User | null>
 exodeApi.school.user.update(userId: number, input: UpdateUserInput): Promise<User | null>
 exodeApi.school.user.upsert(input: UpdateUserInput): Promise<{ user: User; isCreated: boolean }>
 exodeApi.school.user.find(input: { login?: string; tgId?: number; extId?: string }): Promise<User | null>
+exodeApi.school.user.list(params?: FilterUserInput & SortUserInput & ListInput): Promise<PaginatedList<User>>
 exodeApi.school.user.deleteMany(userIds: number[], reason: string): Promise<{ deleted: number[]; skipped: number[] }>
 exodeApi.school.user.getState(userId: number, key: UserStateKey): Promise<unknown>
 exodeApi.school.user.setState(userId: number, key: UserStateKey, value: unknown): Promise<boolean>
@@ -81,7 +82,8 @@ exodeApi.school.user.createAuthToken(input: { userId: number; forceCreate?: bool
 
 interface UserCreateInput {
   email?: string | null; phone?: string | null; tgId?: number | null
-  extId?: string | null; banned?: boolean | null
+  extId?: string | null
+  status?: 'Active' | 'OnLeave' | 'Banned' | 'Blocked' | 'Terminated' | null  // поле banned удалено из API
   profile?: {
     firstName?: string | null; lastName?: string | null
     bdate?: string | null                         // 'YYYY-MM-DD'
@@ -91,6 +93,8 @@ interface UserCreateInput {
   }
 }
 // UpdateUserInput = partial of the above (same shape, all optional).
+// FilterUserInput: search?, statuses?[](Active|OnLeave|Banned|Blocked|Terminated|Deleted), activated?,
+//   archived?, userIds?[], extIds?[], createdAtDateRange?{from,to}, lastOnlineAtDateRange?{from,to}
 ```
 
 `UserStateKey` writable keys: `UtmSignupParams`, `PersonalInfoFilled`, `OnBoardingProgress`, `ContentCategoryIds`
@@ -126,6 +130,8 @@ exodeApi.school.productAccess.list(params?: FilterAccessProductInput & ListInput
 ### 2.7 `school.form`
 
 ```ts
+exodeApi.school.form.layoutList(params?: FilterFormLayoutInput & BaseSortInput & ListInput):
+  Promise<PaginatedList<FormLayout>>
 exodeApi.school.form.layoutCreate(input: CreateFormLayoutInput): Promise<FormLayout>
 exodeApi.school.form.layoutUpdate(layoutId: number, input: UpdateFormLayoutInput): Promise<FormLayout>
 exodeApi.school.form.layoutDelete(layoutId: number): Promise<{ affected: number }>
@@ -198,7 +204,8 @@ interface User {
   id: number; uuid: string; domain: string
   email: string | null; phone: string | null; tgId: number | null; vkId: number | null
   appleId: string | null; extId: string | null; schoolId: number | null
-  active: boolean; activated: boolean; banned: boolean; alive: boolean | null
+  status: 'Active'|'OnLeave'|'Banned'|'Blocked'|'Terminated'|'Deleted'  // источник истины жизненного цикла
+  active: boolean; activated: boolean; banned: boolean; alive: boolean | null  // active/banned — производные от status
   language: 'Ru'|'Uz'|'En'|'Qa' | null; timezone: number | null; lastOnlineAt: string | null
   createdOnDomain: 'Ru'|'Uz'|'Kz'|'Biz'|'Global'; product: 'BizSchool'|'Marketplace'
   starsBalance: number; permissions: string[]

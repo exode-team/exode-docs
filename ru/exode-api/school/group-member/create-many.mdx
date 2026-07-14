@@ -370,11 +370,11 @@ except requests.exceptions.RequestException as e:
                 </ResponseField>
 
                 <ResponseField name="status" type="enum">
-                    Статус пользователя: `Active`, `OnLeave`, `Blocked`, `Terminated`.
+                    Статус пользователя: `Active`, `OnLeave`, `Banned`, `Blocked`, `Terminated`, `Deleted`.
                 </ResponseField>
 
                 <ResponseField name="active" type="boolean">
-                    Активен ли пользователь.
+                    Не удалён (производное от `status`).
                 </ResponseField>
 
                 <ResponseField name="activated" type="boolean">
@@ -382,7 +382,7 @@ except requests.exceptions.RequestException as e:
                 </ResponseField>
 
                 <ResponseField name="banned" type="boolean">
-                    Заблокирован ли пользователь.
+                    Забанен или удалён (производное от `status`).
                 </ResponseField>
 
                 <ResponseField name="domain" type="string">

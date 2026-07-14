@@ -60,22 +60,24 @@ PUT /saas/v2/user/upsert
 
 ### Дополнительные параметры
 
-<ParamField body="banned" type="boolean" required={false}>
-  Статус блокировки пользователя. При установке `true` все активные сессии пользователя будут завершены.
+<ParamField body="status" type="enum" required={false}>
+  Статус учётной записи: `Active`, `OnLeave`, `Banned`, `Blocked` или `Terminated`.
+  `OnLeave` — информационный (доступ не блокирует, управляется модулем
+  [отсутствий](/ru/exode-api/school/staff/absence)); `Banned`, `Blocked` и `Terminated` закрывают доступ: вход
+  запрещён, активные сессии завершаются, зачисления блокируются. `Terminated` управляется автоматически модулем
+  [трудоустройств](/ru/exode-api/school/staff/employment); при снятии бана (`Banned` → `Active`) фактический
+  статус пересчитывается автоматически. Статус `Deleted` зарезервирован системой. Подробнее — в
+  [`user/create`](/ru/exode-api/school/user/create) и [`user/update`](/ru/exode-api/school/user/update).
 </ParamField>
 
-<ParamField body="status" type="enum" required={false}>
-  Статус учётной записи: `Active`, `OnLeave`, `Blocked` или `Terminated`.
-  `OnLeave` — информационный (доступ не блокирует, управляется модулем
-  [отсутствий](/ru/exode-api/school/staff/absence)); `Blocked` и `Terminated` закрывают доступ: вход запрещён,
-  активные сессии завершаются, зачисления блокируются. `Terminated` управляется автоматически модулем
-  [трудоустройств](/ru/exode-api/school/staff/employment). Подробнее — в
-  [`user/create`](/ru/exode-api/school/user/create).
-</ParamField>
+<Info>
+  Булево поле `banned` из запроса **удалено** — блокировка управляется только через `status`. В ответе поля
+  `banned` и `active` по-прежнему присутствуют как производные от `status`.
+</Info>
 
 <Warning>
-  Владелец школы защищён: если апсерт находит владельца, перевод его в `banned: true` или блокирующий статус
-  (`Blocked`/`Terminated`) запрещён — вернётся ошибка `ForbiddenModifySchoolOwner`.
+  Владелец школы защищён: если апсерт находит владельца, перевод его в блокирующий статус
+  (`Banned`/`Blocked`/`Terminated`) запрещён — вернётся ошибка `ForbiddenModifySchoolOwner`.
 </Warning>
 
 ### Параметры профиля
@@ -144,7 +146,7 @@ curl --location --request PUT 'https://api.exode.biz/saas/v2/user/upsert' \
     "phone": "+9876543210",
     "extId": "crm_12345",
     "tgId": null,
-    "banned": false,
+    "status": "Active",
     "profile": {
       "firstName": "Firstname",
       "lastName": "Lastname",
@@ -165,7 +167,7 @@ const upsertUser = async () => {
       phone: '+9876543210',
       extId: 'crm_12345',
       tgId: null,
-      banned: false,
+      status: 'Active',
       profile: {
         firstName: 'Firstname',
         lastName: 'Lastname',
@@ -201,7 +203,7 @@ $data = [
   'phone' => '+9876543210',
   'extId' => 'crm_12345',
   'tgId' => null,
-  'banned' => false,
+  'status' => 'Active',
   'profile' => [
     'firstName' => 'Firstname',
     'lastName' => 'Lastname',
@@ -252,7 +254,7 @@ data = {
   'phone': '+9876543210',
   'extId': 'crm_12345',
   'tgId': None,
-  'banned': False,
+  'status': 'Active',
   'profile': {
     'firstName': 'Firstname',
     'lastName': 'Lastname',
@@ -297,7 +299,7 @@ except requests.exceptions.RequestException as e:
 Данные.Вставить("phone", "+9876543210");
 Данные.Вставить("extId", "crm_12345");
 Данные.Вставить("tgId", Неопределено);
-Данные.Вставить("banned", Ложь);
+Данные.Вставить("status", "Active");
 Данные.Вставить("profile", Профиль);
 
 // Serialize body to JSON
@@ -587,7 +589,8 @@ except requests.exceptions.RequestException as e:
 </Warning>
 
 <Info>
-  При установке статуса `banned: true` все активные сессии пользователя **автоматически завершаются** — это
+  При установке блокирующего статуса (`Banned`/`Blocked`/`Terminated`) все активные сессии пользователя
+  **автоматически завершаются** — это
   реализовано для обеспечения безопасности.
 </Info>
 

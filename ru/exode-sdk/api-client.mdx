@@ -90,6 +90,13 @@ const { user: u, isCreated } = await exodeApi.school.user.upsert({
 // Find — exactly one of login | tgId | extId
 const found = await exodeApi.school.user.find({ login: 'student@example.com' })
 
+// List — filter (statuses/search/extIds/date ranges) + sort + pagination
+const { items } = await exodeApi.school.user.list({ statuses: ['Active', 'OnLeave'], take: 50 })
+
+// Ban / unban — via status (the `banned` flag was removed from the API)
+await exodeApi.school.user.update(user.id, { status: 'Banned' })
+await exodeApi.school.user.update(user.id, { status: 'Active' }) // фактический статус пересчитается сам
+
 // Delete (≤250 at a time) — { deleted, skipped }
 const { deleted, skipped } = await exodeApi.school.user.deleteMany([1, 2, 3], 'Access revocation')
 
@@ -146,6 +153,7 @@ const { items } = await exodeApi.school.invoice.list({ types: ['Regular'], take:
 
 ```ts
 // Form layouts
+const { items: layouts } = await exodeApi.school.form.layoutList({ modes: ['Signup'], take: 20 })
 const layout = await exodeApi.school.form.layoutCreate({ mode: 'Custom', name: 'Survey', internalName: 'survey' })
 await exodeApi.school.form.layoutUpdate(layout.id, { status: 'Published' })
 await exodeApi.school.form.layoutDelete(layout.id) // → { affected }

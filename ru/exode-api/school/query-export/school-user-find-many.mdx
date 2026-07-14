@@ -35,16 +35,8 @@ description: "Выгрузка пользователей школы с проф
       Поиск по тексту (имя, email, телефон, домен), до 50 символов.
     </ParamField>
 
-    <ParamField body="active" type="boolean">
-      Только активные (`true`) или отключённые (`false`) пользователи.
-    </ParamField>
-
     <ParamField body="activated" type="boolean">
       Фильтр по признаку подтверждённого входа.
-    </ParamField>
-
-    <ParamField body="banned" type="boolean">
-      Фильтр по признаку блокировки.
     </ParamField>
 
     <ParamField body="archived" type="boolean">
@@ -52,7 +44,9 @@ description: "Выгрузка пользователей школы с проф
     </ParamField>
 
     <ParamField body="statuses" type="string[]">
-      Фильтр по статусам учётной записи. Массив из значений: `Active`, `OnLeave`, `Blocked`, `Terminated`.
+      Фильтр по статусам учётной записи. Массив из значений: `Active`, `OnLeave`, `Banned`, `Blocked`,
+      `Terminated`, `Deleted`. Поля `active`/`banned` из фильтра **удалены** — используйте `statuses`
+      (например, заблокированные — `["Banned", "Blocked"]`).
     </ParamField>
 
     <ParamField body="createdAtDateRange" type="object">

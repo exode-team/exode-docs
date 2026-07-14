@@ -41,25 +41,31 @@ PUT /saas/v2/user/:userId/update
   значение в `null`). Логином не является — используется только для связи с вашей CRM/LMS и поиска пользователя.
 </ParamField>
 
-<ParamField body="banned" type="boolean" required={false}>
-  Статус блокировки пользователя. При установке `true` все активные сессии пользователя будут завершены.
-</ParamField>
-
 <ParamField body="status" type="enum" required={false}>
-  Статус учётной записи: `Active`, `OnLeave`, `Blocked` или `Terminated`.
+  Статус учётной записи: `Active`, `OnLeave`, `Banned`, `Blocked` или `Terminated`.
   - `Active` — обычный доступ;
   - `OnLeave` — «в отсутствии»: информационный статус, доступ **не блокирует**. Управляется автоматически модулем
     [отсутствий](/ru/exode-api/school/staff/absence) — вручную устанавливать не рекомендуется;
+  - `Banned` — забанен: вход запрещён, активные сессии завершаются. Чтобы снять бан — передайте `Active`:
+    фактический статус пересчитается автоматически по трудоустройствам и отсутствиям (`Terminated` / `OnLeave` /
+    `Active`), поэтому уволенный до бана сотрудник не получит доступ по ошибке;
   - `Blocked` — заблокирован: вход запрещён, активные сессии завершаются, зачисления на продукты блокируются.
     Возврат в `Active` восстанавливает доступ;
   - `Terminated` — уволен: доступ закрыт так же, как у `Blocked`. Управляется автоматически модулем
     [трудоустройств](/ru/exode-api/school/staff/employment) (увольнение с последнего активного трудоустройства);
     при увольнении используйте `staff/employment/terminate`, а не прямую установку статуса.
+
+  Статус `Deleted` зарезервирован системой (удаление аккаунта) — передать его нельзя.
 </ParamField>
 
+<Info>
+  Булево поле `banned` из запроса **удалено** — блокировка управляется только через `status` (`Banned` /
+  `Blocked`). В ответе поля `banned` и `active` по-прежнему присутствуют как производные от `status`.
+</Info>
+
 <Warning>
-  Владелец школы защищён: другой администратор не может изменить его данные, а перевод владельца в `banned: true`
-  или блокирующий статус (`Blocked`/`Terminated`) запрещён даже для него самого — вернётся ошибка
+  Владелец школы защищён: другой администратор не может изменить его данные, а перевод владельца в блокирующий
+  статус (`Banned`/`Blocked`/`Terminated`) запрещён даже для него самого — вернётся ошибка
   `ForbiddenModifySchoolOwner`.
 </Warning>
 
@@ -122,7 +128,7 @@ curl --location --request PUT 'https://api.exode.biz/saas/v2/user/123/update' \
     "phone": "+9876543210",
     "extId": "crm_12345",
     "tgId": null,
-    "banned": false,
+    "status": "Active",
     "profile": {
       "firstName": "UpdatedFirstname",
       "lastName": "UpdatedLastname",
@@ -143,7 +149,7 @@ const updateUser = async (userId) => {
       phone: '+9876543210',
       extId: 'crm_12345',
       tgId: null,
-      banned: false,
+      status: 'Active',
       profile: {
         firstName: 'UpdatedFirstname',
         lastName: 'UpdatedLastname',
@@ -179,7 +185,7 @@ $data = [
   'phone' => '+9876543210',
   'extId' => 'crm_12345',
   'tgId' => null,
-  'banned' => false,
+  'status' => 'Active',
   'profile' => [
     'firstName' => 'UpdatedFirstname',
     'lastName' => 'UpdatedLastname',
@@ -230,7 +236,7 @@ data = {
   'phone': '+9876543210',
   'extId': 'crm_12345',
   'tgId': None,
-  'banned': False,
+  'status': 'Active',
   'profile': {
     'firstName': 'UpdatedFirstname',
     'lastName': 'UpdatedLastname',
@@ -274,7 +280,7 @@ except requests.exceptions.RequestException as e:
 Данные.Вставить("phone", "+9876543210");
 Данные.Вставить("extId", "crm_12345");
 Данные.Вставить("tgId", Неопределено);
-Данные.Вставить("banned", Ложь);
+Данные.Вставить("status", "Active");
 Данные.Вставить("profile", Профиль);
 
 // Serialize body to JSON
@@ -558,6 +564,7 @@ updateUserByExtId('i.ivanov.01011990');
 </Warning>
 
 <Info>
-  При установке статуса `banned: true` все активные сессии пользователя **автоматически завершаются** — это
+  При установке блокирующего статуса (`Banned`/`Blocked`/`Terminated`) все активные сессии пользователя
+  **автоматически завершаются** — это
   реализовано для обеспечения безопасности.
 </Info>

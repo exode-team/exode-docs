@@ -28,6 +28,7 @@
 | PUT | `/saas/v2/user/:userId/update` | Обновить пользователя | `SchoolManageUsers` | — | `ru/exode-api/school/user/update` |
 | PUT | `/saas/v2/user/upsert` | Создать или обновить (по email/phone/tgId/extId) | `SchoolManageUsers` | — | `ru/exode-api/school/user/upsert` |
 | GET | `/saas/v2/user/find` | Найти пользователя (login \| tgId \| extId) | `SchoolManageUsers` | — | `ru/exode-api/school/user/find` |
+| GET | `/saas/v2/user/list` | Постраничный список пользователей школы | `SchoolManageUsers` | — | `ru/exode-api/school/user/list` |
 | DELETE | `/saas/v2/user/delete-many` | Массовое удаление (userIds ≤250, reason) | `SchoolManageUsers` | — | `ru/exode-api/school/user/delete-many` |
 | PUT | `/saas/v2/user/:userId/state/set?key=` | Записать состояние по ключу | `SchoolManageUsers` | — | `ru/exode-api/school/user/state` |
 | GET | `/saas/v2/user/:userId/state/get?key=` | Прочитать состояние по ключу | `SchoolManageUsers` | — | `ru/exode-api/school/user/state` |
@@ -39,6 +40,7 @@
 | GET | `/saas/v2/course/:courseId/progresses` | Прогресс участников по курсу | `CourseCurator` \| `SchoolManageUsers` | — | `ru/exode-api/school/course/progresses` |
 | GET | `/saas/v2/invoice/list/raw` | Список счетов | `SellerSales` | — | `ru/exode-api/school/invoice/list` |
 | GET | `/saas/v2/product-access/list/raw` | Список доступов к продуктам | `SchoolManageUsers` \| `CourseStudentManage` | — | `ru/exode-api/school/product-access/list` |
+| GET | `/saas/v2/form/layout/list` | Список макетов форм | `FormManage` | — | `ru/exode-api/school/form-layout/list` |
 | POST | `/saas/v2/form/layout/create` | Создать макет формы | `FormManage` | — | `ru/exode-api/school/form-layout/create` |
 | PUT | `/saas/v2/form/layout/:layoutId/update` | Обновить макет формы | `FormManage` | — | `ru/exode-api/school/form-layout/update` |
 | DELETE | `/saas/v2/form/layout/:layoutId/delete` | Удалить макет формы | `FormManage` | — | `ru/exode-api/school/form-layout/delete` |
@@ -51,10 +53,11 @@
 ## Параметры и ответы по методам
 
 ### Users
-- **create** (body `CreateUserInput`): `email?`, `phone?` (междунар.), `tgId?`, `extId?` (≤50), `banned?`, `profile?` `{ firstName?(≤15), lastName?(≤15), bdate?(YYYY-MM-DD), sex?(Ufo|Women|Men), role?(Student|Tutor|Parent), contact?{phone,email,messengerUrl} }`. Ответ: `{ user: userWithProfile }`.
-- **update** (path `userId`, body `UpdateUserInput` — все поля create опциональны). Ответ: `{ user }`.
+- **create** (body `CreateUserInput`): `email?`, `phone?` (междунар.), `tgId?`, `extId?` (≤50), `status?`(Active|OnLeave|Banned|Blocked|Terminated; поле `banned` удалено, `Deleted` — только системный), `profile?` `{ firstName?(≤15), lastName?(≤15), bdate?(YYYY-MM-DD), sex?(Ufo|Women|Men), role?(Student|Tutor|Parent), contact?{phone,email,messengerUrl} }`. Ответ: `{ user: userWithProfile }`.
+- **update** (path `userId`, body `UpdateUserInput` — все поля create опциональны). Ответ: `{ user }`. Разбан: передать `status: Active` — фактический статус пересчитается по трудоустройствам/отсутствиям.
 - **upsert** (body `UpdateUserInput`). Ответ: `{ user, isCreated: boolean }`.
 - **find** (query): ровно одно из `login`(2..50) | `tgId` | `extId`(1..50). Ответ: `{ user | null }`.
+- **list** (query `FilterUserInput`, все опц.): `search`(≤50), `statuses[]`(Active|OnLeave|Banned|Blocked|Terminated|Deleted), `activated`, `archived`, `userIds[]`, `extIds[]`(≤250), `createdAtDateRange{from,to}`, `lastOnlineAtDateRange{from,to}`; сортировка `id|createdAt|lastOnlineAt`(ASC|DESC) + пагинация. Ответ: страница `userWithProfile[]`. Поля `active`/`banned` из фильтра удалены — используйте `statuses`.
 - **delete-many** (body): `userIds: number[] (≤250)`, `reason: string (≤256)`. Ответ: `{ deleted: number[], skipped: number[] }`.
 - **state set** (path `userId`, query `key`, body `{ value }`). Ответ: `{ set: boolean }`.
 - **state get** (path `userId`, query `key`). Ответ: `{ value: any | null }`.
@@ -77,6 +80,7 @@
 - **list/raw** (query `FilterAccessProductInput`, все опц.): `accessIds[]`, `active`, `userIds[]`, `enrolledByUserIds[]`, `participantCuratorIds[]`, `launchIds[]`, `currentLessonIds[]`, `search`(≤50), `participantStatuses[]`(InUse|Completed), `withParent`, диапазоны `expireAtDateRange`/`createdAtDateRange`/`progressPercentRange`; биллинг: `billingActive`, `hasProductBillingTypes[]`(Installment|Subscription), `billingStatuses[]`, `billingIntervals[]`(Week|Month|Year), `billingInvoiceIds[]`, `billingAmountRange`, `billingCurrentPaymentAtDateRange`, `billingNextPaymentAtDateRange`; вложенные `product`/`price`/`user` + пагинация. Ответ items: `{ accessId, productId, courseId?, active, expireAt?, user{id,extId?,tgId?,login?,email?,phone?,fullName?} }`.
 
 ### Form
+- **layout/list** (query `FilterFormLayoutInput`, все опц.): `layoutIds[]`, `layoutUuids[]`, `slugs[]`, `modes[]`(Form|Signup|Custom|Welcome|Participant), `statuses[]`(Draft|Published), `productIds[]`, `search`(≤50); сортировка `id|createdAt`(ASC|DESC) + пагинация. Ответ: страница `formLayout[]`.
 - **layout/create** (body `CreateFormLayoutInput`): `mode!`(Form|Signup|Custom|Welcome|Participant), `name!`(≤255), `internalName!`(≤255), `status?`(Draft|Published), `slug?`(1..50), `note?`(≤255), `productIds?[]`, `config?{resubmitMode(NewFill|Overwrite|NotAllowed)}`. Ответ: `formLayout`.
 - **layout/:layoutId/update** (body = PartialType create). Ответ: `formLayout`.
 - **layout/:layoutId/delete**. Ответ: `{ affected }`.
@@ -93,7 +97,7 @@
 
 Общие поля аудита у большинства: `id, createdAt, updatedAt, deletedAt?, archivedAt?`. Даты — ISO 8601, деньги — числа.
 
-- **user**: `+ uuid, active, activated, banned, alive?, domain, email?, phone?, tgId?, vkId?, appleId?, extId?, schoolId?, language?(Ru|Uz|En|Qa), timezone?, lastOnlineAt?, createdOnDomain(Ru|Uz|Kz|Biz|Global), product(BizSchool|Marketplace), starsBalance, permissions[]`. `userWithProfile = user + profile?`.
+- **user**: `+ uuid, status(Active|OnLeave|Banned|Blocked|Terminated|Deleted — источник истины), active(производное: не Deleted), activated, banned(производное: Banned|Deleted), alive?(статус не блокирующий), domain, email?, phone?, tgId?, vkId?, appleId?, extId?, schoolId?, language?(Ru|Uz|En|Qa), timezone?, lastOnlineAt?, createdOnDomain(Ru|Uz|Kz|Biz|Global), product(BizSchool|Marketplace), starsBalance, permissions[]`. `userWithProfile = user + profile?`.
 - **profile**: `+ userId?, official, firstName?, lastName?, fullName?, fullNameShort?, avatar, bdate?, sex(Ufo|Women|Men), country?, city?, role(Student|Tutor|Parent), status?, title?, emojiTitle?, titleState{...}`.
 - **session**: `+ uuid, userId?, deviceUuid, token, alive, isOnline, launcher, appLocation?, appLocationParams, appVersion?, language?, timezone?, lastActivityAt?, expireAt?`.
 - **group**: `+ uuid, space(Education), name, order?, maxMembers?, communication, accessLimitation, scheduleLimitation, contentLimitation, isTgConnected?, tgConnectionMode?(Disconnected|Connected|Required)`.
@@ -128,7 +132,7 @@
   - `CourseProgressChanged`: `{ user, course, product?, groups?, status?, lessonId? }`.
   - `CourseCompleted`: `{ user, course, product?, groups? }`.
   - `CourseLessonPracticeCompleted`: `{ user, course?, lesson?, practice?, attempt?, variantId? }`.
-  - `PaymentCompleted`: `{ payment }` (с деревом invoice/products/acquiring).
+  - `PaymentCompleted`: `{ payment }` (с деревом invoice/products/acquiring). Отправляется только при реальном списании: привязка карты (recurrent init, `BindingCompleted`) событие не вызывает.
   - `ProductEnrolledToFree`: `{ user, profile?, access?, product?, course? }`.
   - `SchoolCreated`: `{ school(+seller?) }` — только системный уровень (не для подписки продавцом).
 

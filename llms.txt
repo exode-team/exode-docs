@@ -18,6 +18,7 @@
 - [Обновление пользователя](https://docs.exode.biz/ru/exode-api/school/user/update): `PUT /saas/v2/user/:userId/update`.
 - [Апсерт пользователя](https://docs.exode.biz/ru/exode-api/school/user/upsert): `PUT /saas/v2/user/upsert`.
 - [Поиск пользователя](https://docs.exode.biz/ru/exode-api/school/user/find): `GET /saas/v2/user/find`.
+- [Список пользователей](https://docs.exode.biz/ru/exode-api/school/user/list): `GET /saas/v2/user/list`.
 - [Удаление пользователей](https://docs.exode.biz/ru/exode-api/school/user/delete-many): `DELETE /saas/v2/user/delete-many`.
 - [Состояния пользователя](https://docs.exode.biz/ru/exode-api/school/user/state): `GET|PUT /saas/v2/user/:userId/state/{get,set}`.
 - [Токен сессии](https://docs.exode.biz/ru/exode-api/school/user/session/auth-token): `POST /saas/v2/user/session/auth-token` (авто-логин через `?___uat=<token>`).
@@ -40,6 +41,7 @@
 
 ## Методы — Формы и кастомные поля
 
+- [Список макетов форм](https://docs.exode.biz/ru/exode-api/school/form-layout/list): `GET /saas/v2/form/layout/list`.
 - [Создание макета формы](https://docs.exode.biz/ru/exode-api/school/form-layout/create): `POST /saas/v2/form/layout/create`.
 - [Обновление макета формы](https://docs.exode.biz/ru/exode-api/school/form-layout/update): `PUT /saas/v2/form/layout/:layoutId/update`.
 - [Удаление макета формы](https://docs.exode.biz/ru/exode-api/school/form-layout/delete): `DELETE /saas/v2/form/layout/:layoutId/delete`.

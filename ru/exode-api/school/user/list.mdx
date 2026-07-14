@@ -1,0 +1,239 @@
+---
+title: "Список пользователей"
+description: "Постраничный список пользователей школы с фильтрацией по статусам, датам и поиском"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/user/list
+```
+
+Требуется аутентификация и право `SchoolManageUsers`.
+
+<Info>
+    Все параметры фильтрации необязательны. Без фильтров метод вернёт всех пользователей школы с учётом
+    пагинации. Каждый элемент ответа — объект
+    [`userWithProfile`](/ru/exode-api/objects/entities/user) (пользователь с вложенным профилем).
+</Info>
+
+<Info>
+    Параметры-массивы передаются повторением параметра: `statuses=Active&statuses=OnLeave`. Диапазоны дат —
+    вложенными полями: `createdAtDateRange[from]=2026-01-01&createdAtDateRange[to]=2026-02-01`.
+</Info>
+
+## Параметры запроса
+
+### Пагинация
+
+<ParamField query="take" type="integer" required={false}>
+    Количество записей на странице. От `1` до `1000`. По умолчанию `100`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Номер страницы (начиная с `1`). Альтернатива `skip`.
+</ParamField>
+
+<ParamField query="skip" type="integer" required={false}>
+    Количество записей, которые нужно пропустить. По умолчанию `0`.
+</ParamField>
+
+### Фильтрация
+
+<ParamField query="search" type="string" required={false}>
+    Поиск по имени, фамилии, email, телефону и доменному логину. Максимум 50 символов.
+</ParamField>
+
+<ParamField query="statuses" type="enum[]" required={false}>
+    Фильтр по статусам учётной записи: `Active`, `OnLeave`, `Banned`, `Blocked`, `Terminated`, `Deleted`.
+    Описание статусов — в справочнике [`user`](/ru/exode-api/objects/entities/user).
+</ParamField>
+
+<ParamField query="activated" type="boolean" required={false}>
+    Фильтр по признаку подтверждённого входа (`true`/`false`).
+</ParamField>
+
+<ParamField query="archived" type="boolean" required={false}>
+    Фильтр по архивности: `true` — только архивированные, `false` — только неархивированные.
+</ParamField>
+
+<ParamField query="userIds" type="integer[]" required={false}>
+    Фильтр по ID пользователей.
+</ParamField>
+
+<ParamField query="extIds" type="string[]" required={false}>
+    Фильтр по внешним идентификаторам из вашей системы. От 1 до 50 символов каждый, максимум 250 элементов.
+</ParamField>
+
+<ParamField query="createdAtDateRange" type="object" required={false}>
+    Диапазон даты создания: `createdAtDateRange[from]`, `createdAtDateRange[to]` (ISO 8601).
+</ParamField>
+
+<ParamField query="lastOnlineAtDateRange" type="object" required={false}>
+    Диапазон последней активности: `lastOnlineAtDateRange[from]`, `lastOnlineAtDateRange[to]` (ISO 8601).
+</ParamField>
+
+### Сортировка
+
+<ParamField query="id" type="enum" required={false}>
+    Сортировка по ID: `ASC` или `DESC`.
+</ParamField>
+
+<ParamField query="createdAt" type="enum" required={false}>
+    Сортировка по дате создания: `ASC` или `DESC`.
+</ParamField>
+
+<ParamField query="lastOnlineAt" type="enum" required={false}>
+    Сортировка по последней активности: `ASC` или `DESC`.
+</ParamField>
+
+## Поля ответа
+
+<ResponseField name="payload" type="object">
+    Постраничный список пользователей. Структура элемента — в справочнике
+    [`user`](/ru/exode-api/objects/entities/user).
+
+    <Expandable title="Свойства payload">
+        <ResponseField name="items" type="object[]">
+            Массив объектов `userWithProfile`.
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Текущая страница.</ResponseField>
+        <ResponseField name="count" type="integer">Общее количество записей.</ResponseField>
+        <ResponseField name="pages" type="integer">Общее количество страниц.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Признак первой страницы.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Признак последней страницы.</ResponseField>
+        <ResponseField name="next" type="object">Параметры следующей страницы (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Параметры предыдущей страницы (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/user/list?take=50&statuses=Active&statuses=OnLeave&createdAt=DESC' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listUsers = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/user/list', {
+    params: { take: 50, statuses: ['Active', 'OnLeave'], createdAt: 'DESC' },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listUsers();
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/user/list'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={
+  'take': 50,
+  'statuses': ['Active', 'OnLeave'],
+  'createdAt': 'DESC',
+}, headers=headers)
+
+print(response.json()['payload']['items'])
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/user/list?take=50&statuses=Active&statuses=OnLeave&createdAt=DESC");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Список пользователей получен");
+Иначе
+    Сообщить("Ошибка: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 245,
+    "pages": 5,
+    "isFirst": true,
+    "isLast": false,
+    "items": [
+      {
+        "id": 1683,
+        "createdAt": "2026-07-02T11:15:46.896Z",
+        "updatedAt": "2026-07-02T11:15:46.940Z",
+        "archivedAt": null,
+        "uuid": "e-cjTT0CWMCB",
+        "active": true,
+        "activated": true,
+        "banned": false,
+        "status": "Active",
+        "alive": true,
+        "domain": "id1683",
+        "email": "user@example.com",
+        "phone": null,
+        "tgId": null,
+        "vkId": null,
+        "appleId": null,
+        "extId": "crm_12345",
+        "schoolId": 198,
+        "language": null,
+        "timezone": null,
+        "lastOnlineAt": null,
+        "starsBalance": 0,
+        "profile": {
+          "id": 1665,
+          "userId": 1683,
+          "official": false,
+          "firstName": "Firstname",
+          "lastName": "Lastname",
+          "fullName": "Firstname Lastname",
+          "sex": "Ufo",
+          "role": "Student"
+        }
+      }
+    ],
+    "next": { "skip": 50, "take": 50, "page": 2 },
+    "prev": { "skip": 0, "take": 50, "page": 1 }
+  }
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+    Требуется аутентификация по токену и право управления пользователями школы (`SchoolManageUsers`).
+</Check>

@@ -1,0 +1,225 @@
+---
+title: "Список макетов форм"
+description: "Постраничный список макетов форм школы с фильтрацией по режиму, статусу и поиском"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/form/layout/list
+```
+
+Требуется аутентификация и право `FormManage`.
+
+<Info>
+    Все параметры фильтрации необязательны. Без фильтров метод вернёт все макеты форм школы с учётом пагинации.
+    Структура макета — как в ответе [`form/layout/create`](/ru/exode-api/school/form-layout/create).
+</Info>
+
+<Info>
+    Параметры-массивы передаются повторением параметра: `modes=Form&modes=Signup`.
+</Info>
+
+## Параметры запроса
+
+### Пагинация
+
+<ParamField query="take" type="integer" required={false}>
+    Количество записей на странице. От `1` до `1000`. По умолчанию `100`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Номер страницы (начиная с `1`). Альтернатива `skip`.
+</ParamField>
+
+<ParamField query="skip" type="integer" required={false}>
+    Количество записей, которые нужно пропустить. По умолчанию `0`.
+</ParamField>
+
+### Фильтрация
+
+<ParamField query="layoutIds" type="integer[]" required={false}>
+    Фильтр по ID макетов.
+</ParamField>
+
+<ParamField query="layoutUuids" type="string[]" required={false}>
+    Фильтр по UUID макетов.
+</ParamField>
+
+<ParamField query="slugs" type="string[]" required={false}>
+    Фильтр по slug'ам макетов.
+</ParamField>
+
+<ParamField query="modes" type="enum[]" required={false}>
+    Фильтр по режиму макета: `Form` (заполнения формы), `Signup` (поля пользователя при регистрации),
+    `Custom`, `Welcome`, `Participant` (анкета участника продукта).
+</ParamField>
+
+<ParamField query="statuses" type="enum[]" required={false}>
+    Фильтр по статусу макета: `Draft`, `Published`.
+</ParamField>
+
+<ParamField query="productIds" type="integer[]" required={false}>
+    Фильтр по ID продуктов (для макетов, привязанных к продукту, например анкет участника).
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+    Поиск по названию макета. Максимум 50 символов.
+</ParamField>
+
+### Сортировка
+
+<ParamField query="id" type="enum" required={false}>
+    Сортировка по ID: `ASC` или `DESC`.
+</ParamField>
+
+<ParamField query="createdAt" type="enum" required={false}>
+    Сортировка по дате создания: `ASC` или `DESC`.
+</ParamField>
+
+## Поля ответа
+
+<ResponseField name="payload" type="object">
+    Постраничный список макетов форм.
+
+    <Expandable title="Свойства payload">
+        <ResponseField name="items" type="object[]">
+            Массив макетов.
+
+            <Expandable title="Свойства элемента">
+                <ResponseField name="id" type="integer">ID макета.</ResponseField>
+                <ResponseField name="uuid" type="string">UUID макета.</ResponseField>
+                <ResponseField name="slug" type="string">Slug макета.</ResponseField>
+                <ResponseField name="name" type="string">Название макета.</ResponseField>
+                <ResponseField name="internalName" type="string | null">Внутреннее название.</ResponseField>
+                <ResponseField name="note" type="string | null">Заметка.</ResponseField>
+                <ResponseField name="mode" type="enum">Режим: `Form`, `Signup`, `Custom`, `Welcome`, `Participant`.</ResponseField>
+                <ResponseField name="status" type="enum | null">Статус: `Draft`, `Published`.</ResponseField>
+                <ResponseField name="config" type="object">Конфигурация макета (поля, настройки).</ResponseField>
+                <ResponseField name="sellerId" type="integer">ID продавца.</ResponseField>
+                <ResponseField name="isEdited" type="boolean | null">Признак наличия правок.</ResponseField>
+                <ResponseField name="createdAt" type="string">Дата создания (ISO 8601).</ResponseField>
+                <ResponseField name="updatedAt" type="string | null">Дата обновления (ISO 8601).</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Текущая страница.</ResponseField>
+        <ResponseField name="count" type="integer">Общее количество записей.</ResponseField>
+        <ResponseField name="pages" type="integer">Общее количество страниц.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Признак первой страницы.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Признак последней страницы.</ResponseField>
+        <ResponseField name="next" type="object">Параметры следующей страницы (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Параметры предыдущей страницы (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/form/layout/list?take=20&modes=Signup&statuses=Published' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listFormLayouts = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/form/layout/list', {
+    params: { take: 20, modes: ['Signup'], statuses: ['Published'] },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listFormLayouts();
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/form/layout/list'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={
+  'take': 20,
+  'modes': ['Signup'],
+  'statuses': ['Published'],
+}, headers=headers)
+
+print(response.json()['payload']['items'])
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/form/layout/list?take=20&modes=Signup&statuses=Published");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Список макетов получен");
+Иначе
+    Сообщить("Ошибка: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 2,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "id": 34,
+        "createdAt": "2026-05-12T09:30:00.000Z",
+        "updatedAt": "2026-06-01T14:20:00.000Z",
+        "uuid": "b3f1a2c4-88f0-4f4e-9a2f-1c2d3e4f5a6b",
+        "slug": "signup-main",
+        "name": "Анкета регистрации",
+        "internalName": "Основная анкета",
+        "note": null,
+        "mode": "Signup",
+        "status": "Published",
+        "config": { "fields": [] },
+        "sellerId": 77,
+        "isEdited": false
+      }
+    ],
+    "next": { "skip": 20, "take": 20, "page": 2 },
+    "prev": { "skip": 0, "take": 20, "page": 1 }
+  }
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+    Требуется аутентификация по токену и право управления формами (`FormManage`).
+</Check>

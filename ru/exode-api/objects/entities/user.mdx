@@ -37,18 +37,34 @@ description: "Структура объекта пользователя (user) 
 
 ### Статусы
 
-<ResponseField name="active" type="boolean" required>Пользователь не отключён администратором.</ResponseField>
-<ResponseField name="activated" type="boolean" required>Пользователь подтвердил вход (через код/оплату).</ResponseField>
-<ResponseField name="banned" type="boolean" required>Пользователь заблокирован и не может входить.</ResponseField>
 <ResponseField name="status" type="enum" required>
-    Статус учётной записи: `Active`, `OnLeave`, `Blocked`, `Terminated`. `Active` — обычный доступ; `OnLeave` —
-    «в отсутствии» (информационный, доступ не блокирует; синхронизируется автоматически с отсутствиями сотрудника);
-    `Blocked` — заблокирован администратором; `Terminated` — уволен (ставится автоматически при увольнении с
-    последнего активного трудоустройства, повторный найм возвращает `Active`). `Blocked` и `Terminated` закрывают
-    доступ: вход запрещён, сессии завершаются, зачисления на продукты блокируются.
+    Статус учётной записи — **единственный источник истины** о жизненном цикле аккаунта:
+    `Active`, `OnLeave`, `Banned`, `Blocked`, `Terminated`, `Deleted`.
+    - `Active` — обычный доступ;
+    - `OnLeave` — «в отсутствии» (информационный, доступ не блокирует; синхронизируется автоматически с
+      отсутствиями сотрудника, включая почасовой пересчёт по календарю);
+    - `Banned` — забанен администратором/модератором; при снятии бана фактический статус пересчитывается
+      автоматически (`Terminated` / `OnLeave` / `Active` — по трудоустройствам и отсутствиям);
+    - `Blocked` — заблокирован администратором;
+    - `Terminated` — уволен (ставится автоматически при увольнении с последнего активного трудоустройства,
+      повторный найм возвращает `Active`);
+    - `Deleted` — аккаунт удалён (учётные данные затёрты, данные остаются для отчётов); ставится системой
+      при удалении, вручную не передаётся.
+
+    `Banned`, `Blocked`, `Terminated` и `Deleted` закрывают доступ: вход запрещён, сессии завершаются,
+    зачисления на продукты блокируются.
+</ResponseField>
+<ResponseField name="activated" type="boolean" required>Пользователь подтвердил вход (через код/оплату).</ResponseField>
+<ResponseField name="banned" type="boolean" required>
+    Производное поле от `status`: `true`, когда статус `Banned` или `Deleted`. Отдаётся для совместимости —
+    для управления блокировкой используйте `status`.
+</ResponseField>
+<ResponseField name="active" type="boolean" required>
+    Производное поле от `status`: `true`, когда аккаунт не удалён (`status` ≠ `Deleted`). Отдаётся для
+    совместимости; фильтровать и управлять доступом следует по `status`.
 </ResponseField>
 <ResponseField name="alive" type="boolean | null">
-    «Живой» доступ: `active === true`, `banned === false` и `status` не входит в `Blocked`/`Terminated`.
+    «Живой» доступ: `status` не входит в блокирующие (`Banned`/`Blocked`/`Terminated`/`Deleted`).
 </ResponseField>
 
 ### Локаль и активность

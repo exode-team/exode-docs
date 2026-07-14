@@ -54,6 +54,10 @@ GET /saas/v2/product-access/list/raw
     Фильтр по ID запусков (потоков).
 </ParamField>
 
+<ParamField query="courseIds" type="integer[]" required={false}>
+    Фильтр по ID курсов: доступы к продуктам, которым принадлежат указанные курсы.
+</ParamField>
+
 <ParamField query="currentLessonIds" type="integer[]" required={false}>
     Фильтр по ID текущего урока участника.
 </ParamField>
@@ -99,7 +103,8 @@ GET /saas/v2/product-access/list/raw
 ### Фильтры биллинга (подписки/рассрочки)
 
 <ParamField query="billingActive" type="boolean" required={false}>
-    Только с активным (`true`) биллингом.
+    Только с активным (`true`) биллингом. «Активный» — продление не отменено **и** первая оплата уже прошла
+    (доступы в ожидании входного платежа, `WaitingEntryFee`, не считаются активными).
 </ParamField>
 
 <ParamField query="hasProductBillingTypes" type="enum[]" required={false}>
@@ -175,9 +180,11 @@ GET /saas/v2/product-access/list/raw
         <ParamField query="userIds" type="integer[]">ID пользователей.</ParamField>
         <ParamField query="extId" type="string">Внешний идентификатор (до 50 символов).</ParamField>
         <ParamField query="search" type="string">Поиск по пользователю (до 50 символов).</ParamField>
-        <ParamField query="active" type="boolean">Активен.</ParamField>
         <ParamField query="activated" type="boolean">Подтвердил вход.</ParamField>
-        <ParamField query="banned" type="boolean">Заблокирован.</ParamField>
+        <ParamField query="statuses" type="enum[]">
+            Статусы учётной записи: `Active`, `OnLeave`, `Banned`, `Blocked`, `Terminated`, `Deleted`
+            (поля `active`/`banned` из фильтра удалены — используйте `statuses`).
+        </ParamField>
         <ParamField query="archived" type="boolean">Архивирован.</ParamField>
         <ParamField query="domains" type="enum[]">Домены регистрации: `Ru`, `Uz`, `Kz`, `Biz`, `Global`.</ParamField>
         <ParamField query="products" type="enum[]">Продукты: `BizSchool`, `Marketplace`.</ParamField>
