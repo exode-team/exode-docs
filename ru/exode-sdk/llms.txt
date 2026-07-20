@@ -82,7 +82,7 @@ exodeApi.school.user.createAuthToken(input: { userId: number; forceCreate?: bool
 interface UserCreateInput {
   email?: string | null; phone?: string | null; tgId?: number | null
   extId?: string | null
-  status?: 'Active' | 'OnLeave' | 'Banned' | 'Blocked' | 'Terminated' | null  // поле banned удалено из API
+  status?: 'Active' | 'OnLeave' | 'Banned' | 'Blocked' | 'Terminated' | null  // the banned field was removed from the API
   profile?: {
     firstName?: string | null; lastName?: string | null
     bdate?: string | null                         // 'YYYY-MM-DD'
@@ -203,8 +203,8 @@ interface User {
   id: number; uuid: string; domain: string
   email: string | null; phone: string | null; tgId: number | null; vkId: number | null
   appleId: string | null; extId: string | null; schoolId: number | null
-  status: 'Active'|'OnLeave'|'Banned'|'Blocked'|'Terminated'|'Deleted'  // источник истины жизненного цикла
-  active: boolean; activated: boolean; banned: boolean; alive: boolean | null  // active/banned — производные от status
+  status: 'Active'|'OnLeave'|'Banned'|'Blocked'|'Terminated'|'Deleted'  // source of truth for the lifecycle
+  active: boolean; activated: boolean; banned: boolean; alive: boolean | null  // active/banned are derived from status
   language: 'Ru'|'Uz'|'En'|'Qa' | null; timezone: number | null; lastOnlineAt: string | null
   createdOnDomain: 'Ru'|'Uz'|'Kz'|'Biz'|'Global'; product: 'BizSchool'|'Marketplace'
   starsBalance: number; permissions: string[]
