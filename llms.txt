@@ -1,6 +1,6 @@
 # Exode API
 
-> Exode — an EdTech SaaS platform for online schools. REST API under the `/saas/v2` prefix (base `https://api.exode.biz`) for managing users, groups, courses, accesses, forms, exports, and webhooks. Authentication: `Authorization: Bearer <token>` plus the `Seller-Id` and `School-Id` headers. Every response is wrapped in `{ success, code, payload }`.
+> Exode — an EdTech SaaS platform for online schools. REST API under the `/saas/v2` prefix (base `https://api.exode.biz`) for managing users, HR/staff, groups, courses, accesses, forms, exports, and webhooks. Authentication: `Authorization: Bearer <token>` plus the `Seller-Id` and `School-Id` headers. Every response is wrapped in `{ success, code, payload }`.
 
 Complete machine-readable reference for all methods, parameters, entities, and webhooks on a single page: https://docs.exode.biz/llms-full.md
 
@@ -18,10 +18,21 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 - [Update a user](https://docs.exode.biz/ru/exode-api/school/user/update): `PUT /saas/v2/user/:userId/update`.
 - [Upsert a user](https://docs.exode.biz/ru/exode-api/school/user/upsert): `PUT /saas/v2/user/upsert`.
 - [Find a user](https://docs.exode.biz/ru/exode-api/school/user/find): `GET /saas/v2/user/find`.
+- [Bulk-find users](https://docs.exode.biz/ru/exode-api/school/user/find-many): `POST /saas/v2/user/find-many`.
 - [List users](https://docs.exode.biz/ru/exode-api/school/user/list): `GET /saas/v2/user/list`.
 - [Delete users](https://docs.exode.biz/ru/exode-api/school/user/delete-many): `DELETE /saas/v2/user/delete-many`.
 - [User states](https://docs.exode.biz/ru/exode-api/school/user/state): `GET|PUT /saas/v2/user/:userId/state/{get,set}`.
 - [Session token](https://docs.exode.biz/ru/exode-api/school/user/session/auth-token): `POST /saas/v2/user/session/auth-token` (auto-login via `?___uat=<token>`).
+
+## Methods — Staff (HR)
+
+- [HR system sync guide](https://docs.exode.biz/ru/exode-api/school/staff/sync-guide): how to keep the org structure in sync with an external HR system.
+- [Departments](https://docs.exode.biz/ru/exode-api/school/staff/department): `GET /saas/v2/staff/department/tree` (also `list`, `create`, `update`, `delete`; `ext/{extId}` variants).
+- [Positions](https://docs.exode.biz/ru/exode-api/school/staff/position): `GET /saas/v2/staff/position/list` (also `create`, `update`, `delete`).
+- [Employments](https://docs.exode.biz/ru/exode-api/school/staff/employment): `GET /saas/v2/staff/employment/list` (also `hire`, `promote`, `transfer`, `terminate`).
+- [Department managers](https://docs.exode.biz/ru/exode-api/school/staff/department-manager): `POST /saas/v2/staff/department-manager/set` (also `remove`).
+- [Absences](https://docs.exode.biz/ru/exode-api/school/staff/absence): `GET /saas/v2/staff/absence/list` (also `create`, `update`, `delete`).
+- [Sync example (1C)](https://docs.exode.biz/ru/exode-api/school/integrations/examples/1c-staff-sync): end-to-end staff-sync example via `ext/{extId}` endpoints.
 
 ## Methods — Groups
 
@@ -52,8 +63,12 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 
 - [Request a generation](https://docs.exode.biz/ru/exode-api/school/query-export/generate): `POST /saas/v2/query-export/generate` (asynchronous, limit 100/hour).
 - [Get the result](https://docs.exode.biz/ru/exode-api/school/query-export/result): `GET /saas/v2/workflow-execution/:executionUuid/result`.
+- [Report: school users](https://docs.exode.biz/ru/exode-api/school/query-export/school-user-find-many): type `QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY`.
+- [Report: school students](https://docs.exode.biz/ru/exode-api/school/query-export/school-student-find-many): type `QUERY_EXPORT_TYPE_SCHOOL_STUDENT_FIND_MANY`.
 - [Report: group members](https://docs.exode.biz/ru/exode-api/school/query-export/group-member-find-many): type `QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY`.
 - [Report: practice attempts](https://docs.exode.biz/ru/exode-api/school/query-export/practice-attempt-find-many): type `QUERY_EXPORT_TYPE_COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY`.
+- [Report: invoices](https://docs.exode.biz/ru/exode-api/school/query-export/invoice-manage-find-many): type `QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY`.
+- [Report: product billing accesses](https://docs.exode.biz/ru/exode-api/school/query-export/product-billing-access-find-many): type `QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY`.
 
 ## Objects (structures based on zod schemas)
 
@@ -70,6 +85,7 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 ## Integrations
 
 - [Telegram Mini App](https://docs.exode.biz/ru/exode-api/school/iframe/tg-mini-app): auto-authorization via `?___uat=<token>`.
+- [Mobile app deep link](https://docs.exode.biz/ru/exode-api/school/deep-link/mobile-app): auto-login into the mobile app via a session token.
 - [Custom JS code](https://docs.exode.biz/ru/exode-api/school/custom-code/js-config): customizing the platform interface.
 
 ## SDK (@exode-team/sdk)
@@ -84,4 +100,5 @@ Official npm package: a typed server-side REST API client plus a bridge for embe
 
 ## Optional
 
+- [Request a new method](https://docs.exode.biz/ru/exode-api/common/request-new-method): missing an endpoint? how to ask for one.
 - [Support](https://t.me/exode_support_biz): creating a service user and issuing an API token.
