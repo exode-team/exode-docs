@@ -178,7 +178,7 @@ GET /saas/v2/product-access/list/raw
 
     <Expandable title="Свойства user">
         <ParamField query="userIds" type="integer[]">ID пользователей.</ParamField>
-        <ParamField query="extId" type="string">Внешний идентификатор (до 50 символов).</ParamField>
+        <ParamField query="extIds" type="string[]">Внешние идентификаторы (до 250 значений, каждый до 50 символов).</ParamField>
         <ParamField query="search" type="string">Поиск по пользователю (до 50 символов).</ParamField>
         <ParamField query="activated" type="boolean">Подтвердил вход.</ParamField>
         <ParamField query="statuses" type="enum[]">

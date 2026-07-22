@@ -27,8 +27,8 @@ description: "Выгрузка пользователей школы с проф
       Фильтр по ID пользователей.
     </ParamField>
 
-    <ParamField body="extId" type="string">
-      Фильтр по внешнему идентификатору (`extId`), до 50 символов.
+    <ParamField body="extIds" type="string[]">
+      Фильтр по внешним идентификаторам (`extId`). До 250 значений, каждый до 50 символов.
     </ParamField>
 
     <ParamField body="search" type="string">

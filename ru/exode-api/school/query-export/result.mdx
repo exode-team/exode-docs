@@ -31,8 +31,9 @@ GET /saas/v2/workflow-execution/:executionUuid/result
   HTTP-код ответа (например, `200`).
 </ResponseField>
 
-<ResponseField name="payload" type="object">
-  Данные о прогрессе и результате генерации.
+<ResponseField name="payload" type="object | null">
+  Данные о прогрессе и результате генерации. Может быть `null`, если задача с таким `executionUuid` не найдена
+  (например, срок хранения истёк).
 
   <Expandable title="Свойства payload">
     <ResponseField name="total" type="number">
@@ -46,6 +47,7 @@ GET /saas/v2/workflow-execution/:executionUuid/result
     <ResponseField name="status" type="string">
       Статус выполнения:
 
+      - `Waiting` — задача поставлена в очередь, ожидает выполнения
       - `Processing` — отчет генерируется
       - `Completed` — отчет готов, поле `result` содержит ссылку на файл
       - `Failed` — ошибка при генерации

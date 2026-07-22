@@ -293,6 +293,16 @@ POST /saas/v2/staff/department/create
   `StaffDepartmentNotFound`.
 </ParamField>
 
+<ParamField body="primaryManagerEmploymentId" type="integer" required={false}>
+  Трудоустройство, назначаемое основным руководителем создаваемого департамента. Необязательно. Указывается
+  через `primaryManagerEmploymentId` **или** `primaryManagerEmploymentExtId`.
+</ParamField>
+
+<ParamField body="primaryManagerEmploymentExtId" type="string" required={false}>
+  Внешний идентификатор (`extId`) трудоустройства-руководителя — альтернатива `primaryManagerEmploymentId`
+  (передаётся не более одного поля из пары). От 1 до 50 символов.
+</ParamField>
+
 <RequestExample>
 ```bash cURL
 curl --location 'https://api.exode.biz/saas/v2/staff/department/create' \
@@ -380,8 +390,9 @@ PUT /saas/v2/staff/department/{departmentId}/update
 Требуется аутентификация и право `StaffManage`.
 
 <Info>
-  Обновляются название и внешний идентификатор (`extId`) департамента. Родительский департамент (`parentId`)
-  через этот эндпоинт не изменяется.
+  Тело запроса совпадает с созданием (все поля необязательны): `name`, `extId`, родитель
+  (`parentId`/`parentExtId`) и основной руководитель (`primaryManagerEmploymentId`/`primaryManagerEmploymentExtId`).
+  Передавайте только те поля, которые нужно изменить.
 </Info>
 
 ### Параметры
@@ -398,6 +409,29 @@ PUT /saas/v2/staff/department/{departmentId}/update
   Новый внешний идентификатор департамента (можно переустановить). От 1 до 50 символов, не может содержать `/`
   и пробельные символы (URL-safe). Должен быть уникален в рамках школы среди неудалённых департаментов, иначе
   будет возвращена ошибка `StaffDepartmentExtIdIsNotUniq`.
+</ParamField>
+
+<ParamField body="parentId" type="integer" required={false}>
+  Новый родительский департамент (переподчинение). Указывается через `parentId` **или** `parentExtId`.
+  Передайте `null`, чтобы сделать департамент корневым. Новый родитель должен принадлежать той же школе
+  (`StaffDepartmentNotFound`) и не может быть самим департаментом или его потомком, иначе будет возвращена
+  ошибка `StaffDepartmentParentCreatesCycle`.
+</ParamField>
+
+<ParamField body="parentExtId" type="string" required={false}>
+  Внешний идентификатор (`extId`) нового родителя — альтернатива `parentId` (передаётся не более одного поля из
+  пары). От 1 до 50 символов.
+</ParamField>
+
+<ParamField body="primaryManagerEmploymentId" type="integer" required={false}>
+  Трудоустройство, назначаемое основным руководителем департамента. Указывается через
+  `primaryManagerEmploymentId` **или** `primaryManagerEmploymentExtId`. Передайте `null`, чтобы снять
+  назначение.
+</ParamField>
+
+<ParamField body="primaryManagerEmploymentExtId" type="string" required={false}>
+  Внешний идентификатор (`extId`) трудоустройства-руководителя — альтернатива `primaryManagerEmploymentId`
+  (передаётся не более одного поля из пары). От 1 до 50 символов.
 </ParamField>
 
 <RequestExample>

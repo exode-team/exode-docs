@@ -9,7 +9,7 @@ description: "Структуры объектов курса, прогресса
 
 <Info>
     Метод [`course/list/raw`](/ru/exode-api/school/course/list) отдаёт компактную проекцию
-    (`courseId`, `name`, `type`, `groupIds`). Ниже — полные публичные схемы сущностей.
+    (`courseId`, `productId`, `name`, `type`, `groupIds`). Ниже — полные публичные схемы сущностей.
 </Info>
 
 ## `course`
@@ -55,6 +55,7 @@ description: "Структуры объектов курса, прогресса
 <ResponseField name="statusHistoryLogs" type="object[] | null">История статусов: `{ timestamp, status }`.</ResponseField>
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
 <ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
 
 ## `courseLesson`
 
@@ -72,6 +73,9 @@ description: "Структуры объектов курса, прогресса
 <ResponseField name="publishedAt" type="string | null">Дата публикации (ISO 8601).</ResponseField>
 <ResponseField name="settings" type="object" required>Настройки урока.</ResponseField>
 <ResponseField name="isPublished" type="boolean | null">Опубликован.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
 
 ## `courseLessonPractice`
 
@@ -89,6 +93,9 @@ description: "Структуры объектов курса, прогресса
 <ResponseField name="starsPerTaskPoint" type="integer | null">Звёзд за балл задания.</ResponseField>
 <ResponseField name="requireAllAnswers" type="boolean" required>Требуются ответы на все задания.</ResponseField>
 <ResponseField name="tasksCount" type="integer" required>Количество заданий.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
 
 ## `courseLessonPracticeAttempt`
 
@@ -116,3 +123,6 @@ description: "Структуры объектов курса, прогресса
 <ResponseField name="correctPercent" type="number | null">Процент правильных.</ResponseField>
 <ResponseField name="isExpired" type="boolean | null">Просрочена.</ResponseField>
 <ResponseField name="statusHistoryLogs" type="object[] | null">История статусов: `{ timestamp, status }`.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>

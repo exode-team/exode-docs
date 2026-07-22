@@ -75,6 +75,27 @@ GET /saas/v2/user/list
     Диапазон последней активности: `lastOnlineAtDateRange[from]`, `lastOnlineAtDateRange[to]` (ISO 8601).
 </ParamField>
 
+<ParamField query="utmSignupParams" type="object" required={false}>
+    Фильтр по UTM-меткам регистрации. Поле `value` — массив пар `{ key, value }` (непустые строки).
+</ParamField>
+
+<ParamField query="archivedAtDateRange" type="object" required={false}>
+    Диапазон даты архивации (удаления): `archivedAtDateRange[from]`, `archivedAtDateRange[to]` (ISO 8601).
+</ParamField>
+
+<ParamField query="archivedByUserIds" type="integer[]" required={false}>
+    Фильтр по ID пользователей, выполнивших архивацию (удаление).
+</ParamField>
+
+<ParamField query="profile" type="object" required={false}>
+    Вложенный фильтр по профилю.
+
+    <Expandable title="Свойства profile">
+        <ParamField query="search" type="string">Поиск по данным профиля (до 50 символов).</ParamField>
+        <ParamField query="hasAvatar" type="boolean">Наличие загруженного аватара.</ParamField>
+    </Expandable>
+</ParamField>
+
 ### Сортировка
 
 <ParamField query="id" type="enum" required={false}>
@@ -87,6 +108,26 @@ GET /saas/v2/user/list
 
 <ParamField query="lastOnlineAt" type="enum" required={false}>
     Сортировка по последней активности: `ASC` или `DESC`.
+</ParamField>
+
+<ParamField query="updatedAt" type="enum" required={false}>
+    Сортировка по дате обновления: `ASC` или `DESC`.
+</ParamField>
+
+<ParamField query="starsBalance" type="enum" required={false}>
+    Сортировка по балансу «звёзд»: `ASC` или `DESC`.
+</ParamField>
+
+<ParamField query="productAccessesCount" type="enum" required={false}>
+    Сортировка по количеству доступов к продуктам: `ASC` или `DESC`.
+</ParamField>
+
+<ParamField query="archivedAt" type="enum" required={false}>
+    Сортировка по дате архивации: `ASC` или `DESC`.
+</ParamField>
+
+<ParamField query="order" type="enum" required={false}>
+    Сортировка по внутреннему порядку: `ASC` или `DESC`.
 </ParamField>
 
 ## Поля ответа

@@ -65,6 +65,10 @@ GET /saas/v2/staff/employment/list
 
 #### Фильтрация
 
+<ParamField query="employmentIds" type="integer[]" required={false}>
+    Фильтр по ID трудоустройств. До 250 значений.
+</ParamField>
+
 <ParamField query="extIds" type="string[]" required={false}>
     Фильтр по внешним идентификаторам (`extId`) трудоустройств. До 250 значений, каждое до 50 символов.
 </ParamField>
@@ -95,6 +99,10 @@ GET /saas/v2/staff/employment/list
 
 <ParamField query="activeOnly" type="boolean" required={false}>
     Если `true` — вернуть только активные трудоустройства.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+    Поиск по сотруднику (имя, идентификаторы). Максимум 50 символов.
 </ParamField>
 
 ### Поля ответа
