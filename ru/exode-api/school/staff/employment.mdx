@@ -8,10 +8,11 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 <HeaderParamFields/>
 
 <Info>
-    Трудоустройство (`employment`) связывает пользователя школы с департаментом и должностью. У сотрудника может
-    быть несколько записей трудоустройства в истории, но только **одна активная** для конкретной пары
-    департамент + должность. У записи также фиксируются условия занятости: вид (`kind`), тип (`type`) и
-    ставка (`rate`).
+    Трудоустройство (`employment`) связывает пользователя школы с департаментом и, опционально, должностью.
+    У сотрудника может быть несколько записей трудоустройства в истории, но только **одна активная** для
+    конкретной пары департамент + должность. Должность можно не указывать — тогда сотрудник числится в
+    департаменте **без должности**, и активная запись такого типа уникальна по паре департамент + пользователь.
+    У записи также фиксируются условия занятости: вид (`kind`), тип (`type`) и ставка (`rate`).
 </Info>
 
 <Warning>
@@ -109,7 +110,7 @@ GET /saas/v2/staff/employment/list
                 <ResponseField name="id" type="integer">ID трудоустройства.</ResponseField>
                 <ResponseField name="schoolId" type="integer">ID школы.</ResponseField>
                 <ResponseField name="userId" type="integer">ID пользователя-сотрудника.</ResponseField>
-                <ResponseField name="positionId" type="integer">ID должности.</ResponseField>
+                <ResponseField name="positionId" type="integer | null">ID должности или `null` — для трудоустройства без должности.</ResponseField>
                 <ResponseField name="departmentId" type="integer">ID департамента.</ResponseField>
                 <ResponseField name="extId" type="string | null">Внешний идентификатор трудоустройства из системы клиента или `null`. Уникален в рамках школы среди открытых (не завершённых) записей; при переводе/повышении переносится на новую запись.</ResponseField>
                 <ResponseField name="startAt" type="string">Дата начала трудоустройства (ISO 8601).</ResponseField>
@@ -241,12 +242,15 @@ POST /saas/v2/staff/employment/hire
 
 Требуется аутентификация и право `StaffManage`.
 
-Создаёт новую активную запись трудоустройства. Пользователь, департамент и должность должны принадлежать школе.
-У сотрудника не может быть активного дубля с той же парой департамент + должность. Если пользователь ранее был
-уволен и имеет статус `Terminated`, найм автоматически возвращает ему статус `Active`.
+Создаёт новую активную запись трудоустройства. Пользователь, департамент и должность (если указана) должны
+принадлежать школе. У сотрудника не может быть активного дубля с той же парой департамент + должность, а при
+найме без должности — с той же парой департамент + пользователь. Если пользователь ранее был уволен и имеет
+статус `Terminated`, найм автоматически возвращает ему статус `Active`.
 
-Должность и департамент указываются либо по ID, либо по внешнему идентификатору: в каждой из пар
-`positionId` / `positionExtId` и `departmentId` / `departmentExtId` передаётся ровно один параметр.
+Департамент **обязателен** и указывается по ID или внешнему идентификатору: в паре `departmentId` /
+`departmentExtId` передаётся ровно один параметр. Должность **опциональна**: передайте ровно один параметр из
+пары `positionId` / `positionExtId`, либо не передавайте оба — тогда сотрудник нанимается без должности. Оба
+поля одной пары одновременно передавать нельзя.
 
 ### Параметры запроса
 
@@ -260,8 +264,8 @@ POST /saas/v2/staff/employment/hire
 </ParamField>
 
 <ParamField body="positionId" type="integer" required={false}>
-    ID должности. Должность должна принадлежать школе. Передаётся ровно один параметр из пары
-    `positionId` / `positionExtId`.
+    ID должности. Должность должна принадлежать школе. Опционально: передайте один параметр из пары
+    `positionId` / `positionExtId`, либо не передавайте оба — сотрудник будет нанят без должности.
 </ParamField>
 
 <ParamField body="positionExtId" type="string" required={false}>
@@ -661,15 +665,20 @@ POST /saas/v2/staff/employment/promote
 запись с новой должностью в том же департаменте. Целевая должность должна принадлежать школе, у сотрудника не
 должно быть активного дубля с новой должностью.
 
+Запрос должен явно выражать намерение: передайте должность (`toPositionId` **или** `toPositionExtId`), чтобы
+назначить её, либо `toPositionId: null`, чтобы **снять** должность (сотрудник останется в департаменте без
+должности). Если не передать ни одно из этих полей, вернётся ошибка `StaffEmploymentInputRequired`.
+
 ### Параметры запроса
 
 <ParamField body="employmentId" type="integer" required>
     ID изменяемой активной записи трудоустройства.
 </ParamField>
 
-<ParamField body="toPositionId" type="integer" required={false}>
+<ParamField body="toPositionId" type="integer | null" required={false}>
     ID целевой должности. Должность должна принадлежать школе. Передаётся ровно один параметр из пары
-    `toPositionId` / `toPositionExtId`.
+    `toPositionId` / `toPositionExtId`. Значение `null` **снимает** должность — трудоустройство остаётся в
+    департаменте без должности. Оба поля пары одновременно передавать нельзя.
 </ParamField>
 
 <ParamField body="toPositionExtId" type="string" required={false}>
@@ -773,6 +782,16 @@ promoteEmployment();
   "error": "Staff active employment already exists"
 }
 ```
+
+```json Error - Target Position Required
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInputRequired",
+  "message": "Staff employment promote target position is required",
+  "error": "Staff employment promote target position is required"
+}
+```
 </ResponseExample>
 
 ## Сменить должность по внешнему идентификатору
@@ -784,7 +803,9 @@ POST /saas/v2/staff/employment/ext/{extId}/promote
 Требуется аутентификация и право `StaffManage`.
 
 Аналог смены должности по `employmentId`, но активная запись трудоустройства находится по внешнему идентификатору
-`extId` в рамках школы. Тело запроса — как у обычной смены должности, без поля `employmentId`.
+`extId` в рамках школы. Тело запроса — как у обычной смены должности, без поля `employmentId`: передайте
+должность, чтобы назначить её, либо `toPositionId: null`, чтобы снять её; иначе — ошибка
+`StaffEmploymentInputRequired`.
 
 ### Параметры запроса
 
@@ -792,9 +813,10 @@ POST /saas/v2/staff/employment/ext/{extId}/promote
     Внешний идентификатор активной записи трудоустройства. Значение в пути должно быть URL-encoded.
 </ParamField>
 
-<ParamField body="toPositionId" type="integer" required={false}>
+<ParamField body="toPositionId" type="integer | null" required={false}>
     ID целевой должности. Должность должна принадлежать школе. Передаётся ровно один параметр из пары
-    `toPositionId` / `toPositionExtId`.
+    `toPositionId` / `toPositionExtId`. Значение `null` **снимает** должность — трудоустройство остаётся в
+    департаменте без должности. Оба поля пары одновременно передавать нельзя.
 </ParamField>
 
 <ParamField body="toPositionExtId" type="string" required={false}>
