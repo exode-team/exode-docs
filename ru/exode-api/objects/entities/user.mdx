@@ -114,6 +114,8 @@ description: "Структура объекта пользователя (user) 
 <ResponseField name="title" type="string | null">Титул.</ResponseField>
 <ResponseField name="emojiTitle" type="string | null">Эмодзи-титул.</ResponseField>
 <ResponseField name="titleState" type="object">Состояние титулов (ручные/локационные/достижения).</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания профиля (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления профиля (ISO 8601).</ResponseField>
 
 ## Пример объекта `userWithProfile`
 

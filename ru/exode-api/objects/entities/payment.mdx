@@ -66,6 +66,8 @@ description: "Структуры объектов платежа, счёта, п
 <ResponseField name="price" type="object | null">Цена продукта — объект [`productPrice`](./product).</ResponseField>
 <ResponseField name="discount" type="object | null">Скидка — объект [`discount`](./product).</ResponseField>
 <ResponseField name="product" type="object | null">Продукт — объект [`product`](./product); дополнительно может содержать `course`.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
 
 ## `acquiring`
 
