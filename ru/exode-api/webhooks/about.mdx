@@ -309,6 +309,18 @@ def exode_webhook():
     Триггер: доступ к продукту выдан после успешной оплаты.
     Структура `data` идентична `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`).
 </Accordion>
+
+<Accordion title="CertificateIssued — выдан сертификат">
+    Триггер: пользователю выдан сертификат за завершение курса. Событие приходит один раз на пару
+    «пользователь + курс»: повторное завершение курса нового сертификата не создаёт.
+
+    `data`:
+    - `user` — [пользователь](/ru/exode-api/objects/entities/user) с профилем.
+    - `course` — объект [курса](/ru/exode-api/objects/entities/course).
+    - `product` — [продукт](/ru/exode-api/objects/entities/product) курса (опционально).
+    - `certificate` — объект [сертификата](/ru/exode-api/objects/entities/certificate) с публичной
+      ссылкой `link` (открывается без авторизации), сроком действия и слепком данных на момент выдачи.
+</Accordion>
 </AccordionGroup>
 
 <Note>
@@ -563,4 +575,4 @@ def exode_webhook():
 
 ---
 
-_Обновлено: 2026-07-22 11:06 UTC_
+_Обновлено: 2026-07-28 10:41 UTC_

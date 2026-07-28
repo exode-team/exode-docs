@@ -1,0 +1,87 @@
+---
+title: "Сертификат"
+description: "Структура объекта сертификата (certificate) в Exode API"
+---
+
+Объект `certificate` описывает именной сертификат, выданный пользователю за завершение курса.
+Возвращается методом [`certificate/list`](/ru/exode-api/school/certificate/list) и приходит
+в вебхуке [`CertificateIssued`](/ru/exode-api/webhooks/about#поддерживаемые-события).
+
+Сертификат выдаётся автоматически при завершении курса, если в настройках курса включена выдача
+и выбран шаблон. Повторная выдача не происходит: на пару «пользователь + курс» приходится
+не более одного сертификата.
+
+## Поля `certificate`
+
+### Основные
+
+<ResponseField name="id" type="integer" required>ID сертификата.</ResponseField>
+<ResponseField name="uuid" type="string" required>
+    Публичный идентификатор сертификата (12 символов, латиница без визуально схожих `I`, `O`, `l`, `o`).
+    Используется в публичной ссылке и при проверке подлинности.
+</ResponseField>
+<ResponseField name="link" type="string" required>
+    Публичная ссылка на сертификат вида `https://verify.exode.biz/certificate/{uuid}`. Страница
+    открывается без авторизации, с неё же доступна печать в PDF.
+</ResponseField>
+<ResponseField name="userId" type="integer" required>ID пользователя-получателя.</ResponseField>
+<ResponseField name="courseId" type="integer" required>ID курса, за который выдан сертификат.</ResponseField>
+<ResponseField name="templateId" type="integer" required>ID шаблона оформления.</ResponseField>
+
+### Срок действия
+
+<ResponseField name="issuedAt" type="string" required>Дата выдачи (ISO 8601).</ResponseField>
+<ResponseField name="expireAt" type="string | null">
+    Дата истечения (ISO 8601) или `null`, если сертификат бессрочный.
+</ResponseField>
+
+### Снимок данных
+
+<ResponseField name="snapshot" type="object" required>
+    Слепок данных на момент выдачи: ФИО получателя, название курса, число уроков, наименование
+    издателя и оформление. Хранится отдельно, поэтому последующее переименование курса или профиля
+    не меняет уже выданный сертификат.
+</ResponseField>
+
+### Системные поля аудита
+
+<ResponseField name="createdAt" type="string" required>Дата создания записи (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
+
+## Пример объекта `certificate`
+
+```json
+{
+  "id": 10001,
+  "uuid": "AbCdEfGhJkLm",
+  "link": "https://verify.exode.biz/certificate/AbCdEfGhJkLm",
+  "userId": 1001,
+  "courseId": 2001,
+  "templateId": 1,
+  "issuedAt": "2026-01-01T00:00:00.000Z",
+  "expireAt": null,
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "updatedAt": "2026-01-01T00:00:00.000Z",
+  "archivedAt": null,
+  "snapshot": {
+    "courseName": "Основы программирования",
+    "recipientName": "Иван Иванов",
+    "lessonsCount": 24,
+    "issuerName": "Школа Exode",
+    "curatorName": "Мария Петрова",
+    "curatorRole": "Куратор курса"
+  }
+}
+```
+
+## Связанные объекты
+
+- `userId` ссылается на объект [`User`](./user).
+- `courseId` ссылается на объект [`Course`](./course).
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-07-28 10:41 UTC_

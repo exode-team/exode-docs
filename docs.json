@@ -66,7 +66,8 @@
             "group": "Курсы",
             "pages": [
               "ru/exode-api/school/course/list",
-              "ru/exode-api/school/course/progresses"
+              "ru/exode-api/school/course/progresses",
+              "ru/exode-api/school/certificate/list"
             ]
           },
           {
@@ -130,6 +131,7 @@
               "ru/exode-api/objects/entities/product",
               "ru/exode-api/objects/entities/payment",
               "ru/exode-api/objects/entities/school",
+              "ru/exode-api/objects/entities/certificate",
               "ru/exode-api/objects/entities/form"
             ]
           }

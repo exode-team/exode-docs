@@ -1,0 +1,246 @@
+---
+title: "Список сертификатов"
+description: "Получение списка выданных сертификатов с фильтрацией по курсу, группе, пользователю и дате выдачи"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/certificate/list/raw
+```
+
+<Info>
+    Возвращает сертификаты, выданные за курсы школы. Все параметры фильтрации необязательны — без них
+    метод отдаёт все сертификаты школы постранично. Параметры-массивы передаются повторением параметра:
+    `courseIds=1&courseIds=2`.
+</Info>
+
+## Параметры запроса
+
+### Пагинация
+
+<ParamField query="skip" type="integer" required={false}>
+    Количество записей, которые нужно пропустить. По умолчанию `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Номер страницы (альтернатива `skip`). Начинается с `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Количество записей на странице. От `1` до `1000`. По умолчанию `100`.
+</ParamField>
+
+### Фильтрация
+
+<ParamField query="certificateIds" type="integer[]" required={false}>
+    Фильтр по ID сертификатов.
+</ParamField>
+
+<ParamField query="courseIds" type="integer[]" required={false}>
+    Фильтр по ID курсов, за которые выдан сертификат.
+</ParamField>
+
+<ParamField query="userIds" type="integer[]" required={false}>
+    Фильтр по ID пользователей-получателей.
+</ParamField>
+
+<ParamField query="groupIds" type="integer[]" required={false}>
+    Фильтр по ID групп. Группа привязана к получателю, а не к сертификату: в выборку попадают
+    сертификаты пользователей, состоящих хотя бы в одной из указанных групп.
+</ParamField>
+
+<ParamField query="issuedAtDateRange" type="object" required={false}>
+    Диапазон даты выдачи.
+
+    <Expandable title="Свойства issuedAtDateRange">
+        <ParamField query="from" type="string">Начало диапазона (ISO 8601), граница не включается.</ParamField>
+        <ParamField query="to" type="string">Конец диапазона (ISO 8601), граница включается.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField query="archived" type="boolean" required={false}>
+    Включать архивные записи.
+</ParamField>
+
+## Поля ответа
+
+<ResponseField name="payload" type="object">
+    Постраничный список сертификатов (компактная проекция). Полная структура — в справочнике
+    [`certificate`](/ru/exode-api/objects/entities/certificate).
+
+    <Expandable title="Свойства payload">
+        <ResponseField name="items" type="object[]">
+            Массив сертификатов.
+
+            <Expandable title="Свойства элемента">
+                <ResponseField name="certificateId" type="integer">ID сертификата.</ResponseField>
+                <ResponseField name="uuid" type="string">Публичный идентификатор сертификата.</ResponseField>
+                <ResponseField name="link" type="string">
+                    Публичная ссылка на сертификат. Открывается без авторизации, с неё же доступна печать в PDF.
+                </ResponseField>
+                <ResponseField name="courseId" type="integer">ID курса.</ResponseField>
+                <ResponseField name="courseName" type="string | null">Название курса.</ResponseField>
+                <ResponseField name="issuedAt" type="string">Дата выдачи (ISO 8601).</ResponseField>
+                <ResponseField name="expireAt" type="string | null">
+                    Дата истечения (ISO 8601) или `null`, если сертификат бессрочный.
+                </ResponseField>
+                <ResponseField name="user" type="object">
+                    Получатель: `id`, `extId`, `tgId`, `login`, `email`, `phone`, `fullName`.
+                </ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Текущая страница.</ResponseField>
+        <ResponseField name="count" type="integer">Общее количество записей.</ResponseField>
+        <ResponseField name="pages" type="integer">Общее количество страниц.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Признак первой страницы.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Признак последней страницы.</ResponseField>
+        <ResponseField name="next" type="object">Параметры следующей страницы (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Параметры предыдущей страницы (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/certificate/list/raw?take=20&courseIds=10' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listCertificates = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/certificate/list/raw', {
+    params: { take: 20, courseIds: 10 },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listCertificates();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/certificate/list/raw?take=20&courseIds=10';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/certificate/list/raw'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'take': 20, 'courseIds': 10 }, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/certificate/list/raw?take=20&courseIds=10");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Список сертификатов получен");
+Иначе
+    Сообщить("Ошибка: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "certificateId": 10001,
+        "uuid": "AbCdEfGhJkLm",
+        "link": "https://verify.exode.biz/certificate/AbCdEfGhJkLm",
+        "courseId": 10,
+        "courseName": "Основы программирования",
+        "issuedAt": "2026-01-01T00:00:00.000Z",
+        "expireAt": null,
+        "user": {
+          "id": 123,
+          "extId": "crm_12345",
+          "tgId": null,
+          "login": "user@example.com",
+          "email": "user@example.com",
+          "phone": "+9876543210",
+          "fullName": "John Doe"
+        }
+      }
+    ],
+    "next": {
+      "skip": 20,
+      "take": 20,
+      "page": 2
+    },
+    "prev": {
+      "skip": 0,
+      "take": 20,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+    Требуется аутентификация по токену и одно из прав: управление курсами (`CourseManage`)
+    или управление студентами курса (`CourseStudentManage`).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-07-28 10:41 UTC_
