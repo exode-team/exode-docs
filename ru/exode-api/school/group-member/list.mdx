@@ -1,0 +1,303 @@
+---
+title: "Список участников групп"
+description: "Получение списка участников групп школы с фильтрацией по группе, пользователю и дате добавления"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/group/member/list/raw
+```
+
+<Info>
+    Все параметры фильтрации необязательны. Если не передать ни одного фильтра — будут возвращены все участники
+    всех групп школы с учётом пагинации.
+</Info>
+
+<Info>
+    Параметры-массивы передаются повторением параметра в строке запроса: `groupIds=1&groupIds=2&groupIds=3`.
+</Info>
+
+## Параметры запроса
+
+### Пагинация
+
+<ParamField query="skip" type="integer" required={false}>
+    Количество записей, которые нужно пропустить. По умолчанию `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Номер страницы (альтернатива `skip`). Начинается с `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Количество записей на странице. От `1` до `1000`. По умолчанию `100`.
+</ParamField>
+
+### Фильтрация
+
+<ParamField query="groupIds" type="integer[]" required={false}>
+    Фильтр по ID групп.
+</ParamField>
+
+<ParamField query="userIds" type="integer[]" required={false}>
+    Фильтр по ID пользователей-участников.
+</ParamField>
+
+<ParamField query="memberIds" type="integer[]" required={false}>
+    Фильтр по ID записей участников.
+</ParamField>
+
+<ParamField query="inviterUserIds" type="integer[]" required={false}>
+    Фильтр по ID пригласивших пользователей.
+</ParamField>
+
+<ParamField query="productIds" type="integer[]" required={false}>
+    Фильтр по ID продуктов, к которым привязаны группы.
+</ParamField>
+
+<ParamField query="active" type="boolean" required={false}>
+    Фильтр по активности участника в группе.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+    Поиск по логину (email, телефон) и имени участника. Максимум 50 символов.
+</ParamField>
+
+<ParamField query="createdAtDateRange" type="object" required={false}>
+    Диапазон даты добавления в группу.
+
+    <Expandable title="Свойства createdAtDateRange">
+        <ParamField query="from" type="string">Начало диапазона (ISO 8601), граница не включается.</ParamField>
+        <ParamField query="to" type="string">Конец диапазона (ISO 8601), граница включается.</ParamField>
+    </Expandable>
+</ParamField>
+
+## Поля ответа
+
+<ResponseField name="payload" type="object">
+    Постраничный список участников групп. Базовая структура участника — в справочнике
+    [`groupMember`](/ru/exode-api/objects/entities/group-member), пользователя —
+    в справочнике [`user`](/ru/exode-api/objects/entities/user).
+
+    <Expandable title="Свойства payload">
+        <ResponseField name="items" type="object[]">
+            Массив участников.
+
+            <Expandable title="Свойства элемента">
+                <ResponseField name="id" type="integer">ID записи участника.</ResponseField>
+                <ResponseField name="groupId" type="integer">ID группы.</ResponseField>
+                <ResponseField name="groupName" type="string">Название группы.</ResponseField>
+                <ResponseField name="userId" type="integer">ID пользователя-участника.</ResponseField>
+                <ResponseField name="inviterId" type="integer | null">ID пригласившего пользователя.</ResponseField>
+                <ResponseField name="active" type="boolean">Активен ли участник в группе.</ResponseField>
+                <ResponseField name="blockedUntil" type="string | null">
+                    Дата окончания блокировки (ISO 8601) или `null`.
+                </ResponseField>
+                <ResponseField name="enrollmentSource" type="string">
+                    Как участник попал в группу: `Manual` — добавлен вручную администратором,
+                    `System` — добавлен платформой (выдача доступа, зачисление на курс),
+                    `Automatic` — добавлен политикой автозачисления.
+                </ResponseField>
+                <ResponseField name="user" type="object | null">
+                    Пользователь-участник с профилем — объект [`user`](/ru/exode-api/objects/entities/user).
+                </ResponseField>
+                <ResponseField name="inviter" type="object | null">
+                    Пригласивший пользователь с профилем или `null`, если участник добавлен платформой.
+                </ResponseField>
+                <ResponseField name="tgChannelMeta" type="object | null">
+                    Метаданные добавления в Telegram-канал (например, `chatInviteLink`).
+                </ResponseField>
+                <ResponseField name="tgGroupChatMeta" type="object | null">
+                    Метаданные добавления в Telegram-групповой чат (например, `chatInviteLink`).
+                </ResponseField>
+                <ResponseField name="createdAt" type="string">Дата добавления в группу (ISO 8601).</ResponseField>
+                <ResponseField name="updatedAt" type="string">Дата обновления записи (ISO 8601).</ResponseField>
+                <ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Текущая страница.</ResponseField>
+        <ResponseField name="count" type="integer">Общее количество записей.</ResponseField>
+        <ResponseField name="pages" type="integer">Общее количество страниц.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Признак первой страницы.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Признак последней страницы.</ResponseField>
+        <ResponseField name="next" type="object">Параметры следующей страницы (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Параметры предыдущей страницы (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/group/member/list/raw?take=20&groupIds=501' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listGroupMembers = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/group/member/list/raw', {
+    params: { take: 20, groupIds: [501] },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listGroupMembers();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/group/member/list/raw?take=20&groupIds=501';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/group/member/list/raw'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'take': 20, 'groupIds': [501] }, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/group/member/list/raw?take=20&groupIds=501");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Список участников получен");
+Иначе
+    Сообщить("Ошибка: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "id": 1227,
+        "createdAt": "2026-07-19T15:45:51.212Z",
+        "updatedAt": "2026-07-19T15:45:51.212Z",
+        "archivedAt": null,
+        "groupId": 501,
+        "groupName": "Поток №1",
+        "userId": 1683,
+        "inviterId": null,
+        "active": true,
+        "blockedUntil": null,
+        "enrollmentSource": "System",
+        "tgChannelMeta": {},
+        "tgGroupChatMeta": {},
+        "user": {
+          "id": 1683,
+          "createdAt": "2026-07-02T11:15:46.896Z",
+          "updatedAt": "2026-07-02T11:15:46.940Z",
+          "archivedAt": null,
+          "uuid": "e-cjTT0CWMCB",
+          "active": true,
+          "activated": true,
+          "banned": false,
+          "status": "Active",
+          "alive": true,
+          "domain": "id1683",
+          "email": "user@example.com",
+          "phone": null,
+          "tgId": null,
+          "vkId": null,
+          "appleId": null,
+          "extId": "crm_12345",
+          "schoolId": 198,
+          "language": null,
+          "timezone": null,
+          "lastOnlineAt": null,
+          "starsBalance": 0,
+          "profile": {
+            "id": 1665,
+            "userId": 1683,
+            "official": false,
+            "firstName": "Firstname",
+            "lastName": "Lastname",
+            "fullName": "Firstname Lastname",
+            "sex": "Ufo",
+            "role": "Student"
+          }
+        },
+        "inviter": null
+      }
+    ],
+    "next": {
+      "skip": 20,
+      "take": 20,
+      "page": 2
+    },
+    "prev": {
+      "skip": 0,
+      "take": 20,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+    Требуется аутентификация по токену и право управления пользователями школы (`SchoolManageUsers`).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-08-03 10:28 UTC_

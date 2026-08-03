@@ -37,6 +37,7 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 ## Methods — Groups
 
 - [List groups](https://docs.exode.biz/ru/exode-api/school/group/list): `GET /saas/v2/group/list/raw`.
+- [List group members](https://docs.exode.biz/ru/exode-api/school/group-member/list): `GET /saas/v2/group/member/list/raw`.
 - [Add members](https://docs.exode.biz/ru/exode-api/school/group-member/create-many): `POST /saas/v2/group/:groupId/member/create-many`.
 - [Remove members](https://docs.exode.biz/ru/exode-api/school/group-member/delete-many): `DELETE /saas/v2/group/:groupId/member/delete-many`.
 
@@ -44,6 +45,7 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 
 - [List courses](https://docs.exode.biz/ru/exode-api/school/course/list): `GET /saas/v2/course/list/raw`.
 - [Course progress](https://docs.exode.biz/ru/exode-api/school/course/progresses): `GET /saas/v2/course/:courseId/progresses`.
+- [List certificates](https://docs.exode.biz/ru/exode-api/school/certificate/list): `GET /saas/v2/certificate/list/raw`.
 
 ## Methods — Accesses and sales
 

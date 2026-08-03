@@ -324,6 +324,18 @@ def exode_webhook():
         можно по наличию `inviteLinkId`.
     </Warning>
 </Accordion>
+
+<Accordion title="CertificateIssued — выдан сертификат">
+    Триггер: пользователю выдан сертификат за завершение курса. Событие приходит один раз на пару
+    «пользователь + курс»: повторное завершение курса нового сертификата не создаёт.
+
+    `data`:
+    - `user` — [пользователь](/ru/exode-api/objects/entities/user) с профилем.
+    - `course` — объект [курса](/ru/exode-api/objects/entities/course).
+    - `product` — [продукт](/ru/exode-api/objects/entities/product) курса (опционально).
+    - `certificate` — объект [сертификата](/ru/exode-api/objects/entities/certificate) с публичной
+      ссылкой `link` (открывается без авторизации), сроком действия и слепком данных на момент выдачи.
+</Accordion>
 </AccordionGroup>
 
 <Note>
@@ -578,4 +590,4 @@ def exode_webhook():
 
 ---
 
-_Обновлено: 2026-08-03 00:05 UTC_
+_Обновлено: 2026-08-03 10:28 UTC_

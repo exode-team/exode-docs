@@ -34,10 +34,12 @@
 | GET | `/saas/v2/user/:userId/state/get?key=` | Прочитать состояние по ключу | `SchoolManageUsers` | — | `ru/exode-api/school/user/state` |
 | POST | `/saas/v2/user/session/auth-token` | Создать/получить токен сессии пользователя | `SchoolManageUsers` | — | `ru/exode-api/school/user/session/auth-token` |
 | GET | `/saas/v2/group/list/raw` | Список групп | `SchoolManageUsers` | — | `ru/exode-api/school/group/list` |
+| GET | `/saas/v2/group/member/list/raw` | Список участников групп | `SchoolManageUsers` | — | `ru/exode-api/school/group-member/list` |
 | POST | `/saas/v2/group/:groupId/member/create-many` | Добавить участников (userIds ≤250) | `SchoolManageUsers` | — | `ru/exode-api/school/group-member/create-many` |
 | DELETE | `/saas/v2/group/:groupId/member/delete-many` | Удалить участников (userIds ≤250) | `SchoolManageUsers` | — | `ru/exode-api/school/group-member/delete-many` |
 | GET | `/saas/v2/course/list/raw` | Список курсов | `CourseCurator` \| `SchoolManageUsers` | — | `ru/exode-api/school/course/list` |
 | GET | `/saas/v2/course/:courseId/progresses` | Прогресс участников по курсу | `CourseCurator` \| `SchoolManageUsers` | — | `ru/exode-api/school/course/progresses` |
+| GET | `/saas/v2/certificate/list/raw` | Список сертификатов | `CourseManage` \| `CourseStudentManage` | — | `ru/exode-api/school/certificate/list` |
 | GET | `/saas/v2/invoice/list/raw` | Список счетов | `SellerSales` | — | `ru/exode-api/school/invoice/list` |
 | GET | `/saas/v2/product-access/list/raw` | Список доступов к продуктам | `SchoolManageUsers` \| `CourseStudentManage` | — | `ru/exode-api/school/product-access/list` |
 | GET | `/saas/v2/form/layout/list` | Список макетов форм | `FormManage` | — | `ru/exode-api/school/form-layout/list` |
@@ -66,12 +68,16 @@
 
 ### Group
 - **list/raw** (query `FilterGroupInput`, все опц.): `groupIds[]`, `productIds[]`, `courseIds[]`, `search`(≤50) + пагинация. Ответ items: `{ groupId, name, courseId?, courseName? }`.
+- **member/list/raw** (query `FilterMemberGroupInput`, все опц.): `groupIds[]`, `userIds[]`, `memberIds[]`, `inviterUserIds[]`, `productIds[]`, `active`, `search`(≤50, по логину/имени), `createdAtDateRange{from,to}` + пагинация. Ответ items: `{ id, groupId, groupName, userId, inviterId?, active, blockedUntil?, enrollmentSource(Manual|System|Automatic), tgChannelMeta?, tgGroupChatMeta?, createdAt, updatedAt, archivedAt?, user?(userWithProfile), inviter?(userWithProfile) }`.
 - **member/create-many** (body `userIds[] ≤250`). Ответ: `{ exist: groupMember[], created: groupMember[], excluded: user[] }`. `excluded` для этого метода всегда пустой (исключения ограничивают только автоматическое назначение); ручное добавление **снимает** ранее выставленное исключение.
 - **member/delete-many** (body `userIds[] ≤250`). Ответ: `{ affected: number }`. Удаление считается ручным и **блокирует** последующее автоматическое назначение пользователя в эту группу (исключение с причиной «удалён вручную»); снимается обратным добавлением через `member/create-many`. Актуально только для корпоративных групп с настроенным автоназначением.
 
 ### Course
 - **list/raw** (query `FilterCourseInput`, все опц.): `courseIds[]`, `aliases[]`, `types[]`(Bundle|Webinar|TextCourse|Assessment|VideoCourse|PersonalLesson), `tags[]`, `search`(≤50), `subjectCategoryIds[]`, `contentCategoryIds[]`, `archived`, `participation`(All|Active|Completed|NotParticipant), `manage`, `administrate`, `access`(=FilterAccessProductInput), `product`(FilterProductInput) + пагинация. Ответ items: `{ courseId, name, type, groupIds[] }`.
 - **:courseId/progresses** (query — пагинация; фильтр по courseId фиксируется сервером). Ответ items: `courseProgress` (см. сущности).
+
+### Certificate
+- **list/raw** (query `FilterCertificateInput`, все опц.): `certificateIds[]`, `courseIds[]`, `userIds[]`, `groupIds[]` (группы получателя, а не сертификата), `issuedAtDateRange{from,to}`, `archived` + пагинация. Ответ items: `{ certificateId, uuid, link, courseId, courseName?, issuedAt, expireAt?, user?(userWithProfile) }`. `link` — публичная ссылка на сертификат (открывается без авторизации).
 
 ### Invoice
 - **list/raw** (query `FilterInvoiceInput`, все опц.): `invoiceIds[]`, `userIds[]`, `productIds[]`, `types[]`(Regular|InstallmentPay|InstallmentInit|SubscriptionPay|SubscriptionInit), `search`(≤50), `createdAtDateRange{from,to}`, `totalAmountRange{from,to}`, `utmParams{value:[{key,value}]}`, `payment{paymentIds[],acquiringIds[],statuses[],actualStatuses[]}` + пагинация. Ответ items: `{ invoiceId, invoiceUuid, type, status(Active|Canceled), totalAmount, discountAmount, currency, createdAt, expireAt?, user{id,tgId?,login?,email?,phone?,fullName?}, products[{productId,courseId?,totalPrice,discountAmount}] }`.
@@ -104,6 +110,7 @@
 - **groupMember**: `+ groupId?, userId?, inviterId?, active, blockedUntil?, isAddedToTg?, tgChannelMeta?, tgGroupChatMeta?, user?`.
 - **course**: `+ type(Bundle|Webinar|TextCourse|Assessment|VideoCourse|PersonalLesson), name, description, alias?, tags[], seoTags[], image?, promoVideo?, settings, order, isBundle?`.
 - **courseProgress**: `+ courseId?, userId, lessonId, status?, scheduleStartAt?, scheduleFinishAt?, practiceDeadlineAt?, isCompleted?, isOnReview?, completedAt?, onReviewAt?, statusHistoryLogs?`.
+- **certificate**: `+ uuid, link (публичная ссылка), userId, courseId, templateId?, snapshot, issuedAt, expireAt?`.
 - **courseLesson**: `+ courseId, type(Regular|Webinar), accessType(Demo|Participant), status?, name, description, previewImage?, order, withContent, withPractice, publishedAt?, settings, isPublished?`.
 - **courseLessonPractice**: `+ name, description, questionMode, resultMode, variantMode, retryVariantMode, maxAttempts?, timeLimitInMinutes?, deadlineInDays?, passThreshold?, starsPerTaskPoint?, requireAllAnswers, tasksCount`.
 - **courseLessonPracticeAttempt**: `+ uuid?, variantId, userId, status?(Created|OnReview|OnCorrection|AutoVerified|Verified|Failed|Stacked), order, finished, sentToReviewAt?, sentAfterDeadline, deadlineAt?, passedAt?, solvedCount, pointsAmount, maxPointsAmount, uncounted, isPassed?, correctPercent?, isExpired?, statusHistoryLogs?`.
@@ -133,6 +140,7 @@
   - `CourseProgressChanged`: `{ user, course, product?, groups?, status?, lessonId? }`.
   - `CourseCompleted`: `{ user, course, product?, groups? }`.
   - `CourseLessonPracticeCompleted`: `{ user, course?, lesson?, practice?, attempt?, variantId? }`.
+  - `CertificateIssued`: `{ user, course, product?, certificate }` — выдача сертификата за завершённый курс.
   - `PaymentCompleted`: `{ payment }` (с деревом invoice/products/acquiring). Отправляется только при реальном списании: привязка карты (recurrent init, `BindingCompleted`) событие не вызывает.
   - `ProductEnrolledToFree`: `{ user, profile?, access?, product?, course? }`.
   - `ProductEnrolledByInviteLink`: `{ user, profile?, access?, product?, course?, inviteLinkId }` — запись по ссылке-приглашению. Приходит **вместе с** `ProductEnrolledToFree` (ссылка выдаёт доступ бесплатно); отличается наличием `inviteLinkId`.
