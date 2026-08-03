@@ -309,6 +309,21 @@ def exode_webhook():
     Триггер: доступ к продукту выдан после успешной оплаты.
     Структура `data` идентична `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`).
 </Accordion>
+
+<Accordion title="ProductEnrolledByInviteLink — запись по ссылке-приглашению">
+    Триггер: пользователь самостоятельно записался на курс по ссылке-приглашению.
+
+    `data`: те же поля, что и у `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`),
+    плюс:
+    - `inviteLinkId` — идентификатор ссылки, по которой пришёл пользователь.
+
+    <Warning>
+        При записи по ссылке отправляются **два** события: `ProductEnrolledToFree` и
+        `ProductEnrolledByInviteLink`. Ссылка выдаёт доступ бесплатно, поэтому общий контур бесплатных
+        зачислений срабатывает тоже — учитывайте это при подсчёте зачислений. Отличить запись по ссылке
+        можно по наличию `inviteLinkId`.
+    </Warning>
+</Accordion>
 </AccordionGroup>
 
 <Note>
@@ -563,4 +578,4 @@ def exode_webhook():
 
 ---
 
-_Обновлено: 2026-07-22 11:06 UTC_
+_Обновлено: 2026-08-03 00:05 UTC_

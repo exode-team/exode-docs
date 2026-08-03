@@ -66,8 +66,8 @@
 
 ### Group
 - **list/raw** (query `FilterGroupInput`, все опц.): `groupIds[]`, `productIds[]`, `courseIds[]`, `search`(≤50) + пагинация. Ответ items: `{ groupId, name, courseId?, courseName? }`.
-- **member/create-many** (body `userIds[] ≤250`). Ответ: `{ exist: groupMember[], created: groupMember[] }`.
-- **member/delete-many** (body `userIds[] ≤250`). Ответ: `{ affected: number }`.
+- **member/create-many** (body `userIds[] ≤250`). Ответ: `{ exist: groupMember[], created: groupMember[], excluded: user[] }`. `excluded` для этого метода всегда пустой (исключения ограничивают только автоматическое назначение); ручное добавление **снимает** ранее выставленное исключение.
+- **member/delete-many** (body `userIds[] ≤250`). Ответ: `{ affected: number }`. Удаление считается ручным и **блокирует** последующее автоматическое назначение пользователя в эту группу (исключение с причиной «удалён вручную»); снимается обратным добавлением через `member/create-many`. Актуально только для корпоративных групп с настроенным автоназначением.
 
 ### Course
 - **list/raw** (query `FilterCourseInput`, все опц.): `courseIds[]`, `aliases[]`, `types[]`(Bundle|Webinar|TextCourse|Assessment|VideoCourse|PersonalLesson), `tags[]`, `search`(≤50), `subjectCategoryIds[]`, `contentCategoryIds[]`, `archived`, `participation`(All|Active|Completed|NotParticipant), `manage`, `administrate`, `access`(=FilterAccessProductInput), `product`(FilterProductInput) + пагинация. Ответ items: `{ courseId, name, type, groupIds[] }`.
@@ -135,6 +135,7 @@
   - `CourseLessonPracticeCompleted`: `{ user, course?, lesson?, practice?, attempt?, variantId? }`.
   - `PaymentCompleted`: `{ payment }` (с деревом invoice/products/acquiring). Отправляется только при реальном списании: привязка карты (recurrent init, `BindingCompleted`) событие не вызывает.
   - `ProductEnrolledToFree`: `{ user, profile?, access?, product?, course? }`.
+  - `ProductEnrolledByInviteLink`: `{ user, profile?, access?, product?, course?, inviteLinkId }` — запись по ссылке-приглашению. Приходит **вместе с** `ProductEnrolledToFree` (ссылка выдаёт доступ бесплатно); отличается наличием `inviteLinkId`.
   - `SchoolCreated`: `{ school(+seller?) }` — только системный уровень (не для подписки продавцом).
 
 Документация (Mintlify): см. `docs.json` и каталог `ru/exode-api/`.
