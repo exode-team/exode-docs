@@ -67,6 +67,7 @@
             "group": "Курсы",
             "pages": [
               "ru/exode-api/school/course/list",
+              "ru/exode-api/school/course/enroll",
               "ru/exode-api/school/course/progresses",
               "ru/exode-api/school/certificate/list"
             ]
