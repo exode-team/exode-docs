@@ -1,5 +1,6 @@
 ---
 title: "Поиск по идентификатору"
+sidebarTitle: "Поиск одного"
 description: "Поиск пользователя в школе по логину, Telegram ID или внешнему extId"
 ---
 
@@ -12,6 +13,11 @@ GET /saas/v2/user/find
 ```
 
 Требуется аутентификация и право `SchoolManageUsers`.
+
+<Tip>
+    Нужно найти сразу несколько пользователей — используйте
+    [Поиск списком идентификаторов](/ru/exode-api/school/user/find-many).
+</Tip>
 
 ## Параметры запроса
 
@@ -287,4 +293,4 @@ except requests.exceptions.RequestException as e:
 
 ---
 
-_Обновлено: 2026-08-05 11:28 UTC_
+_Обновлено: 2026-08-05 14:14 UTC_
