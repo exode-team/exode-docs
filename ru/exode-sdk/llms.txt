@@ -3,7 +3,7 @@
 Self-contained reference for the `@exode-team/sdk` package. Feed it to an LLM so the model
 can write correct integration code for the Exode platform without extra context.
 
-Package version: **0.2.0**
+Package version: **0.3.0**
 Repository: https://github.com/exode-team/exode-sdk
 npm: https://www.npmjs.com/package/@exode-team/sdk
 
