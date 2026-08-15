@@ -118,7 +118,8 @@
             "pages": [
               "ru/exode-api/school/iframe/tg-mini-app",
               "ru/exode-api/school/deep-link/mobile-app",
-              "ru/exode-api/school/custom-code/js-config"
+              "ru/exode-api/school/custom-code/js-config",
+              "ru/exode-api/school/custom-code/analytics-events"
             ]
           },
           {

@@ -1,0 +1,148 @@
+---
+title: "События аналитики"
+description: "Целевые события платформы и их передача в Meta Pixel, Яндекс.Метрику, Google Analytics и другие рекламные площадки"
+---
+
+<Info>
+  Платформа отправляет **целевые события** (регистрация, просмотр курса, покупка и т.д.) в виде
+  браузерных `document`-событий. Meta Pixel (Facebook) подключается автоматически — достаточно вставить
+  сниппет пикселя в **Custom Code (JS)**. Для любой другой площадки (Яндекс.Метрика, Google Analytics,
+  VK Ads и др.) события можно перехватить своим кодом — примеры ниже.
+</Info>
+
+## Список целевых событий
+
+Каждое событие диспатчится как `CustomEvent` на `document`. Данные события лежат в `event.detail`.
+
+| Событие | Когда срабатывает | `event.detail` |
+| --- | --- | --- |
+| `analytics:signup-completed` | Регистрация нового аккаунта через email или телефон | `{ method: 'email' \| 'phone' }` |
+| `profile:personal-info-filled-success` | Пользователь заполнил анкету онбординга (имя и личные данные) | — |
+| `analytics:course-viewed` | Просмотр страницы курса | `{ courseId: number }` |
+| `analytics:demo-lesson-opened` | Открытие демо-урока со страницы курса | `{ courseId: number, lessonId: number }` |
+| `analytics:free-course-enrolled` | Запись на бесплатный курс | `{ productId: number }` |
+| `analytics:checkout-initiated` | Переход к оформлению оплаты (выбран тариф) | `{ productId: number, priceId: number }` |
+| `analytics:purchase-completed` | Успешная оплата счета | `{ value: number, currency: string, productIds: number[] }` |
+| `analytics:course-completed` | Пользователь завершил курс | `{ productId: number }` |
+
+<Warning>
+  События отправляются на стороне браузера. `analytics:signup-completed` срабатывает только при
+  регистрации через email/телефон — вход через соцсети (VK, Telegram) и OTP пока не различает
+  нового пользователя и повторный вход, поэтому событие для них не отправляется.
+</Warning>
+
+## Meta Pixel (Facebook) — работает из коробки
+
+Вставьте стандартный сниппет Meta Pixel (с вашим Pixel ID) в **Custom Code (JS)** в настройках школы.
+Платформа обнаружит `window.fbq` и будет отправлять события автоматически — дополнительный код не нужен.
+
+Маппинг на события Meta:
+
+| Событие платформы | Событие Meta Pixel | Параметры |
+| --- | --- | --- |
+| `analytics:signup-completed` | `CompleteRegistration` | `registration_method` |
+| `profile:personal-info-filled-success` | `Lead` | — |
+| `analytics:course-viewed` | `ViewContent` | `content_type: 'product'`, `content_ids` |
+| `analytics:demo-lesson-opened` | `ViewDemoLesson` (custom) | `content_ids`, `lesson_id` |
+| `analytics:free-course-enrolled` | `StartTrial` | `content_ids` |
+| `analytics:checkout-initiated` | `InitiateCheckout` | `num_items`, `content_ids` |
+| `analytics:purchase-completed` | `Purchase` | `value`, `currency` (ISO 4217), `content_type`, `content_ids` |
+| `analytics:course-completed` | `CompleteCourse` (custom) | `content_ids` |
+
+<Note>
+  `CompleteRegistration`, `Lead`, `ViewContent`, `StartTrial`, `InitiateCheckout`, `Purchase` —
+  [стандартные события Meta](https://www.facebook.com/business/help/402791146561655): по ним доступна
+  автоматическая оптимизация рекламы. `ViewDemoLesson` и `CompleteCourse` отправляются через
+  `fbq('trackCustom', ...)` — для них можно настроить custom conversions в Events Manager.
+  `Purchase` отправляется один раз на счет; при оплате внутренними валютами (баллы) событие не отправляется.
+</Note>
+
+## Яндекс.Метрика
+
+Вставьте стандартный счетчик Метрики в **Custom Code (JS)** и подпишитесь на события платформы,
+передавая их как [цели (reachGoal)](https://yandex.ru/support/metrica/general/goal-js-event.html):
+
+```html
+<script>
+    // ... стандартный сниппет счетчика Яндекс.Метрики ...
+
+    var YM_COUNTER_ID = 12345678; // ID вашего счетчика
+
+    document.addEventListener('analytics:purchase-completed', function (e) {
+        ym(YM_COUNTER_ID, 'reachGoal', 'purchase', {
+            order_price: e.detail.value,
+            currency: e.detail.currency,
+        });
+    });
+
+    document.addEventListener('analytics:signup-completed', function () {
+        ym(YM_COUNTER_ID, 'reachGoal', 'signup');
+    });
+
+    document.addEventListener('analytics:checkout-initiated', function () {
+        ym(YM_COUNTER_ID, 'reachGoal', 'checkout');
+    });
+</script>
+```
+
+Названия целей (`purchase`, `signup`, `checkout`) — на ваше усмотрение: создайте в Метрике
+JavaScript-цели с теми же идентификаторами.
+
+## Google Analytics (GA4)
+
+Аналогично — вставьте сниппет gtag и перенаправьте события:
+
+```html
+<script>
+    // ... стандартный сниппет Google tag (gtag.js) ...
+
+    document.addEventListener('analytics:purchase-completed', function (e) {
+        gtag('event', 'purchase', {
+            value: e.detail.value,
+            currency: e.detail.currency,
+            items: e.detail.productIds.map(function (id) {
+                return { item_id: String(id) };
+            }),
+        });
+    });
+
+    document.addEventListener('analytics:signup-completed', function (e) {
+        gtag('event', 'sign_up', { method: e.detail.method });
+    });
+
+    document.addEventListener('analytics:checkout-initiated', function () {
+        gtag('event', 'begin_checkout');
+    });
+</script>
+```
+
+## VK Ads и другие площадки
+
+Тот же принцип работает для любого пикселя, у которого есть JS API — подпишитесь на нужные
+события и вызовите метод площадки:
+
+```html
+<script>
+    // ... сниппет пикселя VK Ads (top.mail.ru) ...
+
+    document.addEventListener('analytics:purchase-completed', function (e) {
+        _tmr.push({
+            type: 'reachGoal',
+            id: 3456789, // ID вашего пикселя
+            goal: 'purchase',
+            value: e.detail.value,
+        });
+    });
+</script>
+```
+
+<Tip>
+  Если для вашей площадки нужна встроенная поддержка (как для Meta Pixel) — напишите нам в
+  [поддержку](https://t.me/exode_support_biz), добавим адаптер на стороне платформы.
+</Tip>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-08-15 13:10 UTC_
