@@ -62,12 +62,14 @@ description: "Целевые события платформы и их авто�
 </ParamField>
 
 <ParamField body="analytics:purchase-completed" type="event">
-    Успешная оплата счета. Отправляется **один раз на счет** — повторная отправка (обновление
-    страницы, возврат по ссылке из письма) блокируется на 90 дней по uuid счета.
+    Успешная оплата счета. Отправляется **один раз на счет**: повторная отправка на этом устройстве
+    блокируется на 90 дней по uuid счета, а при позднем открытии страницы (другое устройство,
+    ссылка из письма — позже 5 минут после оплаты) событие не отправляется вовсе.
 
     <Expandable title="Поля event.detail">
         <ParamField body="value" type="number">Сумма счета.</ParamField>
         <ParamField body="currency" type="enum">Валюта счета: `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`, `Exes`, `Free`.</ParamField>
+        <ParamField body="invoiceUuid" type="string">Uuid счета — уникальный идентификатор для дедупликации.</ParamField>
         <ParamField body="productIds" type="number[]">ID оплаченных продуктов.</ParamField>
     </Expandable>
 </ParamField>
@@ -115,7 +117,9 @@ description: "Целевые события платформы и их авто�
 
 <ParamField body="Purchase" type="track">
     Успешная оплата. Параметры: `value`, `currency` (ISO 4217), `content_type`, `content_ids`.
-    При оплате внутренними валютами (баллы) событие не отправляется — Meta требует реальную валюту.
+    Uuid счета передается как `eventID` — Meta сама схлопывает дубли с одинаковым `eventID`
+    в течение 48 часов. При оплате внутренними валютами (баллы) событие не отправляется —
+    Meta требует реальную валюту.
 </ParamField>
 
 <ParamField body="CompleteCourse" type="trackCustom">
@@ -155,7 +159,8 @@ description: "Целевые события платформы и их авто�
 </ParamField>
 
 <ParamField body="purchase" type="event">
-    Успешная оплата. Параметры: `value`, `currency` (ISO 4217), `items`.
+    Успешная оплата. Параметры: `value`, `currency` (ISO 4217), `items`, `transaction_id`
+    (uuid счета — GA4 сама игнорирует повторные покупки с тем же `transaction_id`).
     При оплате внутренними валютами (баллы) событие не отправляется.
 </ParamField>
 
@@ -254,4 +259,4 @@ description: "Целевые события платформы и их авто�
 
 ---
 
-_Обновлено: 2026-08-15 16:27 UTC_
+_Обновлено: 2026-08-15 16:30 UTC_
