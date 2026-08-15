@@ -5,107 +5,233 @@ description: "Целевые события платформы и их авто�
 
 <Info>
   Платформа отслеживает **целевые события** (регистрация, просмотр курса, покупка и т.д.) и автоматически
-  отправляет их во все подключенные рекламные площадки: **Meta Pixel (Facebook)**, **Google Analytics (GA4)**,
-  **Яндекс.Метрику** и **VK Ads**. Достаточно вставить сниппет площадки в **Custom Code (JS)**
-  в настройках школы — дополнительный код не нужен.
+  отправляет их во все подключенные рекламные площадки. Достаточно вставить сниппет площадки
+  в **Custom Code (JS)** в настройках школы — дополнительный код не нужен.
 </Info>
 
-## Список целевых событий
+## Целевые события
 
 Каждое событие также диспатчится как `CustomEvent` на `document` (данные — в `event.detail`),
 поэтому его можно перехватить своим кодом для любой другой площадки.
 
-| Событие | Когда срабатывает | `event.detail` |
-| --- | --- | --- |
-| `analytics:signup-completed` | Регистрация нового аккаунта через email или телефон | `{ method: 'email' \| 'phone' }` |
-| `profile:personal-info-filled-success` | Пользователь заполнил анкету онбординга (имя и личные данные) | — |
-| `analytics:course-viewed` | Просмотр страницы курса | `{ courseId: number }` |
-| `analytics:demo-lesson-opened` | Открытие демо-урока со страницы курса | `{ courseId: number, lessonId: number }` |
-| `analytics:free-course-enrolled` | Запись на бесплатный курс | `{ productId: number }` |
-| `analytics:checkout-initiated` | Переход к оформлению оплаты (выбран тариф) | `{ productId: number, priceId: number }` |
-| `analytics:purchase-completed` | Успешная оплата счета | `{ value: number, currency: string, productIds: number[] }` |
-| `analytics:course-completed` | Пользователь завершил курс | `{ productId: number }` |
+<ParamField body="analytics:signup-completed" type="event">
+    Регистрация нового аккаунта через email или телефон. При входе через соцсети (VK, Telegram)
+    и OTP событие не отправляется — этот способ пока не различает нового пользователя и повторный вход.
 
-<Warning>
-  События отправляются на стороне браузера. `analytics:signup-completed` срабатывает только при
-  регистрации через email/телефон — вход через соцсети (VK, Telegram) и OTP пока не различает
-  нового пользователя и повторный вход, поэтому событие для них не отправляется.
-</Warning>
+    <Expandable title="Поля event.detail">
+        <ParamField body="method" type="enum">Способ регистрации: `email`, `phone`.</ParamField>
+    </Expandable>
+</ParamField>
 
-## Подключение площадок
+<ParamField body="profile:personal-info-filled-success" type="event">
+    Пользователь заполнил анкету онбординга (имя и личные данные). Без `event.detail`.
+</ParamField>
 
-Все площадки подключаются одинаково — вставьте стандартный сниппет в **Custom Code (JS)**:
+<ParamField body="analytics:course-viewed" type="event">
+    Просмотр страницы курса.
 
-<AccordionGroup>
-  <Accordion title="Meta Pixel (Facebook)">
-    Вставьте стандартный сниппет Meta Pixel с вашим Pixel ID. Платформа обнаружит `window.fbq`
-    и начнет отправлять события автоматически.
-  </Accordion>
+    <Expandable title="Поля event.detail">
+        <ParamField body="courseId" type="number">ID курса.</ParamField>
+    </Expandable>
+</ParamField>
 
-  <Accordion title="Google Analytics (GA4)">
-    Вставьте стандартный сниппет Google tag (gtag.js) с вашим Measurement ID. Платформа обнаружит
-    `window.gtag` и начнет отправлять события автоматически.
-  </Accordion>
+<ParamField body="analytics:demo-lesson-opened" type="event">
+    Открытие демо-урока со страницы курса.
 
-  <Accordion title="Яндекс.Метрика">
-    Вставьте стандартный сниппет счетчика и дополнительно укажите его номер в `window.YM_ID` —
-    он нужен платформе для вызова `reachGoal`:
+    <Expandable title="Поля event.detail">
+        <ParamField body="courseId" type="number">ID курса.</ParamField>
+        <ParamField body="lessonId" type="number">ID демо-урока.</ParamField>
+    </Expandable>
+</ParamField>
 
-    ```html
-    <script>
-        // ... стандартный сниппет счетчика Яндекс.Метрики ...
+<ParamField body="analytics:free-course-enrolled" type="event">
+    Запись на бесплатный курс.
 
-        window.YM_ID = 12345678; // номер вашего счетчика
-    </script>
-    ```
+    <Expandable title="Поля event.detail">
+        <ParamField body="productId" type="number">ID продукта курса.</ParamField>
+    </Expandable>
+</ParamField>
 
-    В настройках счетчика создайте JS-цели с идентификаторами из таблицы ниже.
-  </Accordion>
+<ParamField body="analytics:checkout-initiated" type="event">
+    Переход к оформлению оплаты (выбран тариф).
 
-  <Accordion title="VK Ads (top.mail.ru)">
-    Вставьте стандартный сниппет пикселя VK Ads и дополнительно укажите его ID в `window.VK_PIXEL_ID`:
+    <Expandable title="Поля event.detail">
+        <ParamField body="productId" type="number">ID продукта.</ParamField>
+        <ParamField body="priceId" type="number">ID выбранного тарифа.</ParamField>
+    </Expandable>
+</ParamField>
 
-    ```html
-    <script>
-        // ... стандартный сниппет пикселя VK Ads ...
+<ParamField body="analytics:purchase-completed" type="event">
+    Успешная оплата счета. Отправляется **один раз на счет** — повторная отправка (обновление
+    страницы, возврат по ссылке из письма) блокируется на 90 дней по uuid счета.
 
-        window.VK_PIXEL_ID = 3456789; // ID вашего пикселя
-    </script>
-    ```
+    <Expandable title="Поля event.detail">
+        <ParamField body="value" type="number">Сумма счета.</ParamField>
+        <ParamField body="currency" type="enum">Валюта счета: `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`, `Exes`, `Free`.</ParamField>
+        <ParamField body="productIds" type="number[]">ID оплаченных продуктов.</ParamField>
+    </Expandable>
+</ParamField>
 
-    В кабинете VK Ads создайте цели с идентификаторами из таблицы ниже.
-  </Accordion>
-</AccordionGroup>
+<ParamField body="analytics:course-completed" type="event">
+    Пользователь завершил курс.
 
-## Маппинг событий по площадкам
+    <Expandable title="Поля event.detail">
+        <ParamField body="productId" type="number">ID продукта курса.</ParamField>
+    </Expandable>
+</ParamField>
 
-| Событие платформы | Meta Pixel | GA4 (gtag) | Цель Метрики / VK Ads |
-| --- | --- | --- | --- |
-| `analytics:signup-completed` | `CompleteRegistration` | `sign_up` | `signup` |
-| `profile:personal-info-filled-success` | `Lead` | `generate_lead` | `lead` |
-| `analytics:course-viewed` | `ViewContent` | `view_item` | `view_course` |
-| `analytics:demo-lesson-opened` | `ViewDemoLesson` (custom) | `view_demo_lesson` | `view_demo_lesson` |
-| `analytics:free-course-enrolled` | `StartTrial` | `free_course_enroll` | `free_course_enroll` |
-| `analytics:checkout-initiated` | `InitiateCheckout` | `begin_checkout` | `begin_checkout` |
-| `analytics:purchase-completed` | `Purchase` | `purchase` | `purchase` |
-| `analytics:course-completed` | `CompleteCourse` (custom) | `complete_course` | `complete_course` |
+## Meta Pixel (Facebook)
 
-<Note>
-  `CompleteRegistration`, `Lead`, `ViewContent`, `StartTrial`, `InitiateCheckout`, `Purchase` —
-  [стандартные события Meta](https://www.facebook.com/business/help/402791146561655), по ним доступна
-  автоматическая оптимизация рекламы; `ViewDemoLesson` и `CompleteCourse` отправляются через
-  `fbq('trackCustom', ...)`. Для GA4 `sign_up`, `generate_lead`, `view_item`, `begin_checkout`
-  и `purchase` — рекомендованные события Google.
+Вставьте стандартный сниппет Meta Pixel с вашим Pixel ID в **Custom Code (JS)**.
+Платформа обнаружит `window.fbq` и начнет отправлять события автоматически.
 
-  Событие покупки отправляется один раз на счет и передает сумму: `value` + `currency` (ISO 4217)
-  в Meta и GA4, `order_price` в Метрику, `value` в VK Ads. При оплате внутренними валютами (баллы)
-  Meta и GA4 событие не получают, в Метрику и VK Ads цель `purchase` уходит без суммы.
-</Note>
+Отправляемые события — [стандартные события Meta](https://www.facebook.com/business/help/402791146561655)
+(по ним доступна автоматическая оптимизация рекламы) и два кастомных:
+
+<ParamField body="CompleteRegistration" type="track">
+    Регистрация нового аккаунта. Параметр `registration_method` — `email` или `phone`.
+</ParamField>
+
+<ParamField body="Lead" type="track">
+    Заполнена анкета онбординга.
+</ParamField>
+
+<ParamField body="ViewContent" type="track">
+    Просмотр страницы курса. Параметры: `content_type: 'product'`, `content_ids`.
+</ParamField>
+
+<ParamField body="ViewDemoLesson" type="trackCustom">
+    Открытие демо-урока. Параметры: `content_ids`, `lesson_id`. Кастомное событие —
+    для него можно настроить custom conversion в Events Manager.
+</ParamField>
+
+<ParamField body="StartTrial" type="track">
+    Запись на бесплатный курс. Параметр `content_ids`.
+</ParamField>
+
+<ParamField body="InitiateCheckout" type="track">
+    Переход к оплате. Параметры: `num_items`, `content_ids`.
+</ParamField>
+
+<ParamField body="Purchase" type="track">
+    Успешная оплата. Параметры: `value`, `currency` (ISO 4217), `content_type`, `content_ids`.
+    При оплате внутренними валютами (баллы) событие не отправляется — Meta требует реальную валюту.
+</ParamField>
+
+<ParamField body="CompleteCourse" type="trackCustom">
+    Завершение курса. Параметр `content_ids`. Кастомное событие.
+</ParamField>
+
+## Google Analytics (GA4)
+
+Вставьте стандартный сниппет Google tag (gtag.js) с вашим Measurement ID в **Custom Code (JS)**.
+Платформа обнаружит `window.gtag` и начнет отправлять события автоматически.
+
+Где возможно, используются [рекомендованные события Google](https://support.google.com/analytics/answer/9267735),
+остальные — кастомные:
+
+<ParamField body="sign_up" type="event">
+    Регистрация нового аккаунта. Параметр `method` — `email` или `phone`.
+</ParamField>
+
+<ParamField body="generate_lead" type="event">
+    Заполнена анкета онбординга.
+</ParamField>
+
+<ParamField body="view_item" type="event">
+    Просмотр страницы курса. Параметр `items` с `item_id` курса.
+</ParamField>
+
+<ParamField body="view_demo_lesson" type="event">
+    Открытие демо-урока. Параметры: `item_id`, `lesson_id`. Кастомное событие.
+</ParamField>
+
+<ParamField body="free_course_enroll" type="event">
+    Запись на бесплатный курс. Параметр `item_id`. Кастомное событие.
+</ParamField>
+
+<ParamField body="begin_checkout" type="event">
+    Переход к оплате. Параметр `items` с `item_id` продукта.
+</ParamField>
+
+<ParamField body="purchase" type="event">
+    Успешная оплата. Параметры: `value`, `currency` (ISO 4217), `items`.
+    При оплате внутренними валютами (баллы) событие не отправляется.
+</ParamField>
+
+<ParamField body="complete_course" type="event">
+    Завершение курса. Параметр `item_id`. Кастомное событие.
+</ParamField>
+
+## Яндекс.Метрика
+
+Вставьте стандартный сниппет счетчика в **Custom Code (JS)** и дополнительно укажите его номер
+в `window.YM_ID` — он нужен платформе для вызова `reachGoal`:
+
+```html
+<script>
+    // ... стандартный сниппет счетчика Яндекс.Метрики ...
+
+    window.YM_ID = 12345678; // номер вашего счетчика
+</script>
+```
+
+В настройках счетчика создайте [JS-цели](https://yandex.ru/support/metrica/general/goal-js-event.html)
+с идентификаторами:
+
+<ParamField body="signup" type="reachGoal">
+    Регистрация нового аккаунта.
+</ParamField>
+
+<ParamField body="lead" type="reachGoal">
+    Заполнена анкета онбординга.
+</ParamField>
+
+<ParamField body="view_course" type="reachGoal">
+    Просмотр страницы курса.
+</ParamField>
+
+<ParamField body="view_demo_lesson" type="reachGoal">
+    Открытие демо-урока.
+</ParamField>
+
+<ParamField body="free_course_enroll" type="reachGoal">
+    Запись на бесплатный курс.
+</ParamField>
+
+<ParamField body="begin_checkout" type="reachGoal">
+    Переход к оплате.
+</ParamField>
+
+<ParamField body="purchase" type="reachGoal">
+    Успешная оплата. Параметры цели: `order_price`, `currency` (для внутренних валют не передаются).
+</ParamField>
+
+<ParamField body="complete_course" type="reachGoal">
+    Завершение курса.
+</ParamField>
+
+## VK Ads (top.mail.ru)
+
+Вставьте стандартный сниппет пикселя VK Ads в **Custom Code (JS)** и дополнительно укажите его ID
+в `window.VK_PIXEL_ID`:
+
+```html
+<script>
+    // ... стандартный сниппет пикселя VK Ads ...
+
+    window.VK_PIXEL_ID = 3456789; // ID вашего пикселя
+</script>
+```
+
+В кабинете VK Ads создайте цели с теми же идентификаторами, что и для Метрики:
+`signup`, `lead`, `view_course`, `view_demo_lesson`, `free_course_enroll`, `begin_checkout`,
+`purchase` (с передачей `value` — суммой оплаты), `complete_course`.
 
 ## Другие площадки
 
-Для площадки без встроенной поддержки подпишитесь на события платформы своим кодом
-в **Custom Code (JS)** и вызовите JS API площадки:
+Для площадки без встроенной поддержки подпишитесь на [целевые события](#целевые-события)
+своим кодом в **Custom Code (JS)** и вызовите JS API площадки:
 
 ```html
 <script>
@@ -128,4 +254,4 @@ description: "Целевые события платформы и их авто�
 
 ---
 
-_Обновлено: 2026-08-15 13:17 UTC_
+_Обновлено: 2026-08-15 16:27 UTC_
