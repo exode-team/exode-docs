@@ -86,9 +86,9 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 
 ## Integrations
 
-- [Telegram Mini App](https://docs.exode.biz/ru/exode-api/school/iframe/tg-mini-app): auto-authorization via `?___uat=<token>`.
-- [Mobile app deep link](https://docs.exode.biz/ru/exode-api/school/deep-link/mobile-app): auto-login into the mobile app via a session token.
-- [Custom JS code](https://docs.exode.biz/ru/exode-api/school/custom-code/js-config): customizing the platform interface.
+- [Telegram Mini App](https://docs.exode.biz/ru/integrations/tg-mini-app): auto-authorization via `?___uat=<token>`.
+- [Mobile app deep link](https://docs.exode.biz/ru/integrations/mobile-app): auto-login into the mobile app via a session token.
+- [Custom JS code](https://docs.exode.biz/ru/integrations/js-config): customizing the platform interface.
 
 ## SDK (@exode-team/sdk)
 

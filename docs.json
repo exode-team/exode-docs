@@ -169,9 +169,9 @@
           {
             "group": "Кастомизация",
             "pages": [
-              "ru/exode-api/school/iframe/tg-mini-app",
-              "ru/exode-api/school/deep-link/mobile-app",
-              "ru/exode-api/school/custom-code/js-config"
+              "ru/integrations/tg-mini-app",
+              "ru/integrations/mobile-app",
+              "ru/integrations/js-config"
             ]
           },
           {
@@ -198,6 +198,18 @@
     {
       "source": "/ru/exode-api/school/custom-code/analytics-events",
       "destination": "/ru/analytics/events"
+    },
+    {
+      "source": "/ru/exode-api/school/iframe/tg-mini-app",
+      "destination": "/ru/integrations/tg-mini-app"
+    },
+    {
+      "source": "/ru/exode-api/school/deep-link/mobile-app",
+      "destination": "/ru/integrations/mobile-app"
+    },
+    {
+      "source": "/ru/exode-api/school/custom-code/js-config",
+      "destination": "/ru/integrations/js-config"
     }
   ],
   "navbar": {
