@@ -14,30 +14,44 @@ description: "Автоматическая отправка целевых со�
 [стандартные события Meta](https://www.facebook.com/business/help/402791146561655)
 (по ним доступна автоматическая оптимизация рекламы) и два кастомных:
 
+### Регистрация
+
 <ParamField body="CompleteRegistration" type="track">
     Регистрация нового аккаунта. Параметр `registration_method` — `email` или `phone`.
 </ParamField>
+
+### Лид (анкета онбординга)
 
 <ParamField body="Lead" type="track">
     Заполнена анкета онбординга.
 </ParamField>
 
+### Просмотр курса
+
 <ParamField body="ViewContent" type="track">
     Просмотр страницы курса. Параметры: `content_type: 'product'`, `content_ids`.
 </ParamField>
+
+### Открытие демо-урока
 
 <ParamField body="ViewDemoLesson" type="trackCustom">
     Открытие демо-урока. Параметры: `content_ids`, `lesson_id`. Кастомное событие —
     для него можно настроить custom conversion в Events Manager.
 </ParamField>
 
+### Запись на бесплатный курс
+
 <ParamField body="StartTrial" type="track">
     Запись на бесплатный курс. Параметр `content_ids`.
 </ParamField>
 
+### Переход к оплате
+
 <ParamField body="InitiateCheckout" type="track">
     Переход к оплате. Параметры: `num_items`, `content_ids`.
 </ParamField>
+
+### Покупка
 
 <ParamField body="Purchase" type="track">
     Успешная оплата. Параметры: `value`, `currency` (ISO 4217), `content_type`, `content_ids`.
@@ -45,6 +59,8 @@ description: "Автоматическая отправка целевых со�
     в течение 48 часов. При оплате внутренними валютами (баллы) событие не отправляется —
     Meta требует реальную валюту.
 </ParamField>
+
+### Завершение курса
 
 <ParamField body="CompleteCourse" type="trackCustom">
     Завершение курса. Параметр `content_ids`. Кастомное событие.
@@ -54,4 +70,4 @@ description: "Автоматическая отправка целевых со�
 
 ---
 
-_Обновлено: 2026-08-15 16:35 UTC_
+_Обновлено: 2026-08-15 17:00 UTC_

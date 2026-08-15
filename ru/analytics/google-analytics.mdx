@@ -13,35 +13,51 @@ description: "Автоматическая отправка целевых со�
 Где возможно, используются [рекомендованные события Google](https://support.google.com/analytics/answer/9267735),
 остальные — кастомные:
 
+### Регистрация
+
 <ParamField body="sign_up" type="event">
     Регистрация нового аккаунта. Параметр `method` — `email` или `phone`.
 </ParamField>
+
+### Лид (анкета онбординга)
 
 <ParamField body="generate_lead" type="event">
     Заполнена анкета онбординга.
 </ParamField>
 
+### Просмотр курса
+
 <ParamField body="view_item" type="event">
     Просмотр страницы курса. Параметр `items` с `item_id` курса.
 </ParamField>
+
+### Открытие демо-урока
 
 <ParamField body="view_demo_lesson" type="event">
     Открытие демо-урока. Параметры: `item_id`, `lesson_id`. Кастомное событие.
 </ParamField>
 
+### Запись на бесплатный курс
+
 <ParamField body="free_course_enroll" type="event">
     Запись на бесплатный курс. Параметр `item_id`. Кастомное событие.
 </ParamField>
 
+### Переход к оплате
+
 <ParamField body="begin_checkout" type="event">
     Переход к оплате. Параметр `items` с `item_id` продукта.
 </ParamField>
+
+### Покупка
 
 <ParamField body="purchase" type="event">
     Успешная оплата. Параметры: `value`, `currency` (ISO 4217), `items`, `transaction_id`
     (uuid счета — GA4 сама игнорирует повторные покупки с тем же `transaction_id`).
     При оплате внутренними валютами (баллы) событие не отправляется.
 </ParamField>
+
+### Завершение курса
 
 <ParamField body="complete_course" type="event">
     Завершение курса. Параметр `item_id`. Кастомное событие.
@@ -51,4 +67,4 @@ description: "Автоматическая отправка целевых со�
 
 ---
 
-_Обновлено: 2026-08-15 16:35 UTC_
+_Обновлено: 2026-08-15 17:00 UTC_

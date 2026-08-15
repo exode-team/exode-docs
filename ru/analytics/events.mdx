@@ -30,6 +30,8 @@ description: "События платформы, которые автомати
 Каждое событие также диспатчится как `CustomEvent` на `document` (данные — в `event.detail`),
 поэтому его можно перехватить своим кодом для [любой другой площадки](/ru/analytics/custom).
 
+### Регистрация
+
 <ParamField body="analytics:signup-completed" type="event">
     Регистрация нового аккаунта через email или телефон. При входе через соцсети (VK, Telegram)
     и OTP событие не отправляется — этот способ пока не различает нового пользователя и повторный вход.
@@ -39,9 +41,13 @@ description: "События платформы, которые автомати
     </Expandable>
 </ParamField>
 
+### Лид (анкета онбординга)
+
 <ParamField body="profile:personal-info-filled-success" type="event">
     Пользователь заполнил анкету онбординга (имя и личные данные). Без `event.detail`.
 </ParamField>
+
+### Просмотр курса
 
 <ParamField body="analytics:course-viewed" type="event">
     Просмотр страницы курса.
@@ -50,6 +56,8 @@ description: "События платформы, которые автомати
         <ParamField body="courseId" type="number">ID курса.</ParamField>
     </Expandable>
 </ParamField>
+
+### Открытие демо-урока
 
 <ParamField body="analytics:demo-lesson-opened" type="event">
     Открытие демо-урока со страницы курса.
@@ -60,6 +68,8 @@ description: "События платформы, которые автомати
     </Expandable>
 </ParamField>
 
+### Запись на бесплатный курс
+
 <ParamField body="analytics:free-course-enrolled" type="event">
     Запись на бесплатный курс.
 
@@ -67,6 +77,8 @@ description: "События платформы, которые автомати
         <ParamField body="productId" type="number">ID продукта курса.</ParamField>
     </Expandable>
 </ParamField>
+
+### Переход к оплате
 
 <ParamField body="analytics:checkout-initiated" type="event">
     Переход к оформлению оплаты (выбран тариф).
@@ -76,6 +88,8 @@ description: "События платформы, которые автомати
         <ParamField body="priceId" type="number">ID выбранного тарифа.</ParamField>
     </Expandable>
 </ParamField>
+
+### Покупка
 
 <ParamField body="analytics:purchase-completed" type="event">
     Успешная оплата счета. Отправляется **один раз на счет**: повторная отправка на этом устройстве
@@ -90,6 +104,8 @@ description: "События платформы, которые автомати
     </Expandable>
 </ParamField>
 
+### Завершение курса
+
 <ParamField body="analytics:course-completed" type="event">
     Пользователь завершил курс.
 
@@ -102,4 +118,4 @@ description: "События платформы, которые автомати
 
 ---
 
-_Обновлено: 2026-08-15 16:41 UTC_
+_Обновлено: 2026-08-15 17:00 UTC_
