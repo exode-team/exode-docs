@@ -1,0 +1,59 @@
+---
+title: "VK Ads"
+description: "Автоматическая передача целевых событий платформы в цели пикселя VK Ads (top.mail.ru)"
+---
+
+## Подключение
+
+Вставьте стандартный сниппет пикселя VK Ads в **Custom Code (JS)** в настройках школы
+и дополнительно укажите его ID в `window.VK_PIXEL_ID`:
+
+```html
+<script>
+    // ... стандартный сниппет пикселя VK Ads ...
+
+    window.VK_PIXEL_ID = 3456789; // ID вашего пикселя
+</script>
+```
+
+## Цели
+
+В кабинете VK Ads создайте цели с идентификаторами (те же, что у [Яндекс.Метрики](/ru/analytics/yandex-metrika)):
+
+<ParamField body="signup" type="reachGoal">
+    Регистрация нового аккаунта.
+</ParamField>
+
+<ParamField body="lead" type="reachGoal">
+    Заполнена анкета онбординга.
+</ParamField>
+
+<ParamField body="view_course" type="reachGoal">
+    Просмотр страницы курса.
+</ParamField>
+
+<ParamField body="view_demo_lesson" type="reachGoal">
+    Открытие демо-урока.
+</ParamField>
+
+<ParamField body="free_course_enroll" type="reachGoal">
+    Запись на бесплатный курс.
+</ParamField>
+
+<ParamField body="begin_checkout" type="reachGoal">
+    Переход к оплате.
+</ParamField>
+
+<ParamField body="purchase" type="reachGoal">
+    Успешная оплата. Передается `value` — сумма оплаты (для внутренних валют не передается).
+</ParamField>
+
+<ParamField body="complete_course" type="reachGoal">
+    Завершение курса.
+</ParamField>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-08-15 16:35 UTC_

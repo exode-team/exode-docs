@@ -1,0 +1,91 @@
+---
+title: "Целевые события"
+description: "События платформы, которые автоматически отправляются в подключенные рекламные площадки"
+---
+
+<Info>
+  Платформа отслеживает **целевые события** (регистрация, просмотр курса, покупка и т.д.) и автоматически
+  отправляет их во все подключенные рекламные площадки: [Meta Pixel](/ru/analytics/meta-pixel),
+  [Google Analytics](/ru/analytics/google-analytics), [Яндекс.Метрику](/ru/analytics/yandex-metrika)
+  и [VK Ads](/ru/analytics/vk-ads). Достаточно вставить сниппет площадки в **Custom Code (JS)**
+  в настройках школы — дополнительный код не нужен.
+</Info>
+
+## Список событий
+
+Каждое событие также диспатчится как `CustomEvent` на `document` (данные — в `event.detail`),
+поэтому его можно перехватить своим кодом для [любой другой площадки](/ru/analytics/custom).
+
+<ParamField body="analytics:signup-completed" type="event">
+    Регистрация нового аккаунта через email или телефон. При входе через соцсети (VK, Telegram)
+    и OTP событие не отправляется — этот способ пока не различает нового пользователя и повторный вход.
+
+    <Expandable title="Поля event.detail">
+        <ParamField body="method" type="enum">Способ регистрации: `email`, `phone`.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField body="profile:personal-info-filled-success" type="event">
+    Пользователь заполнил анкету онбординга (имя и личные данные). Без `event.detail`.
+</ParamField>
+
+<ParamField body="analytics:course-viewed" type="event">
+    Просмотр страницы курса.
+
+    <Expandable title="Поля event.detail">
+        <ParamField body="courseId" type="number">ID курса.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField body="analytics:demo-lesson-opened" type="event">
+    Открытие демо-урока со страницы курса.
+
+    <Expandable title="Поля event.detail">
+        <ParamField body="courseId" type="number">ID курса.</ParamField>
+        <ParamField body="lessonId" type="number">ID демо-урока.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField body="analytics:free-course-enrolled" type="event">
+    Запись на бесплатный курс.
+
+    <Expandable title="Поля event.detail">
+        <ParamField body="productId" type="number">ID продукта курса.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField body="analytics:checkout-initiated" type="event">
+    Переход к оформлению оплаты (выбран тариф).
+
+    <Expandable title="Поля event.detail">
+        <ParamField body="productId" type="number">ID продукта.</ParamField>
+        <ParamField body="priceId" type="number">ID выбранного тарифа.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField body="analytics:purchase-completed" type="event">
+    Успешная оплата счета. Отправляется **один раз на счет**: повторная отправка на этом устройстве
+    блокируется на 90 дней по uuid счета, а при позднем открытии страницы (другое устройство,
+    ссылка из письма — позже 5 минут после оплаты) событие не отправляется вовсе.
+
+    <Expandable title="Поля event.detail">
+        <ParamField body="value" type="number">Сумма счета.</ParamField>
+        <ParamField body="currency" type="enum">Валюта счета: `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`, `Exes`, `Free`.</ParamField>
+        <ParamField body="invoiceUuid" type="string">Uuid счета — уникальный идентификатор для дедупликации.</ParamField>
+        <ParamField body="productIds" type="number[]">ID оплаченных продуктов.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField body="analytics:course-completed" type="event">
+    Пользователь завершил курс.
+
+    <Expandable title="Поля event.detail">
+        <ParamField body="productId" type="number">ID продукта курса.</ParamField>
+    </Expandable>
+</ParamField>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-08-15 16:35 UTC_

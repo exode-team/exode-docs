@@ -1,0 +1,60 @@
+---
+title: "Яндекс.Метрика"
+description: "Автоматическая передача целевых событий платформы в цели Яндекс.Метрики"
+---
+
+## Подключение
+
+Вставьте стандартный сниппет счетчика в **Custom Code (JS)** в настройках школы и дополнительно
+укажите его номер в `window.YM_ID` — он нужен платформе для вызова `reachGoal`:
+
+```html
+<script>
+    // ... стандартный сниппет счетчика Яндекс.Метрики ...
+
+    window.YM_ID = 12345678; // номер вашего счетчика
+</script>
+```
+
+## Цели
+
+В настройках счетчика создайте [JS-цели](https://yandex.ru/support/metrica/general/goal-js-event.html)
+с идентификаторами:
+
+<ParamField body="signup" type="reachGoal">
+    Регистрация нового аккаунта.
+</ParamField>
+
+<ParamField body="lead" type="reachGoal">
+    Заполнена анкета онбординга.
+</ParamField>
+
+<ParamField body="view_course" type="reachGoal">
+    Просмотр страницы курса.
+</ParamField>
+
+<ParamField body="view_demo_lesson" type="reachGoal">
+    Открытие демо-урока.
+</ParamField>
+
+<ParamField body="free_course_enroll" type="reachGoal">
+    Запись на бесплатный курс.
+</ParamField>
+
+<ParamField body="begin_checkout" type="reachGoal">
+    Переход к оплате.
+</ParamField>
+
+<ParamField body="purchase" type="reachGoal">
+    Успешная оплата. Параметры цели: `order_price`, `currency` (для внутренних валют не передаются).
+</ParamField>
+
+<ParamField body="complete_course" type="reachGoal">
+    Завершение курса.
+</ParamField>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-08-15 16:35 UTC_

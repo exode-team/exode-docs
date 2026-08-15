@@ -1,0 +1,57 @@
+---
+title: "Meta Pixel (Facebook)"
+description: "Автоматическая отправка целевых событий платформы в Meta Pixel"
+---
+
+## Подключение
+
+Вставьте стандартный сниппет Meta Pixel с вашим Pixel ID в **Custom Code (JS)** в настройках школы.
+Платформа обнаружит `window.fbq` и начнет отправлять события автоматически.
+
+## Отправляемые события
+
+[Целевые события](/ru/analytics/events) маппятся на
+[стандартные события Meta](https://www.facebook.com/business/help/402791146561655)
+(по ним доступна автоматическая оптимизация рекламы) и два кастомных:
+
+<ParamField body="CompleteRegistration" type="track">
+    Регистрация нового аккаунта. Параметр `registration_method` — `email` или `phone`.
+</ParamField>
+
+<ParamField body="Lead" type="track">
+    Заполнена анкета онбординга.
+</ParamField>
+
+<ParamField body="ViewContent" type="track">
+    Просмотр страницы курса. Параметры: `content_type: 'product'`, `content_ids`.
+</ParamField>
+
+<ParamField body="ViewDemoLesson" type="trackCustom">
+    Открытие демо-урока. Параметры: `content_ids`, `lesson_id`. Кастомное событие —
+    для него можно настроить custom conversion в Events Manager.
+</ParamField>
+
+<ParamField body="StartTrial" type="track">
+    Запись на бесплатный курс. Параметр `content_ids`.
+</ParamField>
+
+<ParamField body="InitiateCheckout" type="track">
+    Переход к оплате. Параметры: `num_items`, `content_ids`.
+</ParamField>
+
+<ParamField body="Purchase" type="track">
+    Успешная оплата. Параметры: `value`, `currency` (ISO 4217), `content_type`, `content_ids`.
+    Uuid счета передается как `eventID` — Meta сама схлопывает дубли с одинаковым `eventID`
+    в течение 48 часов. При оплате внутренними валютами (баллы) событие не отправляется —
+    Meta требует реальную валюту.
+</ParamField>
+
+<ParamField body="CompleteCourse" type="trackCustom">
+    Завершение курса. Параметр `content_ids`. Кастомное событие.
+</ParamField>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-08-15 16:35 UTC_

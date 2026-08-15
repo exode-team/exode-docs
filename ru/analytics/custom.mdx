@@ -1,0 +1,30 @@
+---
+title: "Другие площадки"
+description: "Подключение любой рекламной площадки через подписку на целевые события платформы"
+---
+
+Для площадки без встроенной поддержки подпишитесь на [целевые события](/ru/analytics/events)
+своим кодом в **Custom Code (JS)** и вызовите JS API площадки:
+
+```html
+<script>
+    document.addEventListener('analytics:purchase-completed', function (e) {
+        // любой пиксель: e.detail.value, e.detail.currency, e.detail.productIds
+    });
+
+    document.addEventListener('analytics:signup-completed', function (e) {
+        // e.detail.method: 'email' | 'phone'
+    });
+</script>
+```
+
+<Tip>
+  Если для вашей площадки нужна встроенная поддержка — напишите нам в
+  [поддержку](https://t.me/exode_support_biz), добавим на стороне платформы.
+</Tip>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-08-15 16:35 UTC_

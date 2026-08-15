@@ -118,8 +118,7 @@
             "pages": [
               "ru/exode-api/school/iframe/tg-mini-app",
               "ru/exode-api/school/deep-link/mobile-app",
-              "ru/exode-api/school/custom-code/js-config",
-              "ru/exode-api/school/custom-code/analytics-events"
+              "ru/exode-api/school/custom-code/js-config"
             ]
           },
           {
@@ -173,12 +172,34 @@
         ]
       },
       {
+        "tab": "Аналитика",
+        "groups": [
+          {
+            "group": "Пиксели и события",
+            "pages": [
+              "ru/analytics/events",
+              "ru/analytics/meta-pixel",
+              "ru/analytics/google-analytics",
+              "ru/analytics/yandex-metrika",
+              "ru/analytics/vk-ads",
+              "ru/analytics/custom"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Status",
         "icon": "activity",
         "href": "https://exode.instatus.com/"
       }
     ]
   },
+  "redirects": [
+    {
+      "source": "/ru/exode-api/school/custom-code/analytics-events",
+      "destination": "/ru/analytics/events"
+    }
+  ],
   "navbar": {
     "links": [
       {
