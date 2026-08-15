@@ -194,24 +194,6 @@
       }
     ]
   },
-  "redirects": [
-    {
-      "source": "/ru/exode-api/school/custom-code/analytics-events",
-      "destination": "/ru/analytics/events"
-    },
-    {
-      "source": "/ru/exode-api/school/iframe/tg-mini-app",
-      "destination": "/ru/customization/tg-mini-app"
-    },
-    {
-      "source": "/ru/exode-api/school/deep-link/mobile-app",
-      "destination": "/ru/customization/mobile-app"
-    },
-    {
-      "source": "/ru/exode-api/school/custom-code/js-config",
-      "destination": "/ru/customization/js-config"
-    }
-  ],
   "navbar": {
     "links": [
       {
@@ -231,5 +213,23 @@
       "telegram": "https://t.me/exode_biz",
       "instagram": "https://www.instagram.com/exode_uz/"
     }
-  }
+  },
+  "redirects": [
+    {
+      "source": "/ru/exode-api/school/custom-code/analytics-events",
+      "destination": "/ru/analytics/events"
+    },
+    {
+      "source": "/ru/exode-api/school/iframe/tg-mini-app",
+      "destination": "/ru/customization/tg-mini-app"
+    },
+    {
+      "source": "/ru/exode-api/school/deep-link/mobile-app",
+      "destination": "/ru/customization/mobile-app"
+    },
+    {
+      "source": "/ru/exode-api/school/custom-code/js-config",
+      "destination": "/ru/customization/js-config"
+    }
+  ]
 }
