@@ -1,116 +1,164 @@
-# Exode SaaS API — сводный справочник (для LLM)
+# Exode SaaS API — consolidated reference (for LLMs)
 
-Машиночитаемый обзор Exode SaaS API: соглашения, все методы, параметры, формы ответов, сущности и вебхуки.
-Полная документация — в каталоге `ru/exode-api/`. Источник истины — серверные zod-схемы (`shared/schemas`).
+Machine-readable overview of the Exode SaaS API: conventions, all methods, parameters, response shapes, entities, and webhooks.
+Full documentation lives in the `ru/exode-api/` directory. Source of truth — server-side zod schemas (`shared/schemas`).
 
-> Есть официальный npm-SDK `@exode-team/sdk` (типизированный клиент REST API + bridge мини-приложений).
-> Справочник для LLM: `ru/exode-sdk/llms.txt`. npm: https://www.npmjs.com/package/@exode-team/sdk
+> There is an official npm SDK `@exode-team/sdk` (typed REST API client + mini-app bridge).
+> LLM reference: `ru/exode-sdk/llms.txt`. npm: https://www.npmjs.com/package/@exode-team/sdk
 
-## Базовые соглашения
+## Base conventions
 
-- **Base URL:** `https://api.exode.biz`. Префикс всех методов: `/saas/v2`.
-- **Аутентификация:** заголовок `Authorization: Bearer <TOKEN>` — токен сервисного пользователя (API-клиента).
-- **Обязательные заголовки:** `Authorization`, `Seller-Id`, `School-Id`.
-- **Ответ (успех):** `{ "success": true, "code": <200..206>, "payload": <данные> }`.
-- **Ответ (ошибка):** `{ "success": false, "code": <4xx/5xx>, "cause": "<код>", "message": "<текст>", "error": "<текст>", "data": <опц.> }`.
-  - Типичные `cause`: `validation` (400), `Unauthorized` (401, нет/неверный токен), `Blocked` (401, юзер забанен), `Forbidden` (401 — нет доступа к продавцу/школе; 403 — нет права RBAC), `Rate` (429).
-- **Rate-limit:** при превышении — HTTP `429`, `cause:"Rate"`, `data.retryAfter` (дата). Лимит — по токену.
-- **Пагинация** (списочные методы): query `take` (1–1000, по умолчанию 100), `page` (≥1), `skip` (≥0; игнорируется при `page`).
-  - Тело страницы: `{ items[], page, count, pages, isFirst, isLast, next:{skip,take,page}, prev:{skip,take,page} }`.
-- **Массивы** в query — повтором ключа: `userIds=1&userIds=2`. **Диапазоны** — объект `{ from, to }`.
-- **RBAC:** при нескольких правах у метода достаточно любого одного (OR). Признак API-клиента у токена обязателен для всех SaaS-методов.
+- **Base URL:** `https://api.exode.biz`. All methods are prefixed with `/saas/v2`.
+- **Authentication:** header `Authorization: Bearer <TOKEN>` — token of a service user (API client).
+- **Required headers:** `Authorization`, `Seller-Id`, `School-Id`.
+- **Response (success):** `{ "success": true, "code": <200..206>, "payload": <data> }`.
+- **Response (error):** `{ "success": false, "code": <4xx/5xx>, "cause": "<code>", "message": "<text>", "error": "<text>", "data": <opt.> }`.
+  - Typical `cause` values: `validation` (400), `Unauthorized` (401, missing/invalid token), `Blocked` (401, user is banned), `Forbidden` (401 — no access to the seller/school; 403 — missing RBAC permission), `Rate` (429).
+- **Rate limit:** on excess — HTTP `429`, `cause:"Rate"`, `data.retryAfter` (date). The limit is per token.
+- **Pagination** (list methods): query `take` (1–1000, default 100), `page` (≥1), `skip` (≥0; ignored when `page` is set).
+  - Page body: `{ items[], page, count, pages, isFirst, isLast, next:{skip,take,page}, prev:{skip,take,page} }`.
+- **Arrays** in query — by repeating the key: `userIds=1&userIds=2`. **Ranges** — an object `{ from, to }`.
+- **RBAC:** when a method lists several permissions, any single one is enough (OR). The API-client flag on the token is required for all SaaS methods.
+- **Staff (HR) module:** available **only** to `Corporate`-segment schools (other segments get `403 Forbidden`). Reads require `StaffView`, writes require `StaffManage`. Staff records carry an optional `extId` — an external ID from the client's system (CRM/1C/HR), 1–50 chars, URL-safe (no `/` or whitespace), unique within the school among non-deleted (for employments: among open) records; `ext/{extId}` route variants address records by it (URL-encode the path value).
 
-## Сводная таблица методов
+## Method summary table
 
-| Метод | Путь | Назначение | Право (RBAC) | Лимит | Документация |
+| Method | Path | Purpose | Permission (RBAC) | Limit | Docs |
 |---|---|---|---|---|---|
-| POST | `/saas/v2/user/create` | Создать пользователя | `SchoolManageUsers` | — | `ru/exode-api/school/user/create` |
-| PUT | `/saas/v2/user/:userId/update` | Обновить пользователя | `SchoolManageUsers` | — | `ru/exode-api/school/user/update` |
-| PUT | `/saas/v2/user/upsert` | Создать или обновить (по email/phone/tgId/extId) | `SchoolManageUsers` | — | `ru/exode-api/school/user/upsert` |
-| GET | `/saas/v2/user/find` | Найти пользователя (login \| tgId \| extId) | `SchoolManageUsers` | — | `ru/exode-api/school/user/find` |
-| GET | `/saas/v2/user/list` | Постраничный список пользователей школы | `SchoolManageUsers` | — | `ru/exode-api/school/user/list` |
-| DELETE | `/saas/v2/user/delete-many` | Массовое удаление (userIds ≤250, reason) | `SchoolManageUsers` | — | `ru/exode-api/school/user/delete-many` |
-| PUT | `/saas/v2/user/:userId/state/set?key=` | Записать состояние по ключу | `SchoolManageUsers` | — | `ru/exode-api/school/user/state` |
-| GET | `/saas/v2/user/:userId/state/get?key=` | Прочитать состояние по ключу | `SchoolManageUsers` | — | `ru/exode-api/school/user/state` |
-| POST | `/saas/v2/user/session/auth-token` | Создать/получить токен сессии пользователя | `SchoolManageUsers` | — | `ru/exode-api/school/user/session/auth-token` |
-| GET | `/saas/v2/group/list/raw` | Список групп | `SchoolManageUsers` | — | `ru/exode-api/school/group/list` |
-| GET | `/saas/v2/group/member/list/raw` | Список участников групп | `SchoolManageUsers` | — | `ru/exode-api/school/group-member/list` |
-| POST | `/saas/v2/group/:groupId/member/create-many` | Добавить участников (userIds ≤250) | `SchoolManageUsers` | — | `ru/exode-api/school/group-member/create-many` |
-| DELETE | `/saas/v2/group/:groupId/member/delete-many` | Удалить участников (userIds ≤250) | `SchoolManageUsers` | — | `ru/exode-api/school/group-member/delete-many` |
-| GET | `/saas/v2/course/list/raw` | Список курсов | `CourseCurator` \| `SchoolManageUsers` | — | `ru/exode-api/school/course/list` |
-| GET | `/saas/v2/course/:courseId/progresses` | Прогресс участников по курсу | `CourseCurator` \| `SchoolManageUsers` | — | `ru/exode-api/school/course/progresses` |
-| GET | `/saas/v2/certificate/list/raw` | Список сертификатов | `CourseManage` \| `CourseStudentManage` | — | `ru/exode-api/school/certificate/list` |
-| GET | `/saas/v2/invoice/list/raw` | Список счетов | `SellerSales` | — | `ru/exode-api/school/invoice/list` |
-| GET | `/saas/v2/product-access/list/raw` | Список доступов к продуктам | `SchoolManageUsers` \| `CourseStudentManage` | — | `ru/exode-api/school/product-access/list` |
-| GET | `/saas/v2/form/layout/list` | Список макетов форм | `FormManage` | — | `ru/exode-api/school/form-layout/list` |
-| POST | `/saas/v2/form/layout/create` | Создать макет формы | `FormManage` | — | `ru/exode-api/school/form-layout/create` |
-| PUT | `/saas/v2/form/layout/:layoutId/update` | Обновить макет формы | `FormManage` | — | `ru/exode-api/school/form-layout/update` |
-| DELETE | `/saas/v2/form/layout/:layoutId/delete` | Удалить макет формы | `FormManage` | — | `ru/exode-api/school/form-layout/delete` |
-| GET | `/saas/v2/form/custom-field/value/get` | Значения кастомных полей | `FormManage` | — | `ru/exode-api/school/custom-field/get` |
-| POST | `/saas/v2/form/custom-field/value/set` | Записать значения полей (по fieldId) | `FormManage` | — | `ru/exode-api/school/custom-field/set` |
-| POST | `/saas/v2/form/custom-field/value/set-by-slug` | Записать значения полей (по slug) | `FormManage` | — | `ru/exode-api/school/custom-field/set` |
-| POST | `/saas/v2/query-export/generate` | Создать асинхронную выгрузку | auth (API-клиент) | 100/час | `ru/exode-api/school/query-export/generate` |
-| GET | `/saas/v2/workflow-execution/:executionUuid/result` | Результат выгрузки (polling) | auth (API-клиент) | — | `ru/exode-api/school/query-export/result` |
+| POST | `/saas/v2/user/create` | Create a user | `SchoolManageUsers` | — | `ru/exode-api/school/user/create` |
+| PUT | `/saas/v2/user/:userId/update` | Update a user | `SchoolManageUsers` | — | `ru/exode-api/school/user/update` |
+| PUT | `/saas/v2/user/upsert` | Create or update (by email/phone/tgId/extId) | `SchoolManageUsers` | — | `ru/exode-api/school/user/upsert` |
+| GET | `/saas/v2/user/find` | Find a user (login \| tgId \| extId) | `SchoolManageUsers` | — | `ru/exode-api/school/user/find` |
+| POST | `/saas/v2/user/find-many` | Bulk find by lists of logins/tgIds/extIds | `SchoolManageUsers` | — | `ru/exode-api/school/user/find-many` |
+| GET | `/saas/v2/user/list` | Paginated list of school users | `SchoolManageUsers` | — | `ru/exode-api/school/user/list` |
+| DELETE | `/saas/v2/user/delete-many` | Bulk delete (userIds ≤250, reason) | `SchoolManageUsers` | — | `ru/exode-api/school/user/delete-many` |
+| PUT | `/saas/v2/user/:userId/state/set?key=` | Write state by key | `SchoolManageUsers` | — | `ru/exode-api/school/user/state` |
+| GET | `/saas/v2/user/:userId/state/get?key=` | Read state by key | `SchoolManageUsers` | — | `ru/exode-api/school/user/state` |
+| POST | `/saas/v2/user/session/auth-token` | Create/get a user session token | `SchoolManageUsers` | — | `ru/exode-api/school/user/session/auth-token` |
+| GET | `/saas/v2/staff/department/tree` | Flat array of all departments (hierarchy via `parentId`) | `StaffView` | — | `ru/exode-api/school/staff/department` |
+| GET | `/saas/v2/staff/department/list` | Paginated department list | `StaffView` | — | `ru/exode-api/school/staff/department` |
+| POST | `/saas/v2/staff/department/create` | Create a department | `StaffManage` | — | `ru/exode-api/school/staff/department` |
+| PUT | `/saas/v2/staff/department/:departmentId/update` (+ `ext/:extId/update`) | Update a department | `StaffManage` | — | `ru/exode-api/school/staff/department` |
+| DELETE | `/saas/v2/staff/department/:departmentId/delete` (+ `ext/:extId/delete`) | Delete a department | `StaffManage` | — | `ru/exode-api/school/staff/department` |
+| GET | `/saas/v2/staff/position/list` | Paginated position list | `StaffView` | — | `ru/exode-api/school/staff/position` |
+| POST | `/saas/v2/staff/position/create` | Create a position | `StaffManage` | — | `ru/exode-api/school/staff/position` |
+| PUT | `/saas/v2/staff/position/:positionId/update` (+ `ext/:extId/update`) | Update a position | `StaffManage` | — | `ru/exode-api/school/staff/position` |
+| DELETE | `/saas/v2/staff/position/:positionId/delete` (+ `ext/:extId/delete`) | Delete a position | `StaffManage` | — | `ru/exode-api/school/staff/position` |
+| GET | `/saas/v2/staff/employment/list` | Paginated employment list | `StaffView` | — | `ru/exode-api/school/staff/employment` |
+| POST | `/saas/v2/staff/employment/hire` | Hire an employee (new active employment) | `StaffManage` | — | `ru/exode-api/school/staff/employment` |
+| POST | `/saas/v2/staff/employment/transfer` (+ `ext/:extId/transfer`) | Transfer to another department | `StaffManage` | — | `ru/exode-api/school/staff/employment` |
+| POST | `/saas/v2/staff/employment/promote` (+ `ext/:extId/promote`) | Change/remove position | `StaffManage` | — | `ru/exode-api/school/staff/employment` |
+| POST | `/saas/v2/staff/employment/terminate` (+ `ext/:extId/terminate`) | Terminate an employment | `StaffManage` | — | `ru/exode-api/school/staff/employment` |
+| POST | `/saas/v2/staff/department-manager/set` | Assign a department manager (upsert) | `StaffManage` | — | `ru/exode-api/school/staff/department-manager` |
+| DELETE | `/saas/v2/staff/department-manager/:managerId/remove` (+ `ext/:extId/remove`) | Remove a department manager | `StaffManage` | — | `ru/exode-api/school/staff/department-manager` |
+| GET | `/saas/v2/staff/absence/list` | Paginated absence list | `StaffView` | — | `ru/exode-api/school/staff/absence` |
+| POST | `/saas/v2/staff/absence/create` | Create an absence | `StaffManage` | — | `ru/exode-api/school/staff/absence` |
+| PUT | `/saas/v2/staff/absence/:absenceId/update` (+ `ext/:extId/update`) | Update an absence | `StaffManage` | — | `ru/exode-api/school/staff/absence` |
+| DELETE | `/saas/v2/staff/absence/:absenceId/delete` (+ `ext/:extId/delete`) | Delete an absence | `StaffManage` | — | `ru/exode-api/school/staff/absence` |
+| GET | `/saas/v2/group/list/raw` | List groups | `SchoolManageUsers` | — | `ru/exode-api/school/group/list` |
+| GET | `/saas/v2/group/member/list/raw` | List group members | `SchoolManageUsers` | — | `ru/exode-api/school/group-member/list` |
+| POST | `/saas/v2/group/:groupId/member/create-many` | Add members (userIds ≤250) | `SchoolManageUsers` | — | `ru/exode-api/school/group-member/create-many` |
+| DELETE | `/saas/v2/group/:groupId/member/delete-many` | Remove members (userIds ≤250) | `SchoolManageUsers` | — | `ru/exode-api/school/group-member/delete-many` |
+| GET | `/saas/v2/course/list/raw` | List courses | `CourseCurator` \| `SchoolManageUsers` | — | `ru/exode-api/school/course/list` |
+| GET | `/saas/v2/course/:courseId/progresses` | Participant progress for a course | `CourseCurator` \| `SchoolManageUsers` | — | `ru/exode-api/school/course/progresses` |
+| GET | `/saas/v2/certificate/list/raw` | List certificates | `CourseManage` \| `CourseStudentManage` | — | `ru/exode-api/school/certificate/list` |
+| GET | `/saas/v2/invoice/list/raw` | List invoices | `SellerSales` | — | `ru/exode-api/school/invoice/list` |
+| GET | `/saas/v2/product-access/list/raw` | List product accesses | `SchoolManageUsers` \| `CourseStudentManage` | — | `ru/exode-api/school/product-access/list` |
+| GET | `/saas/v2/form/layout/list` | List form layouts | `FormManage` | — | `ru/exode-api/school/form-layout/list` |
+| POST | `/saas/v2/form/layout/create` | Create a form layout | `FormManage` | — | `ru/exode-api/school/form-layout/create` |
+| PUT | `/saas/v2/form/layout/:layoutId/update` | Update a form layout | `FormManage` | — | `ru/exode-api/school/form-layout/update` |
+| DELETE | `/saas/v2/form/layout/:layoutId/delete` | Delete a form layout | `FormManage` | — | `ru/exode-api/school/form-layout/delete` |
+| GET | `/saas/v2/form/custom-field/value/get` | Custom field values | `FormManage` | — | `ru/exode-api/school/custom-field/get` |
+| POST | `/saas/v2/form/custom-field/value/set` | Write field values (by fieldId) | `FormManage` | — | `ru/exode-api/school/custom-field/set` |
+| POST | `/saas/v2/form/custom-field/value/set-by-slug` | Write field values (by slug) | `FormManage` | — | `ru/exode-api/school/custom-field/set` |
+| POST | `/saas/v2/query-export/generate` | Create an asynchronous export | auth (API client) | 100/hour | `ru/exode-api/school/query-export/generate` |
+| GET | `/saas/v2/workflow-execution/:executionUuid/result` | Export result (polling) | auth (API client) | — | `ru/exode-api/school/query-export/result` |
 
-## Параметры и ответы по методам
+## Parameters and responses per method
 
 ### Users
-- **create** (body `CreateUserInput`): `email?`, `phone?` (междунар.), `tgId?`, `extId?` (≤50), `status?`(Active|OnLeave|Banned|Blocked|Terminated; поле `banned` удалено, `Deleted` — только системный), `profile?` `{ firstName?(≤15), lastName?(≤15), bdate?(YYYY-MM-DD), sex?(Ufo|Women|Men), role?(Student|Tutor|Parent), contact?{phone,email,messengerUrl} }`. Ответ: `{ user: userWithProfile }`.
-- **update** (path `userId`, body `UpdateUserInput` — все поля create опциональны). Ответ: `{ user }`. Разбан: передать `status: Active` — фактический статус пересчитается по трудоустройствам/отсутствиям.
-- **upsert** (body `UpdateUserInput`). Ответ: `{ user, isCreated: boolean }`.
-- **find** (query): ровно одно из `login`(2..50) | `tgId` | `extId`(1..50). Ответ: `{ user | null }`.
-- **list** (query `FilterUserInput`, все опц.): `search`(≤50), `statuses[]`(Active|OnLeave|Banned|Blocked|Terminated|Deleted), `activated`, `archived`, `userIds[]`, `extIds[]`(≤250), `createdAtDateRange{from,to}`, `lastOnlineAtDateRange{from,to}`; сортировка `id|createdAt|lastOnlineAt`(ASC|DESC) + пагинация. Ответ: страница `userWithProfile[]`. Поля `active`/`banned` из фильтра удалены — используйте `statuses`.
-- **delete-many** (body): `userIds: number[] (≤250)`, `reason: string (≤256)`. Ответ: `{ deleted: number[], skipped: number[] }`.
-- **state set** (path `userId`, query `key`, body `{ value }`). Ответ: `{ set: boolean }`.
-- **state get** (path `userId`, query `key`). Ответ: `{ value: any | null }`.
-  - Ключи на запись: `UtmSignupParams`, `PersonalInfoFilled`, `OnBoardingProgress`, `ContentCategoryIds`. На чтение дополнительно `VkToken` (маскируется). Прочие → `Not allowed key`.
-- **session/auth-token** (body `CreateSessionInput`): `userId: number`, `forceCreate?: boolean`. Ответ: `{ session, isCreated: boolean }`.
+- **create** (body `CreateUserInput`): `email?`, `phone?` (international), `tgId?`, `extId?` (≤50), `status?`(Active|OnLeave|Banned|Blocked|Terminated; the `banned` field was removed, `Deleted` is system-only), `profile?` `{ firstName?(≤15), lastName?(≤15), bdate?(YYYY-MM-DD), sex?(Ufo|Women|Men), role?(Student|Tutor|Parent), contact?{phone,email,messengerUrl} }`. Response: `{ user: userWithProfile }`.
+- **update** (path `userId`, body `UpdateUserInput` — all create fields optional). Response: `{ user }`. Unban: pass `status: Active` — the effective status is recalculated from employments/absences.
+- **upsert** (body `UpdateUserInput`). Response: `{ user, isCreated: boolean }`.
+- **find** (query): exactly one of `login`(2..50) | `tgId` | `extId`(1..50). Response: `{ user | null }`.
+- **find-many** (body): at least one non-empty list of `logins[]`(each 2..50; email, international phone, or `id12345` domain), `tgIds[]`, `extIds[]`(each 1..50) — each list ≤250 items. Response: `{ users: userWithProfile[] }`. Users that were not found are simply omitted — match the result to the request by `email`/`phone`/`tgId`/`extId` on your side.
+- **list** (query `FilterUserInput`, all opt.): `search`(≤50), `statuses[]`(Active|OnLeave|Banned|Blocked|Terminated|Deleted), `activated`, `archived`, `userIds[]`, `extIds[]`(≤250), `createdAtDateRange{from,to}`, `lastOnlineAtDateRange{from,to}`; sort `id|createdAt|lastOnlineAt`(ASC|DESC) + pagination. Response: page of `userWithProfile[]`. The `active`/`banned` filter fields were removed — use `statuses`.
+- **delete-many** (body): `userIds: number[] (≤250)`, `reason: string (≤256)`. Response: `{ deleted: number[], skipped: number[] }`.
+- **state set** (path `userId`, query `key`, body `{ value }`). Response: `{ set: boolean }`.
+- **state get** (path `userId`, query `key`). Response: `{ value: any | null }`.
+  - Writable keys: `UtmSignupParams`, `PersonalInfoFilled`, `OnBoardingProgress`, `ContentCategoryIds`. Additionally readable: `VkToken` (masked). Anything else → `Not allowed key`.
+- **session/auth-token** (body `CreateSessionInput`): `userId: number`, `forceCreate?: boolean`. Response: `{ session, isCreated: boolean }`.
+
+### Staff (HR) — `Corporate` schools only
+- **department/tree** — returns a **flat array** of all school departments; hierarchy via `parentId` (`null` = root), build the tree client-side.
+- **department/list** (query, all opt.): `parentIds[]`(≤250), `extIds[]`(≤250), `search`(≤50, by name), `createdAt`(ASC|DESC) + pagination. Item: `{ id, schoolId, parentId?, extId?, name, createdAt, updatedAt, archivedAt? }`.
+- **department/create** (body): `name!`(1..100, trimmed), `extId?`, parent via `parentId` **or** `parentExtId` (exactly one of the pair; none → root), primary manager via `primaryManagerEmploymentId` **or** `primaryManagerEmploymentExtId`. Errors: `StaffDepartmentExtIdIsNotUniq`, `StaffDepartmentNotFound` (parent).
+- **department/:departmentId/update** (body = create fields, all opt.). `parentId: null` makes it root; the new parent must not be the department itself or its descendant (`StaffDepartmentParentCreatesCycle`). `primaryManagerEmploymentId: null` unsets the primary manager. `ext/:extId/update` — same body, lookup by `extId` (`StaffDepartmentNotFound`).
+- **department/:departmentId/delete** (also `ext/:extId/delete`). Only a leaf department with no active employees can be deleted: errors `StaffDepartmentHasChildren`, `StaffDepartmentHasActiveEmployments`. Response: `{ affected }`.
+- **position/list** (query, all opt.): `search`(≤50), `extIds[]`(≤250), `createdAt`(ASC|DESC) + pagination. Item: `{ id, schoolId, name, extId?, ... }`. Position `name` is unique per school (`StaffPositionNameIsNotUniq`).
+- **position/create** (body): `name!`(1..100, trimmed, unique per school), `extId?`. **position/:positionId/update** / `ext/:extId/update` — same fields, all opt. **position/:positionId/delete** / `ext/:extId/delete` — fails with `StaffPositionHasActiveEmployments` while active employees hold the position. Response: `{ affected }`.
+- **employment/list** (query, all opt.): `employmentIds[]`, `extIds[]`, `userIds[]`, `departmentIds[]`, `departmentExtIds[]`, `positionIds[]`, `positionExtIds[]`, `statuses[]`(Active|Terminated), `activeOnly`, `search`(≤50) + pagination. Item: `{ id, schoolId, userId, positionId?(null = no position), departmentId, extId?, startAt, finishAt?, status(Active|Terminated), kind(Main|InternalSecondary|ExternalSecondary), type(FullTime|PartTime), rate(0.01..1), createdAt, updatedAt }`.
+- **employment/hire** (body): `userId!`, department via `departmentId`/`departmentExtId` (exactly one, required), position via `positionId`/`positionExtId` (optional pair — omit both to hire without a position), `extId?`, `startAt?`(ISO, default now), `kind?`(default Main), `type?`(default FullTime), `rate?`(default 1). Only one active employment per department+position pair (or department+user when positionless) — else `StaffEmploymentAlreadyExists`. Hiring a `Terminated` user returns them to `Active`. Errors: `StaffEmploymentExtIdIsNotUniq`, `StaffPositionNotFound`, `StaffDepartmentNotFound`, `UserNotBelongsToSchool`.
+- **employment/transfer** (body): `employmentId!`, target via `toDepartmentId`/`toDepartmentExtId` (exactly one), `startAt?` (must fall inside the current employment interval — else `StaffEmploymentInvalidTransitionDate`). Closes the current record (`finishAt`, status `Terminated`) and creates a **new** active one in the target department, keeping the position; `kind`/`type`/`rate`/`extId` carry over. Returns the new record. `ext/:extId/transfer` — same body without `employmentId`.
+- **employment/promote** (body): `employmentId!`, target via `toPositionId`/`toPositionExtId` (exactly one), or `toPositionId: null` to **remove** the position; passing neither → `StaffEmploymentInputRequired`. `startAt?` as in transfer. Same close-and-recreate semantics, in the same department. `ext/:extId/promote` — same body without `employmentId`.
+- **employment/terminate** (body): `employmentId!`, `finishAt?` (inside the interval). Closes the record and removes the employee from department management. Terminating the **last active** employment switches the user to status `Terminated` (login blocked, sessions ended); re-hiring restores `Active`. Protections on the last employment: `StaffCannotTerminateSelf`, `StaffCannotTerminateSchoolOwner`. `ext/:extId/terminate` — same body without `employmentId`.
+- **department-manager/set** (body): department via `departmentId`/`departmentExtId`, employment via `employmentId`/`employmentExtId` (exactly one field per pair; employment must be active), `extId?`, `isPrimary?`(default false). Works as an upsert per department+employment pair. A department has at most one primary manager: `isPrimary=true` demotes the previous primary automatically. Errors: `StaffDepartmentNotFound`, `StaffEmploymentNotFound`, `StaffDepartmentManagerExtIdIsNotUniq`.
+- **department-manager/:managerId/remove** (also `ext/:extId/remove`, error `StaffDepartmentManagerNotFound`) — soft-deletes the manager record. Response: `{ affected }`.
+- **absence/list** (query, all opt.): `extIds[]`, `employmentIds[]`, `positionIds[]`, `types[]`(Absent|Vacation|DayOff|BusinessTrip|SickLeave|ParentalLeave|StudyLeave), `currentOnly` + pagination. Item: `{ id, schoolId, employmentId, extId?, type, startAt, finishAt?, note?, createdAt, updatedAt }`.
+- **absence/create** (body): employment via `employmentId`/`employmentExtId` (exactly one), `type!`, `startAt!`(ISO, ≤ `finishAt` — else `StaffAbsenceInvalidInterval`), `finishAt?`, `note?`(≤500, trimmed), `extId?`. **absence/:absenceId/update** / `ext/:extId/update` — same fields, all opt.; the employment link cannot be changed. **absence/:absenceId/delete** / `ext/:extId/delete` — response `{ affected }`; error `StaffAbsenceNotFound`.
+  - Absences auto-sync the user status `Active` ↔ `OnLeave` (informational — does not block login); recalculated on API calls and hourly against the calendar. Users in `Banned`/`Blocked`/`Terminated` are not affected.
 
 ### Group
-- **list/raw** (query `FilterGroupInput`, все опц.): `groupIds[]`, `productIds[]`, `courseIds[]`, `search`(≤50) + пагинация. Ответ items: `{ groupId, name, courseId?, courseName? }`.
-- **member/list/raw** (query `FilterMemberGroupInput`, все опц.): `groupIds[]`, `userIds[]`, `memberIds[]`, `inviterUserIds[]`, `productIds[]`, `active`, `search`(≤50, по логину/имени), `createdAtDateRange{from,to}` + пагинация. Ответ items: `{ id, groupId, groupName, userId, inviterId?, active, blockedUntil?, enrollmentSource(Manual|System|Automatic), tgChannelMeta?, tgGroupChatMeta?, createdAt, updatedAt, archivedAt?, user?(userWithProfile), inviter?(userWithProfile) }`.
-- **member/create-many** (body `userIds[] ≤250`). Ответ: `{ exist: groupMember[], created: groupMember[], excluded: user[] }`. `excluded` для этого метода всегда пустой (исключения ограничивают только автоматическое назначение); ручное добавление **снимает** ранее выставленное исключение.
-- **member/delete-many** (body `userIds[] ≤250`). Ответ: `{ affected: number }`. Удаление считается ручным и **блокирует** последующее автоматическое назначение пользователя в эту группу (исключение с причиной «удалён вручную»); снимается обратным добавлением через `member/create-many`. Актуально только для корпоративных групп с настроенным автоназначением.
+- **list/raw** (query `FilterGroupInput`, all opt.): `groupIds[]`, `productIds[]`, `courseIds[]`, `search`(≤50) + pagination. Item: `{ groupId, name, courseId?, courseName? }`.
+- **member/list/raw** (query `FilterMemberGroupInput`, all opt.): `groupIds[]`, `userIds[]`, `memberIds[]`, `inviterUserIds[]`, `productIds[]`, `active`, `search`(≤50, by login/name), `createdAtDateRange{from,to}` + pagination. Item: `{ id, groupId, groupName, userId, inviterId?, active, blockedUntil?, enrollmentSource(Manual|System|Automatic), tgChannelMeta?, tgGroupChatMeta?, createdAt, updatedAt, archivedAt?, user?(userWithProfile), inviter?(userWithProfile) }`.
+- **member/create-many** (body `userIds[] ≤250`). Response: `{ exist: groupMember[], created: groupMember[], excluded: user[] }`. `excluded` is always empty for this method (exclusions only restrict automatic assignment); manual adding **clears** a previously set exclusion.
+- **member/delete-many** (body `userIds[] ≤250`). Response: `{ affected: number }`. The removal counts as manual and **blocks** subsequent automatic assignment of the user to this group (exclusion with reason "removed manually"); cleared by re-adding via `member/create-many`. Relevant only for corporate groups with auto-assignment configured.
 
 ### Course
-- **list/raw** (query `FilterCourseInput`, все опц.): `courseIds[]`, `aliases[]`, `types[]`(Bundle|Webinar|TextCourse|Assessment|VideoCourse|PersonalLesson), `tags[]`, `search`(≤50), `subjectCategoryIds[]`, `contentCategoryIds[]`, `archived`, `participation`(All|Active|Completed|NotParticipant), `manage`, `administrate`, `access`(=FilterAccessProductInput), `product`(FilterProductInput) + пагинация. Ответ items: `{ courseId, name, type, groupIds[] }`.
-- **:courseId/progresses** (query — пагинация; фильтр по courseId фиксируется сервером). Ответ items: `courseProgress` (см. сущности).
+- **list/raw** (query `FilterCourseInput`, all opt.): `courseIds[]`, `aliases[]`, `types[]`(Bundle|Webinar|TextCourse|Assessment|VideoCourse|PersonalLesson), `tags[]`, `search`(≤50), `subjectCategoryIds[]`, `contentCategoryIds[]`, `archived`, `participation`(All|Active|Completed|NotParticipant), `manage`, `administrate`, `access`(=FilterAccessProductInput), `product`(FilterProductInput) + pagination. Item: `{ courseId, name, type, groupIds[] }`.
+- **:courseId/progresses** (query — pagination; the courseId filter is fixed server-side). Items: `courseProgress` (see entities).
+- **Course enrollment:** there is no dedicated endpoint — enroll a user by adding them to a group tied to the course: find the group via `group/list/raw` with `courseIds`, then call `group/:groupId/member/create-many`. Access records are created automatically. Docs: `ru/exode-api/school/course/enroll`.
 
 ### Certificate
-- **list/raw** (query `FilterCertificateInput`, все опц.): `certificateIds[]`, `courseIds[]`, `userIds[]`, `groupIds[]` (группы получателя, а не сертификата), `issuedAtDateRange{from,to}`, `archived` + пагинация. Ответ items: `{ certificateId, uuid, link, courseId, courseName?, issuedAt, expireAt?, user?(userWithProfile) }`. `link` — публичная ссылка на сертификат (открывается без авторизации).
+- **list/raw** (query `FilterCertificateInput`, all opt.): `certificateIds[]`, `courseIds[]`, `userIds[]`, `groupIds[]` (groups of the recipient, not of the certificate), `issuedAtDateRange{from,to}`, `archived` + pagination. Item: `{ certificateId, uuid, link, courseId, courseName?, issuedAt, expireAt?, user?(userWithProfile) }`. `link` is a public certificate URL (opens without authentication).
 
 ### Invoice
-- **list/raw** (query `FilterInvoiceInput`, все опц.): `invoiceIds[]`, `userIds[]`, `productIds[]`, `types[]`(Regular|InstallmentPay|InstallmentInit|SubscriptionPay|SubscriptionInit), `search`(≤50), `createdAtDateRange{from,to}`, `totalAmountRange{from,to}`, `utmParams{value:[{key,value}]}`, `payment{paymentIds[],acquiringIds[],statuses[],actualStatuses[]}` + пагинация. Ответ items: `{ invoiceId, invoiceUuid, type, status(Active|Canceled), totalAmount, discountAmount, currency, createdAt, expireAt?, user{id,tgId?,login?,email?,phone?,fullName?}, products[{productId,courseId?,totalPrice,discountAmount}] }`.
+- **list/raw** (query `FilterInvoiceInput`, all opt.): `invoiceIds[]`, `userIds[]`, `productIds[]`, `types[]`(Regular|InstallmentPay|InstallmentInit|SubscriptionPay|SubscriptionInit), `search`(≤50), `createdAtDateRange{from,to}`, `totalAmountRange{from,to}`, `utmParams{value:[{key,value}]}`, `payment{paymentIds[],acquiringIds[],statuses[],actualStatuses[]}` + pagination. Item: `{ invoiceId, invoiceUuid, type, status(Active|Canceled), totalAmount, discountAmount, currency, createdAt, expireAt?, user{id,tgId?,login?,email?,phone?,fullName?}, products[{productId,courseId?,totalPrice,discountAmount}] }`.
 
 ### ProductAccess
-- **list/raw** (query `FilterAccessProductInput`, все опц.): `accessIds[]`, `active`, `userIds[]`, `enrolledByUserIds[]`, `participantCuratorIds[]`, `launchIds[]`, `currentLessonIds[]`, `search`(≤50), `participantStatuses[]`(InUse|Completed), `withParent`, диапазоны `expireAtDateRange`/`createdAtDateRange`/`progressPercentRange`; биллинг: `billingActive`, `hasProductBillingTypes[]`(Installment|Subscription), `billingStatuses[]`, `billingIntervals[]`(Week|Month|Year), `billingInvoiceIds[]`, `billingAmountRange`, `billingCurrentPaymentAtDateRange`, `billingNextPaymentAtDateRange`; вложенные `product`/`price`/`user` + пагинация. Ответ items: `{ accessId, productId, courseId?, active, expireAt?, user{id,extId?,tgId?,login?,email?,phone?,fullName?} }`.
+- **list/raw** (query `FilterAccessProductInput`, all opt.): `accessIds[]`, `active`, `userIds[]`, `enrolledByUserIds[]`, `participantCuratorIds[]`, `launchIds[]`, `currentLessonIds[]`, `search`(≤50), `participantStatuses[]`(InUse|Completed), `withParent`, ranges `expireAtDateRange`/`createdAtDateRange`/`progressPercentRange`; billing: `billingActive`, `hasProductBillingTypes[]`(Installment|Subscription), `billingStatuses[]`, `billingIntervals[]`(Week|Month|Year), `billingInvoiceIds[]`, `billingAmountRange`, `billingCurrentPaymentAtDateRange`, `billingNextPaymentAtDateRange`; nested `product`/`price`/`user` + pagination. Item: `{ accessId, productId, courseId?, active, expireAt?, user{id,extId?,tgId?,login?,email?,phone?,fullName?} }`.
 
 ### Form
-- **layout/list** (query `FilterFormLayoutInput`, все опц.): `layoutIds[]`, `layoutUuids[]`, `slugs[]`, `modes[]`(Form|Signup|Custom|Welcome|Participant), `statuses[]`(Draft|Published), `productIds[]`, `search`(≤50); сортировка `id|createdAt`(ASC|DESC) + пагинация. Ответ: страница `formLayout[]`.
-- **layout/create** (body `CreateFormLayoutInput`): `mode!`(Form|Signup|Custom|Welcome|Participant), `name!`(≤255), `internalName!`(≤255), `status?`(Draft|Published), `slug?`(1..50), `note?`(≤255), `productIds?[]`, `config?{resubmitMode(NewFill|Overwrite|NotAllowed)}`. Ответ: `formLayout`.
-- **layout/:layoutId/update** (body = PartialType create). Ответ: `formLayout`.
-- **layout/:layoutId/delete**. Ответ: `{ affected }`.
-- **custom-field/value/get** (query `FilterFormFieldValueInput`, все опц.): `userIds[]`, `fieldIds[]`, `fieldSlugs[]`, `fillIds[]`, `layoutUuids[]`, `layoutSlugs[]`, `layoutModes[]`, `productIds[]` + сортировка `id|createdAt|updatedAt`(ASC|DESC) + пагинация. Ответ: страница `formFieldValue[]`. Поля с `read.api=false` исключаются.
-- **custom-field/value/set** (body): `userId!`, `layoutId!`, `values: [{ fieldId!, text?|number?|boolean?|date?|json? }] (min 1)`. Ответ: `formFieldValue[]`.
-- **custom-field/value/set-by-slug** (body): `userId!`, `layoutId!`, `values: [{ slug!, value? }] (min 1)`. Ответ: `formFieldValue[]`. Поля с `write.api=false` запрещены к записи.
+- **layout/list** (query `FilterFormLayoutInput`, all opt.): `layoutIds[]`, `layoutUuids[]`, `slugs[]`, `modes[]`(Form|Signup|Custom|Welcome|Participant), `statuses[]`(Draft|Published), `productIds[]`, `search`(≤50); sort `id|createdAt`(ASC|DESC) + pagination. Response: page of `formLayout[]`.
+- **layout/create** (body `CreateFormLayoutInput`): `mode!`(Form|Signup|Custom|Welcome|Participant), `name!`(≤255), `internalName!`(≤255), `status?`(Draft|Published), `slug?`(1..50), `note?`(≤255), `productIds?[]`, `config?{resubmitMode(NewFill|Overwrite|NotAllowed)}`. Response: `formLayout`.
+- **layout/:layoutId/update** (body = PartialType create). Response: `formLayout`.
+- **layout/:layoutId/delete**. Response: `{ affected }`.
+- **custom-field/value/get** (query `FilterFormFieldValueInput`, all opt.): `userIds[]`, `fieldIds[]`, `fieldSlugs[]`, `fillIds[]`, `layoutUuids[]`, `layoutSlugs[]`, `layoutModes[]`, `productIds[]` + sort `id|createdAt|updatedAt`(ASC|DESC) + pagination. Response: page of `formFieldValue[]`. Fields with `read.api=false` are excluded.
+- **custom-field/value/set** (body): `userId!`, `layoutId!`, `values: [{ fieldId!, text?|number?|boolean?|date?|json? }] (min 1)`. Response: `formFieldValue[]`.
+- **custom-field/value/set-by-slug** (body): `userId!`, `layoutId!`, `values: [{ slug!, value? }] (min 1)`. Response: `formFieldValue[]`. Fields with `write.api=false` reject writes.
 
-### QueryExport (асинхронные выгрузки)
-- **generate** (body `GenerateQueryExportInput`): `type!`(QueryExportType), `variables!`(object `{ filter, sort?, list? }`), `format?`(Xlsx|Csv|Json, default Xlsx). Лимит 100/час. Ответ: `{ uuid, flow, status(Waiting|Processing|Failed|Canceled|Completed), isCompleted, userId?, createdAt, updatedAt? }`.
-  - `type` = `QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY` | `QUERY_EXPORT_TYPE_COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY` (а также `*_SCHOOL_USER_FIND_MANY`, `*_INVOICE_MANAGE_FIND_MANY`, `*_SCHOOL_STUDENT_FIND_MANY`, `*_PRODUCT_BILLING_ACCESS_FIND_MANY`).
-- **workflow-execution/:executionUuid/result** (polling). Ответ: `{ total, completed, status, result? }` или `null` (если не найдено). При завершении `result = { fileUrl, fileName, fileSize }`.
+### QueryExport (asynchronous exports)
+- **generate** (body `GenerateQueryExportInput`): `type!`(QueryExportType), `variables!`(object `{ filter, sort?, list? }`), `format?`(Xlsx|Csv|Json, default Xlsx). Limit 100/hour. Response: `{ uuid, flow, status(Waiting|Processing|Failed|Canceled|Completed), isCompleted, userId?, createdAt, updatedAt? }`.
+  - `type` = `QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY` | `QUERY_EXPORT_TYPE_COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY` (also `*_SCHOOL_USER_FIND_MANY`, `*_INVOICE_MANAGE_FIND_MANY`, `*_SCHOOL_STUDENT_FIND_MANY`, `*_PRODUCT_BILLING_ACCESS_FIND_MANY`).
+- **workflow-execution/:executionUuid/result** (polling). Response: `{ total, completed, status, result? }` or `null` (not found). On completion `result = { fileUrl, fileName, fileSize }`.
 
-## Сущности (компактно, публичные zod-схемы)
+## Entities (compact, public zod schemas)
 
-Общие поля аудита у большинства: `id, createdAt, updatedAt, deletedAt?, archivedAt?`. Даты — ISO 8601, деньги — числа.
+Common audit fields on most entities: `id, createdAt, updatedAt, deletedAt?, archivedAt?`. Dates — ISO 8601, money — numbers.
 
-- **user**: `+ uuid, status(Active|OnLeave|Banned|Blocked|Terminated|Deleted — источник истины), active(производное: не Deleted), activated, banned(производное: Banned|Deleted), alive?(статус не блокирующий), domain, email?, phone?, tgId?, vkId?, appleId?, extId?, schoolId?, language?(Ru|Uz|En|Qa), timezone?, lastOnlineAt?, createdOnDomain(Ru|Uz|Kz|Biz|Global), product(BizSchool|Marketplace), starsBalance, permissions[]`. `userWithProfile = user + profile?`.
+- **user**: `+ uuid, status(Active|OnLeave|Banned|Blocked|Terminated|Deleted — source of truth), active(derived: not Deleted), activated, banned(derived: Banned|Deleted), alive?(status is non-blocking), domain, email?, phone?, tgId?, vkId?, appleId?, extId?, schoolId?, language?(Ru|Uz|En|Qa), timezone?, lastOnlineAt?, createdOnDomain(Ru|Uz|Kz|Biz|Global), product(BizSchool|Marketplace), starsBalance, permissions[]`. `userWithProfile = user + profile?`.
 - **profile**: `+ userId?, official, firstName?, lastName?, fullName?, fullNameShort?, avatar, bdate?, sex(Ufo|Women|Men), country?, city?, role(Student|Tutor|Parent), status?, title?, emojiTitle?, titleState{...}`.
 - **session**: `+ uuid, userId?, deviceUuid, token, alive, isOnline, launcher, appLocation?, appLocationParams, appVersion?, language?, timezone?, lastActivityAt?, expireAt?`.
+- **staffDepartment**: `+ schoolId, parentId?(null = root), extId?, name`.
+- **staffPosition**: `+ schoolId, name (unique per school), extId?`.
+- **staffEmployment**: `+ schoolId, userId, departmentId, positionId?(null = no position), extId?, startAt, finishAt?, status(Active|Terminated), kind(Main|InternalSecondary|ExternalSecondary), type(FullTime|PartTime), rate(0.01..1)`.
+- **staffDepartmentManager**: `+ schoolId, departmentId, employmentId, isPrimary, extId?`.
+- **staffAbsence**: `+ schoolId, employmentId, extId?, type(Absent|Vacation|DayOff|BusinessTrip|SickLeave|ParentalLeave|StudyLeave), startAt, finishAt?, note?`.
 - **group**: `+ uuid, space(Education), name, order?, maxMembers?, communication, accessLimitation, scheduleLimitation, contentLimitation, isTgConnected?, tgConnectionMode?(Disconnected|Connected|Required)`.
 - **groupMember**: `+ groupId?, userId?, inviterId?, active, blockedUntil?, isAddedToTg?, tgChannelMeta?, tgGroupChatMeta?, user?`.
 - **course**: `+ type(Bundle|Webinar|TextCourse|Assessment|VideoCourse|PersonalLesson), name, description, alias?, tags[], seoTags[], image?, promoVideo?, settings, order, isBundle?`.
 - **courseProgress**: `+ courseId?, userId, lessonId, status?, scheduleStartAt?, scheduleFinishAt?, practiceDeadlineAt?, isCompleted?, isOnReview?, completedAt?, onReviewAt?, statusHistoryLogs?`.
-- **certificate**: `+ uuid, link (публичная ссылка), userId, courseId, templateId?, snapshot, issuedAt, expireAt?`.
+- **certificate**: `+ uuid, link (public URL), userId, courseId, templateId?, snapshot, issuedAt, expireAt?`.
 - **courseLesson**: `+ courseId, type(Regular|Webinar), accessType(Demo|Participant), status?, name, description, previewImage?, order, withContent, withPractice, publishedAt?, settings, isPublished?`.
 - **courseLessonPractice**: `+ name, description, questionMode, resultMode, variantMode, retryVariantMode, maxAttempts?, timeLimitInMinutes?, deadlineInDays?, passThreshold?, starsPerTaskPoint?, requireAllAnswers, tasksCount`.
 - **courseLessonPracticeAttempt**: `+ uuid?, variantId, userId, status?(Created|OnReview|OnCorrection|AutoVerified|Verified|Failed|Stacked), order, finished, sentToReviewAt?, sentAfterDeadline, deadlineAt?, passedAt?, solvedCount, pointsAmount, maxPointsAmount, uncounted, isPassed?, correctPercent?, isExpired?, statusHistoryLogs?`.
@@ -121,29 +169,42 @@
 - **payment**: `+ uuid, type(OneTime|RecurrentPay|RecurrentInit), status?(Created|WaitingPay|WaitingForBinding|Processing|Completed|BindingCompleted|Canceled), released, checkoutPaymentId?, checkoutUrl?, paidAt?, expireAt?, isCompleted?, isCanceled?, meta?, webhookLogs?, chargeLogs?, statusHistoryLogs?, acquiring?, invoice?`.
 - **invoice**: `+ uuid, humanId?, type(Regular|InstallmentPay|InstallmentInit|SubscriptionPay|SubscriptionInit), status?(Active|Canceled), totalAmount, discountAmount, currency, expireAt?, isActive?, user?(+school?), products?[]`.
 - **invoiceProduct**: `+ originalPrice, totalPrice, discountAmount, price?(productPrice), discount?(discount), product?(product+course?)`.
-- **acquiring**: `{ id, uuid, active?, name?, description?, hasProviderCommission?, provider?{id,type?,active?} }` (без секретов провайдера).
+- **acquiring**: `{ id, uuid, active?, name?, description?, hasProviderCommission?, provider?{id,type?,active?} }` (without provider secrets).
 - **school**: `+ name, description?, segment(Commerce|Corporate), accessType(Public|Private), domainType(Base|Custom), baseDomain, customDomain?, domain?, fqdn?, baseFqdn?, publicUrl?, iconUrl?, active, isPublic?, isPrivate?`.
 - **seller**: `+ type(Tutor|School|Producer|University), active, verified, balance, payoutBalance, baseCurrency, isSchool?, organization?`.
 - **organization**: `+ form, name, organizationName?, selfEmployedName?, inn?, ogrn?, logo?, address?, isOrganization?`.
 - **formLayout**: `+ uuid, slug, name, internalName?, note?, mode(Form|Signup|Custom|Welcome|Participant), status?(Draft|Published), config, sellerId, isEdited?`.
 - **formFieldValue**: `+ userId, fieldId, fillId?, value?, text?, number?, boolean?, date?, json?, field?{ id, slug?, type?(Text|File|Json|Date|Radio|Switch|Number|Select|Boolean|Textarea|Checkbox|Multiselect), order?, layoutId?, props?, preference?, permissions?{read{api,user,manager},write{api,user,manager}} }`.
 
-## Вебхуки (исходящие)
+## Webhooks (outbound)
 
-- **Доставка:** HTTP `POST`, `Content-Type: application/json`. Тело: `{ event, timestamp(ISO), idempotencyKey, data }`.
-- **Подпись:** заголовок `signature` = `HMAC-SHA256(secretKey, raw_body)` (подписывается всё тело). `secretKey` используется как буквальная ASCII/UTF-8 строка из 64 символов, без декодирования из hex/base64. Результат — 64 lowercase hex-символа без префикса `sha256=`. Секрет — в настройках вебхука в админ-панели.
-- **Тестовая отправка:** для сохранённого эндпоинта используется тот же `secretKey` и тот же алгоритм, что и для боевых событий; отдельная логика проверки не нужна. У несохранённого эндпоинта постоянного секрета ещё нет, поэтому для проверяемого теста сначала сохраните эндпоинт.
-- **Успех:** `200|201|202`. **Таймаут:** 15с. **Повторы:** до 5 (~11/22/44/88/176 мин). Порядок не гарантирован; дедуп по `idempotencyKey`. Максимум 5 эндпоинтов на продавца.
-- **События и `data`:**
+- **Delivery:** HTTP `POST`, `Content-Type: application/json`. Body: `{ event, timestamp(ISO), idempotencyKey, data }`.
+- **Signature:** header `signature` = `HMAC-SHA256(secretKey, raw_body)` (the entire body is signed). `secretKey` is used as a literal ASCII/UTF-8 string of 64 characters, without decoding from hex/base64. The result is 64 lowercase hex characters without a `sha256=` prefix. The secret is in the webhook settings in the admin panel.
+- **Test delivery:** a saved endpoint uses the same `secretKey` and algorithm as production events — no separate verification logic is needed. An unsaved endpoint has no permanent secret yet, so save the endpoint first for a verifiable test.
+- **Success:** `200|201|202`. **Timeout:** 15s. **Retries:** up to 5 (~11/22/44/88/176 min). Order is not guaranteed; dedupe by `idempotencyKey`. Maximum 5 endpoints per seller.
+- **Events and `data`:**
   - `UserSignedUp` / `UserAcquainted`: `{ user, profile?, states?{utmSignupParams?} }`.
   - `UserTgConnected`: `{ user, profile?, prevTgId? }`.
   - `CourseProgressChanged`: `{ user, course, product?, groups?, status?, lessonId? }`.
   - `CourseCompleted`: `{ user, course, product?, groups? }`.
   - `CourseLessonPracticeCompleted`: `{ user, course?, lesson?, practice?, attempt?, variantId? }`.
-  - `CertificateIssued`: `{ user, course, product?, certificate }` — выдача сертификата за завершённый курс.
-  - `PaymentCompleted`: `{ payment }` (с деревом invoice/products/acquiring). Отправляется только при реальном списании: привязка карты (recurrent init, `BindingCompleted`) событие не вызывает.
+  - `CertificateIssued`: `{ user, course, product?, certificate }` — certificate issued for a completed course.
+  - `PaymentCompleted`: `{ payment }` (with the invoice/products/acquiring tree). Sent only on an actual charge: card binding (recurrent init, `BindingCompleted`) does not trigger it.
   - `ProductEnrolledToFree`: `{ user, profile?, access?, product?, course? }`.
-  - `ProductEnrolledByInviteLink`: `{ user, profile?, access?, product?, course?, inviteLinkId }` — запись по ссылке-приглашению. Приходит **вместе с** `ProductEnrolledToFree` (ссылка выдаёт доступ бесплатно); отличается наличием `inviteLinkId`.
-  - `SchoolCreated`: `{ school(+seller?) }` — только системный уровень (не для подписки продавцом).
+  - `ProductEnrolledByInviteLink`: `{ user, profile?, access?, product?, course?, inviteLinkId }` — enrollment via an invite link. Arrives **together with** `ProductEnrolledToFree` (the link grants free access); distinguished by the presence of `inviteLinkId`.
+  - `SchoolCreated`: `{ school(+seller?) }` — system level only (not available for seller subscription).
 
-Документация (Mintlify): см. `docs.json` и каталог `ru/exode-api/`.
+## Analytics target events (frontend, not REST API)
+
+The platform dispatches target events in the student's browser as DOM `CustomEvent`s and forwards them automatically to ad platforms whose snippet is pasted into **Custom Code (JS)** in the school settings — Meta Pixel, Google Analytics (GA4), Yandex Metrika, VK Ads; no extra code needed. Any other platform can subscribe itself: `document.addEventListener('<event>', e => ...)`. Docs: `ru/analytics/`.
+
+- `analytics:signup-completed` — new account via email/phone (not sent for social/OTP sign-in). `detail: { method: 'email'|'phone' }`.
+- `profile:personal-info-filled-success` — onboarding form completed (lead). No `detail`.
+- `analytics:course-viewed` — course page view. `detail: { courseId }`.
+- `analytics:demo-lesson-opened` — demo lesson opened from the course page. `detail: { courseId, lessonId }`.
+- `analytics:free-course-enrolled` — free course enrollment. `detail: { productId }`.
+- `analytics:checkout-initiated` — checkout started (price plan selected). `detail: { productId, priceId }`.
+- `analytics:purchase-completed` — successful invoice payment, sent **once per invoice** (deduped by invoice uuid for 90 days on the device; not sent if the page is opened later than 5 minutes after payment on another device). `detail: { value, currency(Rub|Uzs|Kzt|Usd|Eur|Exes|Free), invoiceUuid, productIds[] }`.
+- `analytics:course-completed` — course completed. `detail: { productId }`.
+
+Documentation (Mintlify): see `docs.json` and the `ru/exode-api/` directory.

@@ -44,6 +44,7 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 ## Methods — Courses
 
 - [List courses](https://docs.exode.biz/ru/exode-api/school/course/list): `GET /saas/v2/course/list/raw`.
+- [Enroll in a course](https://docs.exode.biz/ru/exode-api/school/course/enroll): guide — grant course access by adding the user to the course group (`group-member/create-many`).
 - [Course progress](https://docs.exode.biz/ru/exode-api/school/course/progresses): `GET /saas/v2/course/:courseId/progresses`.
 - [List certificates](https://docs.exode.biz/ru/exode-api/school/certificate/list): `GET /saas/v2/certificate/list/raw`.
 
@@ -82,6 +83,7 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 - [Product and accesses](https://docs.exode.biz/ru/exode-api/objects/entities/product): `product`, `productAccess`, `productPrice`, `discount`.
 - [Payment and invoice](https://docs.exode.biz/ru/exode-api/objects/entities/payment): `payment`, `invoice`, `invoiceProduct`, `acquiring`.
 - [School and seller](https://docs.exode.biz/ru/exode-api/objects/entities/school): `school`, `seller`, `organization`.
+- [Certificate](https://docs.exode.biz/ru/exode-api/objects/entities/certificate): `certificate` (issued for course completion, public `link`).
 - [Forms and fields](https://docs.exode.biz/ru/exode-api/objects/entities/form): `formLayout`, `formFieldValue`.
 
 ## Integrations
@@ -89,6 +91,15 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 - [Telegram Mini App](https://docs.exode.biz/ru/customization/tg-mini-app): auto-authorization via `?___uat=<token>`.
 - [Mobile app deep link](https://docs.exode.biz/ru/customization/mobile-app): auto-login into the mobile app via a session token.
 - [Custom JS code](https://docs.exode.biz/ru/customization/js-config): customizing the platform interface.
+
+## Analytics
+
+- [Target events](https://docs.exode.biz/ru/analytics/events): platform events (signup, purchase, etc.) sent automatically to connected ad platforms; paste the platform snippet into Custom Code (JS).
+- [Meta Pixel (Facebook)](https://docs.exode.biz/ru/analytics/meta-pixel): connecting Meta Pixel.
+- [Google Analytics (GA4)](https://docs.exode.biz/ru/analytics/google-analytics): connecting GA4.
+- [Yandex Metrika](https://docs.exode.biz/ru/analytics/yandex-metrika): connecting Yandex Metrika.
+- [VK Ads](https://docs.exode.biz/ru/analytics/vk-ads): connecting the VK Ads pixel.
+- [Other platforms](https://docs.exode.biz/ru/analytics/custom): any pixel via `document.addEventListener('analytics:*')` in Custom Code (JS).
 
 ## SDK (@exode-team/sdk)
 
