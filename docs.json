@@ -158,6 +158,7 @@
               "ru/exode-sdk/miniapp/introduction",
               "ru/exode-sdk/miniapp/client",
               "ru/exode-sdk/miniapp/context",
+              "ru/exode-sdk/miniapp/init-data",
               "ru/exode-sdk/miniapp/react"
             ]
           }
@@ -169,6 +170,7 @@
           {
             "group": "Кастомизация",
             "pages": [
+              "ru/customization/custom-pages",
               "ru/customization/tg-mini-app",
               "ru/customization/mobile-app",
               "ru/customization/js-config"

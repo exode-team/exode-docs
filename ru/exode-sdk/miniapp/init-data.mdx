@@ -1,0 +1,107 @@
+---
+title: 'Init Data'
+description: 'Подписанные данные пользователя: получение в iframe и проверка на вашем сервере'
+---
+
+Когда мини-приложение открывается на кастомной странице школы, Exode передаёт ему **initData** —
+строку с данными пользователя и школы, подписанную HMAC-SHA256 (аналог `initData` в Telegram Mini Apps).
+Проверив подпись **на своём сервере**, вы можете доверять этим данным и авторизовать пользователя
+без собственной регистрации.
+
+<Warning>
+  Данные из `postMessage`-контекста (`ctx.user`) не подписаны и годятся только для отображения.
+  Любая авторизация на вашем бэкенде должна опираться исключительно на проверенную initData.
+</Warning>
+
+## Как это работает
+
+1. Exode открывает вашу страницу в iframe с адресом `https://ваш-домен/…#exodeInitData=<строка>`.
+2. Мини-приложение читает строку из fragment (`retrieveInitData`) и отправляет своему бэкенду.
+3. Бэкенд проверяет подпись секретом страницы (`verifyInitData`) и получает данные пользователя.
+
+Секрет страницы выдаётся в админке школы («Компания» → «Страницы школы») при создании страницы
+и хранится **только на вашем сервере**.
+
+## В мини-приложении (браузер)
+
+```ts
+import { retrieveInitData } from '@exode-team/sdk/miniapp'
+
+const initData = retrieveInitData()
+// строка вида "auth_date=…&page_id=…&school_id=…&user=…&hash=…"
+
+await fetch('/api/session', {
+  method: 'POST',
+  headers: { 'X-Exode-Init-Data': initData ?? '' },
+})
+```
+
+`retrieveInitData` читает fragment один раз, очищает его из адресной строки
+(чтобы подписанные данные не утекали при копировании ссылки) и кэширует значение.
+
+## На вашем сервере (Node.js)
+
+```ts
+import { verifyInitData } from '@exode-team/sdk/miniapp/server'
+
+const payload = verifyInitData(initData, {
+  secret: process.env.EXODE_PAGE_SECRET!,
+  maxAgeSec: 86_400, // окно валидности auth_date, по умолчанию 24 часа
+})
+
+payload.pageId    // id страницы
+payload.schoolId  // id школы
+payload.authDate  // unix-секунды выпуска
+payload.user      // { id, firstName, lastName, avatar, language } | null для гостя
+```
+
+При невалидной подписи, чужом секрете или протухшей `auth_date` функция бросает исключение.
+
+## Формат подписи
+
+Если вы не используете Node.js — проверить подпись можно вручную на любом языке:
+
+```
+data_check_string = отсортированные по ключу пары "key=value" всех полей,
+                    кроме hash, соединённые "\n" (значения URL-декодированные)
+secret_key = HMAC_SHA256(key = "ExodeMiniApp", message = секрет_страницы)
+hash       = hex( HMAC_SHA256(key = secret_key, message = data_check_string) )
+```
+
+Пример на Node.js без SDK:
+
+```js
+const crypto = require('crypto')
+
+function verify(initData, secret) {
+  const params = new URLSearchParams(initData)
+  const hash = params.get('hash')
+
+  params.delete('hash')
+
+  const dcs = [...params.keys()].sort()
+    .map((k) => `${k}=${params.get(k)}`)
+    .join('\n')
+
+  const secretKey = crypto.createHmac('sha256', 'ExodeMiniApp').update(secret).digest()
+  const check = crypto.createHmac('sha256', secretKey).update(dcs).digest('hex')
+
+  return check === hash
+}
+```
+
+## Рекомендации по безопасности
+
+- Ограничьте окно `auth_date` (`maxAgeSec`) — 24 часа или меньше.
+- Отдавайте на страницах мини-приложения заголовок
+  `Content-Security-Policy: frame-ancestors https://<домен-вашей-школы>` —
+  это гарантирует, что приложение встроено именно в Exode.
+- Передавайте `targetOrigin` в конструктор `ExodeMiniApp` — origin страницы школы.
+- Никогда не проверяйте подпись в браузере: секрет не должен покидать ваш сервер.
+- При компрометации секрета перевыпустите его в админке — старые initData перестанут проходить проверку.
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-08-19 10:50 UTC_
