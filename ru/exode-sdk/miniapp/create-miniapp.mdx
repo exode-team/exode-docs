@@ -1,0 +1,182 @@
+---
+title: 'Создать MiniApp с нуля'
+description: 'Готовый промпт для AI-агента: мини-приложение Exode с проверкой initData — от пустой папки до продакшена'
+---
+
+Эта страница — **готовый промпт для AI-агента** (Claude Code, Cursor, ChatGPT, v0 и т.п.).
+Программировать не нужно: скопируйте всё, что ниже заголовка «Промпт», в чат с агентом —
+или просто дайте агенту ссылку на markdown-версию этой страницы:
+
+```
+https://docs.exode.biz/ru/exode-sdk/miniapp/create-miniapp.md
+```
+
+От вас потребуется только три вещи: аккаунт на хостинге (Vercel или Cloudflare),
+секрет страницы из админки школы и вставить итоговую ссылку в админку. Промпт написан
+на английском — так агенты работают точнее всего; общаться с агентом можно на русском.
+
+## Промпт
+
+You are an engineer building an **Exode mini app** from scratch and taking it all the
+way to production. The user may not know how to code: do every step yourself and only
+ask the user for things that can come from them alone (a hosting account, the page
+secret, the app name). Reply to the user in their language. Never skip the
+«Security» section.
+
+### What an Exode mini app is
+
+A mini app is your own website that a school on the Exode platform embeds via an
+`iframe` (admin panel section «Компания → Приложения и страницы» / “Company → Apps &
+pages”). When the page opens, Exode appends a URL fragment `#exodeInitData=...` — a
+signed string with the visitor's identity (same idea as Telegram Mini Apps). The
+signature is verified **only on the server** with the page secret — that is how your
+backend learns which user from which school opened the app without trusting the client.
+
+### Default stack
+
+- **Next.js (App Router) + TypeScript** — deploys to Vercel in one click and runs on
+  any Node hosting; for Cloudflare Workers use an adapter (`@opennextjs/cloudflare`
+  or vinext). If the user asked for a different stack, keep the same architecture:
+  the client reads initData, the server verifies it.
+- **`@exode-team/sdk` version `^0.3.1`** — the official SDK:
+  - `@exode-team/sdk/miniapp` — `retrieveInitData()`, the `ExodeMiniApp` host bridge;
+  - `@exode-team/sdk/miniapp/react` — `ExodeMiniAppProvider` and hooks (`useExodeUser`,
+    `useExodeTheme`, `useExodeNavigation`, …);
+  - `@exode-team/sdk/miniapp/server` — `verifyInitData()` (Node-only, for API routes).
+
+### Step 1. Scaffold
+
+```bash
+npx create-next-app@latest my-miniapp --ts --app --no-eslint --use-npm
+cd my-miniapp
+npm i @exode-team/sdk
+```
+
+### Step 2. Client: read initData and send it to the server
+
+initData lives in the URL fragment (after `#`) — fragments never reach HTTP requests,
+so read it on the client and POST it to your own server.
+
+`app/init-data-gate.tsx`:
+
+```tsx
+'use client';
+
+import { useEffect, useState } from 'react';
+import { retrieveInitData } from '@exode-team/sdk/miniapp';
+
+type VerifiedUser = { id: number; firstName: string | null } | null;
+
+export function InitDataGate({ children }: { children: React.ReactNode }) {
+    const [user, setUser] = useState<VerifiedUser>(null);
+    const [status, setStatus] = useState<'loading' | 'ok' | 'guest' | 'error'>('loading');
+
+    useEffect(() => {
+        const initData = retrieveInitData();
+
+        if (!initData) {
+            setStatus('guest');
+            return;
+        }
+
+        fetch('/api/exode/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData }),
+        })
+            .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+            .then((payload) => {
+                setUser(payload.user);
+                setStatus('ok');
+            })
+            .catch(() => setStatus('error'));
+    }, []);
+
+    if (status === 'loading') return null;
+    if (status === 'error') return <p>Could not verify the Exode signature.</p>;
+
+    return (
+        <>
+            <p>{status === 'ok' && user ? `Hello, ${user.firstName ?? 'there'}!` : 'Guest mode'}</p>
+            {children}
+        </>
+    );
+}
+```
+
+### Step 3. Server: verify the signature
+
+`app/api/exode/verify/route.ts`:
+
+```ts
+import { verifyInitData } from '@exode-team/sdk/miniapp/server';
+
+export async function POST(request: Request) {
+    const { initData } = await request.json();
+
+    try {
+        const payload = verifyInitData(initData, {
+            secret: process.env.EXODE_PAGE_SECRET!,
+        });
+
+        // payload = { pageId, schoolId, authDate, user: { id, firstName, ... } | null }
+        // Create your own session here (cookie/JWT) — trust only that from now on.
+        return Response.json({ user: payload.user, schoolId: payload.schoolId });
+    } catch {
+        return new Response('Invalid init data', { status: 401 });
+    }
+}
+```
+
+`verifyInitData` throws on an invalid signature, a foreign secret and an expired
+`auth_date` (24 hours by default) — catch and respond with 401.
+
+### Step 4. Wire up InitDataGate
+
+Wrap the content of `app/page.tsx` in `<InitDataGate>`. If you need the theme, host
+navigation or live context updates, add `ExodeMiniAppProvider` from
+`@exode-team/sdk/miniapp/react` (see https://docs.exode.biz/ru/exode-sdk/miniapp/react).
+
+### Step 5. Deploy
+
+- **Vercel (default):** ask the user to create an account at vercel.com, then run
+  `npx vercel` (dev) and `npx vercel --prod`. Add the env var with
+  `npx vercel env add EXODE_PAGE_SECRET production` — the user provides the value (Step 6).
+- **Cloudflare Workers:** adapt the project (`@opennextjs/cloudflare`), set the secret
+  with `npx wrangler secret put EXODE_PAGE_SECRET`.
+- The outcome of this step is a public **https** URL of the app.
+
+### Step 6. Connect the app to an Exode school
+
+Ask the user to do this in the browser (no code involved):
+
+1. Open the school admin panel: **Компания → Приложения и страницы → Создать страницу**.
+2. Paste the https URL from Step 5, set the page title and address.
+3. In the page menu (⋯) choose **Показать секрет** (“Show secret”), copy it and hand
+   it over — put it into `EXODE_PAGE_SECRET` on the hosting and redeploy.
+4. Open the page inside the school — the app should greet the user by name.
+
+### Security (mandatory)
+
+- The page secret lives **only** in the server env. Never in client code, the git
+  repository or `NEXT_PUBLIC_*` variables.
+- The user's identity comes only from `verifyInitData` on the server. Data from
+  `retrieveInitData()` on the client must not be trusted — anyone opening the site
+  directly can forge it.
+- «Перевыпустить секрет» (“Regenerate secret”) in the admin panel invalidates the old
+  secret — update the env var.
+- The app must work without initData too (opened directly, not from Exode):
+  show a guest mode, not an error.
+
+### Verify the result
+
+1. `npm run dev` → open `http://localhost:3000` — guest mode, no errors.
+2. Open `http://localhost:3000#exodeInitData=broken` — the server must respond 401
+   and the UI must show the verification error message.
+3. After Step 6 — open the page inside the school: the app greets the user by name.
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-08-20 11:31 UTC_
