@@ -66,17 +66,51 @@ Exode school (iframe host)
         └─ Server (API route): verifyInitData(initData, { secret }) → trusted user
 ```
 
-## Stack
+## Stack — pick one of two paths
 
-- **Next.js (App Router) + TypeScript** — deploys to Vercel in one click and runs on
-  any Node hosting; for Cloudflare Workers use an adapter (`@opennextjs/cloudflare`
-  or vinext). If the user asked for a different stack, keep the same architecture:
-  the client reads initData, the server verifies it.
+Both paths give **SSR out of the box** (App Router, React Server Components) — the
+app is server-rendered and paints instantly inside the iframe. Ask the user one
+question to choose: **is this a one-person project or a team, and does it have to
+stay free?**
+
+- **A team, or it must stay free → Path B (Cloudflare).** Cloudflare Workers'
+  free tier is generous and a whole team can share one account/project at no cost —
+  Vercel's free Hobby plan is limited to a single non-commercial developer, and team
+  seats are paid.
+- **A solo developer → Path A (Vercel) works too** and is the simplest start; Path B
+  is equally fine solo.
+
+- **Path A — Next.js on Vercel**: standard `create-next-app`, one-command deploy,
+  env vars in the Vercel dashboard.
+- **Path B — vinext on a Cloudflare Worker**: `vinext` is a Next.js-compatible
+  App Router framework on Vite that deploys as a single Cloudflare Worker
+  (`vinext deploy`). Same app code, same SSR.
+
+The app code (Step 2) is identical for both paths. If the user asked for a different
+stack entirely, keep the same architecture: SSR page, client reads initData, server
+verifies it.
+
 - **`@exode-team/sdk` version `^0.3.1`** — the official SDK:
   - `@exode-team/sdk/miniapp` — `retrieveInitData()`, the `ExodeMiniApp` host bridge;
   - `@exode-team/sdk/miniapp/react` — `ExodeMiniAppProvider` and hooks (`useExodeUser`,
     `useExodeTheme`, `useExodeNavigation`, ...);
   - `@exode-team/sdk/miniapp/server` — `verifyInitData()` (Node-only, for API routes).
+
+## Render instantly: SSR-first (important)
+
+The mini app opens inside an iframe — the user is already looking at the school page,
+so every millisecond before the first paint is visible. Follow these rules:
+
+- **Server-render the UI.** Keep pages as React Server Components (the Next.js App
+  Router default): HTML and styles arrive in the first response, with no client JS
+  needed for the initial paint. Add `'use client'` only to the small components that
+  actually need interactivity or the Exode SDK.
+- **Never block the first paint on identity.** initData verification is an async
+  round-trip — render the page content immediately and let the verified identity
+  enhance it when it arrives (the `InitDataGate` below is built this way: children
+  are always visible, the greeting appears once verified).
+- Avoid full-screen spinners and heavy client bundles; prefer static/SSR content
+  with small interactive islands.
 
 ## Step 0. Check the tools (install if missing)
 
@@ -97,7 +131,9 @@ Nothing else is required — no git, no accounts yet.
 
 ## Step 1. Scaffold the project
 
-Replace `my-miniapp` with the user's app name (lowercase, hyphens instead of spaces):
+Replace `my-miniapp` with the user's app name (lowercase, hyphens instead of spaces).
+
+### Path A (Next.js / Vercel)
 
 ```bash
 npx create-next-app@latest my-miniapp --ts --app --no-eslint --no-tailwind --src-dir=false --import-alias "@/*" --use-npm
@@ -108,10 +144,119 @@ npm i @exode-team/sdk
 If `create-next-app` still asks interactive questions, answer: TypeScript — Yes,
 App Router — Yes, everything else — the default.
 
+### Path B (vinext / Cloudflare Worker)
+
+Create a folder `my-miniapp` with exactly these files, then run `npm install`:
+
+`package.json`:
+
+```json
+{
+  "name": "my-miniapp",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vinext dev --port 3000",
+    "build": "vinext build",
+    "start": "vinext start",
+    "deploy": "vinext deploy"
+  },
+  "dependencies": {
+    "@exode-team/sdk": "^0.3.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.49.1",
+    "@types/node": "25.9.1",
+    "@types/react": "19.2.15",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.26",
+    "react-server-dom-webpack": "19.2.8",
+    "typescript": "6.0.3",
+    "vinext": "0.0.55",
+    "vite": "8.2.0",
+    "wrangler": "4.117.0"
+  }
+}
+```
+
+`vite.config.ts`:
+
+```ts
+import vinext from 'vinext';
+import { defineConfig } from 'vite';
+import { cloudflare } from '@cloudflare/vite-plugin';
+
+export default defineConfig({
+    plugins: [
+        vinext(),
+        cloudflare({
+            viteEnvironment: { name: 'rsc', childEnvironments: ['ssr'] },
+        }),
+    ],
+});
+```
+
+`wrangler.jsonc`:
+
+```jsonc
+{
+  "name": "my-miniapp",
+  "compatibility_date": "2026-05-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./worker/index.ts",
+  "assets": { "directory": "dist/client", "not_found_handling": "none", "binding": "ASSETS" }
+}
+```
+
+`worker/index.ts`:
+
+```ts
+export { default } from 'vinext/server/app-router-entry';
+```
+
+`tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "jsx": "react-jsx"
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+`src/app/layout.tsx`:
+
+```tsx
+import type { ReactNode } from 'react';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+    return (
+        <html lang="en">
+            <body>{children}</body>
+        </html>
+    );
+}
+```
+
 ## Step 2. Create the app files
 
-Create/replace exactly these three files. Everything else that `create-next-app`
-generated stays untouched.
+Create/replace exactly these three files. Everything else stays untouched.
+File paths below are for Path A (`app/...`); **on Path B the app dir is `src/app/...`**
+(e.g. `src/app/init-data-gate.tsx`) — the content is identical.
 
 ### 2.1 `app/init-data-gate.tsx` — client: read initData, ask the server to verify
 
@@ -148,12 +293,13 @@ export function InitDataGate({ children }: { children: React.ReactNode }) {
             .catch(() => setStatus('error'));
     }, []);
 
-    if (status === 'loading') return null;
-    if (status === 'error') return <p>Could not verify the Exode signature.</p>;
-
+    // Children render immediately (SSR content stays visible) — the identity
+    // line only enhances the page once verification completes.
     return (
         <>
-            <p>{status === 'ok' && user ? `Hello, ${user.firstName ?? 'there'}!` : 'Guest mode'}</p>
+            {status === 'ok' && user && <p>{`Hello, ${user.firstName ?? 'there'}!`}</p>}
+            {status === 'guest' && <p>Guest mode</p>}
+            {status === 'error' && <p>Could not verify the Exode signature.</p>}
             {children}
         </>
     );
@@ -233,7 +379,8 @@ Then rely on the preview deploy in Step 4 for the user-visible check.
   the verification error (the server answered 401). That means the whole pipeline works.
 
 Create a local env file so the server has a placeholder secret while developing —
-file `.env.local` in the project folder:
+file `.env.local` in the project folder (**Path B: name the file `.dev.vars`** —
+that is what the Cloudflare runtime reads):
 
 ```
 EXODE_PAGE_SECRET=local-placeholder
@@ -241,8 +388,9 @@ EXODE_PAGE_SECRET=local-placeholder
 
 ## Step 4. Deploy
 
-The app must end up on a public **https** URL. Default — Vercel (simplest for a
-non-technical user):
+The app must end up on a public **https** URL.
+
+### Path A — Vercel
 
 1. Ask the user to create a free account at https://vercel.com (sign up with email
    or GitHub — either works; no repository is needed).
@@ -263,11 +411,31 @@ non-technical user):
    user's account, link to existing project — No, project name — default, directory —
    default, modify settings — No). The command prints the production URL, e.g.
    `https://my-miniapp.vercel.app` — save it.
-4. The secret will be added in Step 5 (you do not have it yet).
+4. The secret will be added in Step 5 (you do not have it yet). Env vars go in with
+   `npx vercel env add EXODE_PAGE_SECRET production`.
 
-Alternative — **Cloudflare Workers**: adapt the project with `@opennextjs/cloudflare`
-(follow its README), deploy with `npx wrangler deploy`, set the secret later with
-`npx wrangler secret put EXODE_PAGE_SECRET`.
+### Path B — Cloudflare Worker
+
+1. Ask the user to create a free account at https://dash.cloudflare.com.
+2. In the project folder run:
+
+   ```bash
+   npx wrangler login
+   ```
+
+   A browser window opens — the user confirms the login there.
+3. Deploy:
+
+   ```bash
+   npm run deploy
+   ```
+
+   `vinext deploy` builds the app and publishes the Worker; the command prints the
+   public URL, e.g. `https://my-miniapp.<account>.workers.dev` — save it.
+4. Env note for Cloudflare: `process.env` on a Worker is populated from Worker
+   secrets/vars, not from the shell. Locally put the secret into a `.dev.vars` file
+   (`EXODE_PAGE_SECRET=...`); in production set it with
+   `npx wrangler secret put EXODE_PAGE_SECRET` and redeploy.
 
 Any other Node hosting works the same way: build with `npm run build`, run with
 `npm start`, provide `EXODE_PAGE_SECRET` as an environment variable.
@@ -285,13 +453,15 @@ Ask the user to do this part in the browser — guide them click by click:
    - layout and access ("available without login") — as the user prefers.
    Save.
 3. In the new page's row menu (the "..." button) choose **Show secret** and copy it.
-4. Put the secret into the hosting env and redeploy. For Vercel:
+4. Put the secret into the hosting env and redeploy. Path A (Vercel):
 
    ```bash
    npx vercel env add EXODE_PAGE_SECRET production
    # paste the secret when prompted
    npx vercel --prod
    ```
+
+   Path B (Cloudflare): `npx wrangler secret put EXODE_PAGE_SECRET`, then `npm run deploy`.
 
 5. Open the page inside the school (it appears at `https://<school-domain>/<slug>`) —
    the app must greet the user by name. Done: the mini app is live.
@@ -321,7 +491,8 @@ Ask the user to do this part in the browser — guide them click by click:
 | 401 with a correct secret | `auth_date` is older than 24h (the school tab was open for a long time) — reopening the page issues a fresh signature. |
 | "Guest mode" inside the school | The page in the admin panel is created without login requirement and the visitor is not logged in — expected; or the iframe URL points to a different deployment. |
 | Blank page inside the school | The app URL is http (must be https), or a frame-blocking header was added — remove `X-Frame-Options`/`frame-ancestors`. |
-| Works locally, fails after deploy | The env var exists only in `.env.local` — add it on the hosting (Step 5.4). |
+| Works locally, fails after deploy | The env var exists only in `.env.local`/`.dev.vars` — add it on the hosting (Step 5.4). |
+| Path B: secret set in shell env but server says 503 | Cloudflare Workers read `process.env` from Worker secrets/`.dev.vars`, not the shell — use `wrangler secret put` / `.dev.vars`. |
 
 ## Final checklist
 
