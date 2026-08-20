@@ -395,8 +395,9 @@ function SchoolPalette() {
         const palette = scheme === 'dark' ? vars?.SpaceGray : vars?.BrightLight;
         if (!palette) return;
 
+        // Keys arrive both as "--accent" and as bare "accent" — normalize to a CSS variable
         for (const [name, value] of Object.entries(palette)) {
-            if (name.startsWith('--')) document.documentElement.style.setProperty(name, String(value));
+            document.documentElement.style.setProperty(name.startsWith('--') ? name : `--${name}`, String(value));
         }
     }, [school, scheme]);
 
@@ -770,6 +771,114 @@ Ask the user to do this part in the browser — guide them click by click:
 5. Open the page inside the school (it appears at `https://<school-domain>/<slug>`) —
    the app must greet the user by name. Done: the mini app is live.
 
+## Step 6. Talk to Exode from your backend (optional — `@exode-team/sdk/api`)
+
+When the mini app needs to **read or write school data** (users, courses, groups,
+custom fields, invoices...), its backend calls the Exode REST API. Everything is
+already wrapped in the SDK — same package, entrypoint `@exode-team/sdk/api`.
+
+### 7.1 Credentials
+
+Ask the user to open the school admin panel → **Company → For developers** and:
+
+1. Create an **API key** — this is the Bearer token.
+2. Note the **Seller ID** and **School ID** shown there.
+
+Put all three into the server env (never the client): `EXODE_API_TOKEN`,
+`EXODE_SELLER_ID`, `EXODE_SCHOOL_ID`.
+
+### 7.2 The API client
+
+```ts
+import { ExodeAPI } from '@exode-team/sdk/api';
+
+const exodeApi = new ExodeAPI({
+    token: process.env.EXODE_API_TOKEN!,
+    sellerId: Number(process.env.EXODE_SELLER_ID),
+    schoolId: Number(process.env.EXODE_SCHOOL_ID),
+});
+```
+
+Namespaces on `exodeApi.school`: `user`, `staff`, `group`, `course`, `certificate`,
+`form`, `invoice`, `productAccess`, `queryExport` — every method is typed and maps
+1:1 to a REST route (full reference: https://docs.exode.biz, SDK README on npm).
+Errors throw a typed `ExodeAPIError` with `code` and `errorCause`.
+
+### 7.3 Example: write a custom field from the mini app
+
+The flagship scenario: the user answers something inside your mini app → your
+backend verifies who they are (Step 2.1) → stores the answer into an Exode
+**custom field** on that user, so the school sees it in the admin panel, filters,
+exports and automations.
+
+```ts
+// app/api/answer/route.ts
+import { verifyInitData } from '@exode-team/sdk/miniapp/server';
+import { ExodeAPI } from '@exode-team/sdk/api';
+
+const exodeApi = new ExodeAPI({
+    token: process.env.EXODE_API_TOKEN!,
+    sellerId: Number(process.env.EXODE_SELLER_ID),
+    schoolId: Number(process.env.EXODE_SCHOOL_ID),
+});
+
+export async function POST(request: Request) {
+    const { initData, answer } = await request.json();
+
+    // 1. Trusted identity — never take userId from the request body
+    const { user } = verifyInitData(initData, { secret: process.env.EXODE_PAGE_SECRET! });
+    if (!user) return new Response('Login required', { status: 401 });
+
+    // 2. Store the answer into a custom field by its slug
+    await exodeApi.school.form.customFieldValueSetBySlug({
+        userId: user.id,
+        layoutId: Number(process.env.EXODE_FORM_LAYOUT_ID),
+        values: [{ slug: 'favorite-topic', value: answer }],
+    });
+
+    return Response.json({ ok: true });
+}
+```
+
+The custom field itself (and its `slug`) is created by the school in the admin
+panel form builder — or by your backend via `exodeApi.school.form.layoutCreate`.
+
+### 7.4 Receive webhooks from Exode
+
+Exode pushes events (new user, enrollment, payment, ...) to your backend:
+
+1. The user opens admin panel → **Company → For developers → Webhooks**, creates an
+   endpoint with your app's URL (e.g. `https://my-miniapp.vercel.app/api/exode/webhook`)
+   and copies its **secret key** → env `EXODE_WEBHOOK_SECRET`.
+2. Every delivery is a POST signed with the endpoint's secret key. Verify it with
+   the SDK against the **raw** body (`request.text()`, not `request.json()` — a
+   re-serialized body will not match) before doing anything:
+
+```ts
+// app/api/exode/webhook/route.ts
+import { verifyWebhookSignature } from '@exode-team/sdk/miniapp/server';
+
+export async function POST(request: Request) {
+    const rawBody = await request.text();
+
+    const valid = verifyWebhookSignature(rawBody, {
+        secret: process.env.EXODE_WEBHOOK_SECRET!,
+        signature: request.headers.get('signature'),
+    });
+
+    if (!valid) return new Response('Invalid signature', { status: 401 });
+
+    const event = JSON.parse(rawBody);
+    // handle event.event / event payload here
+
+    return Response.json({ ok: true });
+}
+```
+
+Failed deliveries are retried (5 attempts with growing backoff) — make the handler
+**idempotent** (dedupe by the event id) and answer 2xx fast; do slow work async.
+The admin panel has a "send test webhook" action — use it to verify the endpoint.
+
 ## Security (mandatory — never skip)
 
 - The page secret lives **only** in the server env (`EXODE_PAGE_SECRET`). Never in
@@ -782,6 +891,9 @@ Ask the user to do this part in the browser — guide them click by click:
   update the env var and redeploy.
 - The app must keep working without initData (opened directly, not from Exode):
   show a guest mode, not an error.
+- The Exode API token and webhook secret live only in the server env, like the page
+  secret. Always verify the webhook `signature` before trusting a delivery, and take
+  the acting `userId` only from `verifyInitData` — never from the request body.
 - Do not add `X-Frame-Options` or a restrictive `frame-ancestors` CSP header — the
   app must remain embeddable in an iframe. (Next.js and Vercel do not add them by
   default; just do not add them yourself.)
