@@ -229,7 +229,7 @@ ones turn out to be incompatible with each other:
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.49.1",
+    "@cloudflare/vite-plugin": "1.53.0",
     "@types/node": "25.9.1",
     "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
@@ -239,7 +239,7 @@ ones turn out to be incompatible with each other:
     "typescript": "6.0.3",
     "vinext": "0.0.55",
     "vite": "8.2.0",
-    "wrangler": "4.117.0"
+    "wrangler": "4.124.0"
   }
 }
 ```
