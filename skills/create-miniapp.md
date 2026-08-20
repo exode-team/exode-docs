@@ -107,10 +107,66 @@ so every millisecond before the first paint is visible. Follow these rules:
   actually need interactivity or the Exode SDK.
 - **Never block the first paint on identity.** initData verification is an async
   round-trip — render the page content immediately and let the verified identity
-  enhance it when it arrives (the `InitDataGate` below is built this way: children
-  are always visible, the greeting appears once verified).
+  enhance it when it arrives (the showcase below is built this way:
+  `renderMode: 'immediate'` plus cards that fill in as data arrives).
 - Avoid full-screen spinners and heavy client bundles; prefer static/SSR content
   with small interactive islands.
+
+## Match the Exode look & feel (mandatory design language)
+
+The mini app opens **inside** the Exode platform — it must read as a native part of
+it, not as a foreign website in a frame. Build every screen in this design language,
+in **both themes at once**, and paint it with the **school's own palette**.
+
+### Foundations
+
+- **Canvas and surfaces.** Light: a soft neutral canvas (`#f5f6f8`-like) with content
+  in white cards. Dark: near-black canvas (`#101114`) with `#1a1c21` cards. Depth
+  comes from thin 1px borders (`#e5e7eb` / `#2a2d34`) and background contrast —
+  almost no shadows (only popovers/dropdowns float with a soft shadow).
+- **Rounding everywhere.** Cards and panels 14–16px; inputs, buttons and segmented
+  controls 10–12px; chips, badges, counters and avatars — fully round (999px).
+- **One accent color** (the school's brand color) drives every interactive element:
+  active nav items, links, filled buttons, outline of the selected card, linear
+  icons, big stat numbers. Its **muted tint** (accent at ~12% alpha) fills icon
+  squares (rounded-12), secondary buttons, tags and active list rows.
+- **Typography.** Humanist sans (system stack), large semibold headings (24–28px),
+  body 14–15px, secondary text in muted gray; metric numbers are oversized semibold
+  in the accent color.
+- **Icons** are linear/outline (~2px stroke, 20–24px), tinted accent or muted gray —
+  never filled multicolor glyphs.
+
+### Components
+
+- **Buttons.** Primary: filled accent, rounded-12, usually with a leading linear
+  icon. Secondary: accent-muted background with accent text. Tertiary/chips: white
+  pill with a thin border. Destructive actions: red text in menus.
+- **Pills and badges everywhere.** Statuses (green = success, red = blocked/error,
+  orange = warning/frozen), counters (small filled circles with a number), muted
+  capsule tags; tooltips are black pills with white text.
+- **Lists and tables.** No grid lines — airy rows; avatars are colored circles with
+  initials (deterministic pastel per user); cells are two-line (title + muted meta);
+  sortable column headers with tiny sort icons; pagination as small round buttons.
+- **Navigation.** A narrow icon sidebar (active item tinted accent); section menus
+  are icon+label lists where the active row gets a light rounded background;
+  segmented controls are pill groups where the active segment is filled.
+- **Empty states.** A large linear accent icon, a semibold title, a muted one-line
+  hint and a centered filled CTA button.
+- **Gamification surfaces** (ratings, podiums): vivid gradient backgrounds with
+  translucent "glass" white cards (`rgba(255,255,255,.2–.35)` + backdrop-blur),
+  white text and accent pills — use only for playful full-bleed screens.
+
+### Both themes, school palette
+
+- **Always ship light and dark together.** The starter's CSS tokens (Step 2.4)
+  already do this — style exclusively through the tokens, never hardcode grays.
+- **Use the school's palette.** The host passes the school's brand variables in the
+  bridge context: `useExodeSchool().school.preferenceSettings?.colorVariables` —
+  an object of shape `{ BrightLight?: Record<string, string>, SpaceGray?: Record<string, string> }`
+  where keys are CSS custom properties (including `--accent`) for the light and dark
+  scheme respectively. The starter's `SchoolPalette` component (Step 2.2) applies
+  them on top of the default tokens, so the mini app automatically wears the
+  school's brand color.
 
 ## Step 0. Check the tools (install if missing)
 
@@ -262,67 +318,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
 Create/replace exactly these four files. Everything else stays untouched.
 File paths below are for Path A (`app/...`); **on Path B the app dir is `src/app/...`**
-(e.g. `src/app/init-data-gate.tsx`) — the content is identical. On Path B also add
+(e.g. `src/app/showcase.tsx`) — the content is identical. On Path B also add
 `import './globals.css';` at the top of `src/app/layout.tsx`.
 
-The starter UI is intentionally designed, not bare text: a card-based layout with
-its own small design system (CSS variables, light/dark via `prefers-color-scheme`).
-Keep this visual level when you build the user's actual idea on top of it.
+The starter is intentionally a **showcase, not bare text**: a card-based layout with
+its own small design system (CSS variables, light + dark theme synced with the Exode
+host), server-verified identity, live user/school context from the host bridge and a
+host command button. Keep this visual level when you build the user's actual idea.
 
-### 2.1 `app/init-data-gate.tsx` — client: read initData, ask the server to verify
-
-```tsx
-'use client';
-
-import { useEffect, useState } from 'react';
-import { retrieveInitData } from '@exode-team/sdk/miniapp';
-
-type VerifiedUser = { id: number; firstName: string | null } | null;
-
-export function InitDataGate({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<VerifiedUser>(null);
-    const [status, setStatus] = useState<'loading' | 'ok' | 'guest' | 'error'>('loading');
-
-    useEffect(() => {
-        const initData = retrieveInitData();
-
-        if (!initData) {
-            setStatus('guest');
-            return;
-        }
-
-        fetch('/api/exode/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ initData }),
-        })
-            .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
-            .then((payload) => {
-                setUser(payload.user);
-                setStatus('ok');
-            })
-            .catch(() => setStatus('error'));
-    }, []);
-
-    // Children render immediately (SSR content stays visible) — the identity
-    // card only enhances the page once verification completes.
-    return (
-        <>
-            {status !== 'loading' && (
-                <div className={`status status--${status}`}>
-                    <span className="status__dot" aria-hidden/>
-                    {status === 'ok' && user && `Hello, ${user.firstName ?? 'there'}! Your identity is verified.`}
-                    {status === 'guest' && 'Guest mode — opened outside Exode.'}
-                    {status === 'error' && 'Could not verify the Exode signature.'}
-                </div>
-            )}
-            {children}
-        </>
-    );
-}
-```
-
-### 2.2 `app/api/exode/verify/route.ts` — server: verify the signature
+### 2.1 `app/api/exode/verify/route.ts` — server: verify the signature
 
 ```ts
 import { verifyInitData } from '@exode-team/sdk/miniapp/server';
@@ -347,14 +351,172 @@ export async function POST(request: Request) {
 `verifyInitData` throws on an invalid signature, a foreign secret and an expired
 `auth_date` (24 hours by default) — catch and respond with 401.
 
-### 2.3 `app/page.tsx` — the app itself (designed starter)
-
-Replace the generated file. The starter proves the pipeline works and already looks
-like a product: hero block, identity status card, and a card grid to grow into.
-Replace the two placeholder cards with the user's actual idea:
+### 2.2 `app/showcase.tsx` — client: theme sync, verified identity, live context, host commands
 
 ```tsx
-import { InitDataGate } from './init-data-gate';
+'use client';
+
+import { useEffect, useState } from 'react';
+
+import {
+    ExodeMiniAppProvider,
+    useExodeConfig,
+    useExodeInitData,
+    useExodeSchool,
+    useExodeTheme,
+    useExodeUI,
+    useExodeUser,
+} from '@exode-team/sdk/miniapp/react';
+
+type VerifiedUser = { id: number; firstName: string | null } | null;
+type VerifyStatus = 'loading' | 'ok' | 'guest' | 'error';
+
+/** Theme sync: the Exode host theme wins; until the host answers, the CSS
+ *  media query keeps the system theme — so both light and dark always work. */
+function ThemeSync() {
+    const { scheme, isReady } = useExodeTheme();
+
+    useEffect(() => {
+        if (!isReady) return;
+        document.documentElement.dataset.theme = scheme;
+    }, [scheme, isReady]);
+
+    return null;
+}
+
+/** School palette: apply the school's brand CSS variables (incl. --accent)
+ *  for the active scheme on top of the starter tokens. */
+function SchoolPalette() {
+    const { school } = useExodeSchool();
+    const { scheme } = useExodeTheme();
+
+    useEffect(() => {
+        const vars = (school as any)?.preferenceSettings?.colorVariables;
+        const palette = scheme === 'dark' ? vars?.SpaceGray : vars?.BrightLight;
+        if (!palette) return;
+
+        for (const [name, value] of Object.entries(palette)) {
+            if (name.startsWith('--')) document.documentElement.style.setProperty(name, String(value));
+        }
+    }, [school, scheme]);
+
+    return null;
+}
+
+/** Server-side verification of the signed initData — the only trusted identity. */
+function VerifiedIdentityCard() {
+    const { initData } = useExodeInitData();
+    const [user, setUser] = useState<VerifiedUser>(null);
+    const [status, setStatus] = useState<VerifyStatus>('loading');
+
+    useEffect(() => {
+        if (!initData) {
+            setStatus('guest');
+            return;
+        }
+
+        fetch('/api/exode/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData }),
+        })
+            .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+            .then((payload) => {
+                setUser(payload.user);
+                setStatus('ok');
+            })
+            .catch(() => setStatus('error'));
+    }, [initData]);
+
+    if (status === 'loading') return null;
+
+    return (
+        <div className={`status status--${status}`}>
+            <span className="status__dot" aria-hidden/>
+            {status === 'ok' && user && `Server-verified: ${user.firstName ?? 'user'} (id ${user.id})`}
+            {status === 'guest' && 'Guest mode — opened outside Exode.'}
+            {status === 'error' && 'Could not verify the Exode signature.'}
+        </div>
+    );
+}
+
+/** Live context from the host bridge — updates without a reload. */
+function ContextCards() {
+    const { user, isLoggedIn } = useExodeUser();
+    const { school } = useExodeSchool();
+    const { scheme } = useExodeTheme();
+    const { platform, language, isDesktop } = useExodeConfig();
+
+    return (
+        <section className="cards">
+            <article className="card">
+                <h2>User</h2>
+                <div className="person">
+                    {user?.avatar?.medium && <img alt="" src={user.avatar.medium} className="person__avatar"/>}
+                    <div>
+                        <div className="person__name">
+                            {isLoggedIn && user
+                                ? [user.firstName, user.lastName].filter(Boolean).join(' ') || `id ${user.id}`
+                                : 'Guest'}
+                        </div>
+                        <div className="muted">{user ? user.role : 'not logged in'}</div>
+                    </div>
+                </div>
+            </article>
+
+            <article className="card">
+                <h2>Environment</h2>
+                <dl className="kv">
+                    <div><dt>School</dt><dd>{String(school?.name ?? '—')}</dd></div>
+                    <div><dt>Theme</dt><dd>{scheme}</dd></div>
+                    <div><dt>Platform</dt><dd>{platform} · {isDesktop ? 'desktop' : 'mobile'} · {language}</dd></div>
+                </dl>
+            </article>
+        </section>
+    );
+}
+
+/** Commands to the host: control the Exode UI from inside the mini app. */
+function HostActions() {
+    const { showSnackbar } = useExodeUI();
+
+    return (
+        <section className="card">
+            <h2>Host commands</h2>
+            <p className="muted">The mini app drives the Exode UI through the bridge:</p>
+            <button className="btn" onClick={() => showSnackbar({ type: 'success', message: 'Hello from the mini app!' })}>
+                Show a snackbar in Exode
+            </button>
+        </section>
+    );
+}
+
+export function Showcase() {
+    return (
+        <ExodeMiniAppProvider config={{ appId: 'my-miniapp', renderMode: 'immediate' }}>
+            <ThemeSync/>
+            <SchoolPalette/>
+            <VerifiedIdentityCard/>
+            <ContextCards/>
+            <HostActions/>
+        </ExodeMiniAppProvider>
+    );
+}
+```
+
+`renderMode: 'immediate'` keeps SSR content visible from the first paint — the hooks
+fill in when the host handshake completes. The `appId` is your own identifier — it
+does **not** need to be registered anywhere in Exode: for school pages the host
+trusts the page URL's origin, so any appId works. Beyond this showcase the bridge also
+offers `useExodeNavigation` (navigate the host, go back), `setTabbarVisible` /
+`setHeaderVisible` / `close` in `useExodeUI`, and `useExodeVisibility` (pause
+polling/video while the keep-alive iframe is hidden) — reference:
+https://docs.exode.biz/ru/exode-sdk/miniapp/react
+
+### 2.3 `app/page.tsx` — the page
+
+```tsx
+import { Showcase } from './showcase';
 
 export default function Home() {
     return (
@@ -367,28 +529,18 @@ export default function Home() {
                 </p>
             </header>
 
-            <InitDataGate>
-                <section className="cards">
-                    <article className="card">
-                        <h2>First block</h2>
-                        <p className="muted">Describe a feature of your app here.</p>
-                    </article>
-
-                    <article className="card">
-                        <h2>Second block</h2>
-                        <p className="muted">And another one here — or remove the grid entirely.</p>
-                    </article>
-                </section>
-            </InitDataGate>
+            <Showcase/>
         </main>
     );
 }
 ```
 
-### 2.4 `app/globals.css` — the starter design system
+### 2.4 `app/globals.css` — the starter design system (light + dark)
 
 Replace the generated file (it is imported by `app/layout.tsx` already; on Path B
-add the import to `src/app/layout.tsx` yourself):
+add the import to `src/app/layout.tsx` yourself). Light is the default, dark comes
+either from the system (`prefers-color-scheme`) or is forced by the host via
+`data-theme` — `ThemeSync` sets it:
 
 ```css
 :root {
@@ -405,7 +557,7 @@ add the import to `src/app/layout.tsx` yourself):
 }
 
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme='light']) {
         --bg: #101114;
         --surface: #1a1c21;
         --text: #f2f3f5;
@@ -413,6 +565,15 @@ add the import to `src/app/layout.tsx` yourself):
         --border: #2a2d34;
         --accent: #818cf8;
     }
+}
+
+:root[data-theme='dark'] {
+    --bg: #101114;
+    --surface: #1a1c21;
+    --text: #f2f3f5;
+    --muted: #9ca3af;
+    --border: #2a2d34;
+    --accent: #818cf8;
 }
 
 * { box-sizing: border-box; }
@@ -427,7 +588,7 @@ body {
 
 .shell { max-width: 720px; margin: 0 auto; padding: 40px 24px; }
 
-.hero { margin-bottom: 24px; }
+.hero { margin-bottom: 20px; }
 .hero h1 { margin: 12px 0 8px; font-size: 28px; letter-spacing: -0.02em; }
 
 .badge {
@@ -446,17 +607,19 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 16px;
-    margin-top: 20px;
+    margin-top: 16px;
 }
 
 .card {
+    margin-top: 16px;
     padding: 20px;
     border: 1px solid var(--border);
     border-radius: 16px;
     background: var(--surface);
 }
+.cards .card { margin-top: 0; }
 .card h2 { margin: 0 0 6px; font-size: 16px; }
-.card p { margin: 0; font-size: 14px; }
+.card p { margin: 0 0 4px; font-size: 14px; }
 
 .status {
     display: flex;
@@ -472,11 +635,29 @@ body {
 .status--ok .status__dot { background: var(--ok); }
 .status--guest .status__dot { background: var(--warn); }
 .status--error .status__dot { background: var(--error); }
-```
 
-Optional: for theme sync, host navigation and live context updates wrap the page in
-`ExodeMiniAppProvider` from `@exode-team/sdk/miniapp/react`
-(docs: https://docs.exode.biz/ru/exode-sdk/miniapp/react).
+.person { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.person__avatar { width: 40px; height: 40px; border-radius: 999px; object-fit: cover; }
+.person__name { font-weight: 500; font-size: 14px; }
+
+.kv { margin: 10px 0 0; font-size: 14px; }
+.kv div { display: flex; justify-content: space-between; gap: 12px; margin-top: 6px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-weight: 500; }
+
+.btn {
+    margin-top: 12px;
+    padding: 9px 16px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.btn:hover { filter: brightness(1.08); }
+```
 
 ## Step 3. Run and check (Mode A and C — local; Mode B — see below)
 
