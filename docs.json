@@ -159,7 +159,8 @@
               "ru/exode-sdk/miniapp/client",
               "ru/exode-sdk/miniapp/context",
               "ru/exode-sdk/miniapp/init-data",
-              "ru/exode-sdk/miniapp/react"
+              "ru/exode-sdk/miniapp/react",
+              "ru/exode-sdk/miniapp/create-miniapp"
             ]
           }
         ]
