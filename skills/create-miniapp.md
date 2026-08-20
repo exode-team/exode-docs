@@ -146,7 +146,13 @@ App Router — Yes, everything else — the default.
 
 ### Path B (vinext / Cloudflare Worker)
 
-Create a folder `my-miniapp` with exactly these files, then run `npm install`:
+Create a folder `my-miniapp` with the files below, then run `npm install`.
+
+The dependency versions in this `package.json` are a **known-good set at the time of
+writing, not a requirement** — prefer the current latest versions (e.g.
+`npm i vinext@latest vite@latest wrangler@latest react@latest react-dom@latest`
+plus the matching types/plugins) and fall back to the pinned set only if the latest
+ones turn out to be incompatible with each other:
 
 `package.json`:
 
@@ -254,9 +260,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
 ## Step 2. Create the app files
 
-Create/replace exactly these three files. Everything else stays untouched.
+Create/replace exactly these four files. Everything else stays untouched.
 File paths below are for Path A (`app/...`); **on Path B the app dir is `src/app/...`**
-(e.g. `src/app/init-data-gate.tsx`) — the content is identical.
+(e.g. `src/app/init-data-gate.tsx`) — the content is identical. On Path B also add
+`import './globals.css';` at the top of `src/app/layout.tsx`.
+
+The starter UI is intentionally designed, not bare text: a card-based layout with
+its own small design system (CSS variables, light/dark via `prefers-color-scheme`).
+Keep this visual level when you build the user's actual idea on top of it.
 
 ### 2.1 `app/init-data-gate.tsx` — client: read initData, ask the server to verify
 
@@ -294,12 +305,17 @@ export function InitDataGate({ children }: { children: React.ReactNode }) {
     }, []);
 
     // Children render immediately (SSR content stays visible) — the identity
-    // line only enhances the page once verification completes.
+    // card only enhances the page once verification completes.
     return (
         <>
-            {status === 'ok' && user && <p>{`Hello, ${user.firstName ?? 'there'}!`}</p>}
-            {status === 'guest' && <p>Guest mode</p>}
-            {status === 'error' && <p>Could not verify the Exode signature.</p>}
+            {status !== 'loading' && (
+                <div className={`status status--${status}`}>
+                    <span className="status__dot" aria-hidden/>
+                    {status === 'ok' && user && `Hello, ${user.firstName ?? 'there'}! Your identity is verified.`}
+                    {status === 'guest' && 'Guest mode — opened outside Exode.'}
+                    {status === 'error' && 'Could not verify the Exode signature.'}
+                </div>
+            )}
             {children}
         </>
     );
@@ -331,24 +347,131 @@ export async function POST(request: Request) {
 `verifyInitData` throws on an invalid signature, a foreign secret and an expired
 `auth_date` (24 hours by default) — catch and respond with 401.
 
-### 2.3 `app/page.tsx` — the app itself (starter version)
+### 2.3 `app/page.tsx` — the app itself (designed starter)
 
-Replace the generated file with a minimal page wrapped in the gate. Build the user's
-actual idea inside `<InitDataGate>` — this starter just proves the pipeline works:
+Replace the generated file. The starter proves the pipeline works and already looks
+like a product: hero block, identity status card, and a card grid to grow into.
+Replace the two placeholder cards with the user's actual idea:
 
 ```tsx
 import { InitDataGate } from './init-data-gate';
 
 export default function Home() {
     return (
-        <main style={{ maxWidth: 640, margin: '0 auto', padding: 32, fontFamily: 'system-ui' }}>
-            <h1>My mini app</h1>
+        <main className="shell">
+            <header className="hero">
+                <span className="badge">Exode Mini App</span>
+                <h1>My mini app</h1>
+                <p className="muted">
+                    A starter embedded into an Exode school — replace these blocks with your app.
+                </p>
+            </header>
+
             <InitDataGate>
-                <p>The app content goes here.</p>
+                <section className="cards">
+                    <article className="card">
+                        <h2>First block</h2>
+                        <p className="muted">Describe a feature of your app here.</p>
+                    </article>
+
+                    <article className="card">
+                        <h2>Second block</h2>
+                        <p className="muted">And another one here — or remove the grid entirely.</p>
+                    </article>
+                </section>
             </InitDataGate>
         </main>
     );
 }
+```
+
+### 2.4 `app/globals.css` — the starter design system
+
+Replace the generated file (it is imported by `app/layout.tsx` already; on Path B
+add the import to `src/app/layout.tsx` yourself):
+
+```css
+:root {
+    color-scheme: light dark;
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --text: #16181d;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --accent: #4f46e5;
+    --ok: #16a34a;
+    --warn: #d97706;
+    --error: #dc2626;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #101114;
+        --surface: #1a1c21;
+        --text: #f2f3f5;
+        --muted: #9ca3af;
+        --border: #2a2d34;
+        --accent: #818cf8;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.shell { max-width: 720px; margin: 0 auto; padding: 40px 24px; }
+
+.hero { margin-bottom: 24px; }
+.hero h1 { margin: 12px 0 8px; font-size: 28px; letter-spacing: -0.02em; }
+
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.muted { color: var(--muted); }
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.card {
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+}
+.card h2 { margin: 0 0 6px; font-size: 16px; }
+.card p { margin: 0; font-size: 14px; }
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    font-size: 14px;
+}
+.status__dot { width: 8px; height: 8px; border-radius: 999px; background: var(--muted); }
+.status--ok .status__dot { background: var(--ok); }
+.status--guest .status__dot { background: var(--warn); }
+.status--error .status__dot { background: var(--error); }
 ```
 
 Optional: for theme sync, host navigation and live context updates wrap the page in
