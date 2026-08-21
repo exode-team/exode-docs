@@ -120,10 +120,19 @@ in **both themes at once**, and paint it with the **school's own palette**.
 
 ### Foundations
 
-- **Canvas and surfaces.** Light: a soft neutral canvas (`#f5f6f8`-like) with content
-  in white cards. Dark: near-black canvas (`#101114`) with `#1a1c21` cards. Depth
-  comes from thin 1px borders (`#e5e7eb` / `#2a2d34`) and background contrast —
-  almost no shadows (only popovers/dropdowns float with a soft shadow).
+- **Canvas and surfaces.** Exode paints every screen from exactly three surface
+  roles, and your tokens should mirror them (these are roles, not class names to
+  copy — the starter models them as `--bg` / `--surface` / `--border` in Step 2.4):
+  the **body** canvas the page sits on, the **elevated** surface for cards and
+  panels sitting on it, and a **hairline border** that outlines elevated surfaces.
+  The hairline is deliberately **sub-pixel**: 0.5px on desktop, 0.3px on mobile —
+  on retina screens it renders as a truly thin line where 1px would look heavy.
+  Define all three for both themes: light — soft neutral canvas (`#f5f6f8`-like),
+  white elevated cards, `#e5e7eb` hairline; dark — near-black canvas (`#101114`),
+  `#1a1c21` cards, `#2a2d34` hairline. Depth comes from this canvas/elevated
+  contrast plus the hairline — almost no shadows (only popovers/dropdowns float
+  with a soft shadow). Every container composes the same triple: body behind,
+  elevated fill, hairline outline.
 - **Rounding everywhere.** Cards and panels 14–16px; inputs, buttons and segmented
   controls 10–12px; chips, badges, counters and avatars — fully round (999px).
 - **One accent color** (the school's brand color) drives every interactive element:
@@ -551,6 +560,8 @@ either from the system (`prefers-color-scheme`) or is forced by the host via
     --text: #16181d;
     --muted: #6b7280;
     --border: #e5e7eb;
+    /* sub-pixel hairline like the host: 0.5px desktop, 0.3px on small screens */
+    --border-width: 0.5px;
     --accent: #4f46e5;
     --ok: #16a34a;
     --warn: #d97706;
@@ -578,6 +589,10 @@ either from the system (`prefers-color-scheme`) or is forced by the host via
 }
 
 * { box-sizing: border-box; }
+
+@media (max-width: 767px) {
+    :root { --border-width: 0.3px; }
+}
 
 body {
     margin: 0;
@@ -614,7 +629,7 @@ body {
 .card {
     margin-top: 16px;
     padding: 20px;
-    border: 1px solid var(--border);
+    border: var(--border-width) solid var(--border);
     border-radius: 16px;
     background: var(--surface);
 }
@@ -627,7 +642,7 @@ body {
     align-items: center;
     gap: 10px;
     padding: 12px 16px;
-    border: 1px solid var(--border);
+    border: var(--border-width) solid var(--border);
     border-radius: 12px;
     background: var(--surface);
     font-size: 14px;
@@ -877,7 +892,22 @@ export async function POST(request: Request) {
 
 Failed deliveries are retried (5 attempts with growing backoff) — make the handler
 **idempotent** (dedupe by the event id) and answer 2xx fast; do slow work async.
-The admin panel has a "send test webhook" action — use it to verify the endpoint.
+
+**Testing webhooks locally.** Exode can only deliver to a public HTTPS URL, so during
+development expose your local server with a tunnel — [ngrok](https://ngrok.com) is the
+usual choice:
+
+```bash
+ngrok http 3000
+# → https://a1b2c3.ngrok-free.app
+```
+
+Register the tunnel URL as the endpoint (e.g. `https://a1b2c3.ngrok-free.app/api/exode/webhook`)
+in the admin panel, then use its **"send test webhook"** action to fire test events at
+your handler from the Exode UI — no real user activity needed. Watch the delivery log in
+the admin panel (status, response code, retries) and your server logs side by side.
+Remember the free ngrok URL changes on every restart — update the endpoint URL when it does,
+and switch it to the production URL before going live.
 
 ## Security (mandatory — never skip)
 
