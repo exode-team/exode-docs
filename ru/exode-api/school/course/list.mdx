@@ -4,12 +4,15 @@ description: "Получение списка курсов школы с фил�
 ---
 
 import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+import CourseAccessModeNote from '/snippets/ru/exode-api/course-access-mode-note.mdx';
 
 <HeaderParamFields/>
 
 ```
 GET /saas/v2/course/list/raw
 ```
+
+<CourseAccessModeNote/>
 
 <Info>
     Все параметры фильтрации необязательны. Параметры-массивы передаются повторением параметра в строке запроса:
@@ -266,4 +269,4 @@ print(response.json())
 
 ---
 
-_Обновлено: 2026-07-02 12:16 UTC_
+_Обновлено: 2026-08-24 16:34 UTC_

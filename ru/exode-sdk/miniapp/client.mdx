@@ -78,9 +78,18 @@ await app.ui.setTabbarVisible(false)
 // Hide / show host header
 await app.ui.setHeaderVisible(false)
 
+// Minimize the window (window-type pages only)
+await app.ui.minimize()
+
 // Close the mini app
 await app.ui.close()
 ```
+
+<Note>
+  `minimize()` работает только для страниц с типом окна «Плавающее окно» или «Панель справа»
+  (см. [Кастомные страницы](/ru/customization/custom-pages)). Свёрнутое окно не выгружается —
+  приложение получает событие `visibility:changed` с `visible: false` и продолжает жить.
+</Note>
 
 ## События (app.on)
 
@@ -158,4 +167,4 @@ window.addEventListener('beforeunload', () => app.destroy())
 
 ---
 
-_Обновлено: 2026-07-02 23:44 UTC_
+_Обновлено: 2026-08-24 16:34 UTC_

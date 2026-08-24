@@ -4,12 +4,15 @@ description: "Получение списка групп школы с филь�
 ---
 
 import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+import CourseAccessModeNote from '/snippets/ru/exode-api/course-access-mode-note.mdx';
 
 <HeaderParamFields/>
 
 ```
 GET /saas/v2/group/list/raw
 ```
+
+<CourseAccessModeNote/>
 
 <Info>
     Все параметры фильтрации необязательны. Если не передать ни одного фильтра — будут возвращены все группы
@@ -211,4 +214,4 @@ print(response.json())
 
 ---
 
-_Обновлено: 2026-07-02 12:16 UTC_
+_Обновлено: 2026-08-24 16:34 UTC_

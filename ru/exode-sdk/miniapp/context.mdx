@@ -116,7 +116,15 @@ type Platform = 'web' | 'native'
 | `showSnackbar` | `{ message, type? }` | `app.ui.showSnackbar()` |
 | `setTabbarVisible` | `{ visible }` | `app.ui.setTabbarVisible()` |
 | `setHeaderVisible` | `{ visible }` | `app.ui.setHeaderVisible()` |
+| `minimize` | — | `app.ui.minimize()` |
 | `close` | — | `app.ui.close()` |
+
+<Note>
+  `minimize` сворачивает окно приложения и работает только для страниц с типом окна
+  «Плавающее окно» или «Панель справа» (см. [Кастомные страницы](/ru/customization/custom-pages)).
+  Для типа «Страница» команда ничего не делает. Свёрнутое окно не выгружается: iframe живёт,
+  состояние сохраняется, а приложение получает `visibility:changed` с `visible: false`.
+</Note>
 
 ## BridgeMessage
 
@@ -154,4 +162,4 @@ import type {
 
 ---
 
-_Обновлено: 2026-04-20 17:08 UTC_
+_Обновлено: 2026-08-24 16:34 UTC_

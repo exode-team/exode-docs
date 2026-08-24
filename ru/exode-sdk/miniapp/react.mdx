@@ -142,7 +142,7 @@ UI-команды к хосту.
 
 ```jsx
 function Controls() {
-  const { showSnackbar, setTabbarVisible, setHeaderVisible, close } = useExodeUI()
+  const { showSnackbar, setTabbarVisible, setHeaderVisible, minimize, close } = useExodeUI()
 
   return (
     <>
@@ -150,9 +150,38 @@ function Controls() {
         Уведомление
       </button>
       <button onClick={() => setTabbarVisible(false)}>Скрыть tabbar</button>
+      <button onClick={() => minimize()}>Свернуть окно</button>
       <button onClick={() => close()}>Закрыть приложение</button>
     </>
   )
+}
+```
+
+<Note>
+  `minimize` работает только для страниц с типом окна «Плавающее окно» или «Панель справа»
+  (см. [Кастомные страницы](/ru/customization/custom-pages)). Отследить сворачивание можно
+  хуком `useExodeVisibility`.
+</Note>
+
+## useExodeVisibility
+
+Видно ли приложение пользователю прямо сейчас. Хост не выгружает iframe при уходе на другую
+страницу и при сворачивании окна — вместо этого он присылает `visibility:changed`. Используйте
+хук, чтобы останавливать опросы, видео и анимации в фоне.
+
+```jsx
+function Poller() {
+  const { visible } = useExodeVisibility()
+
+  useEffect(() => {
+    if (!visible) return
+
+    const timer = setInterval(() => refetch(), 5000)
+
+    return () => clearInterval(timer)
+  }, [ visible ])
+
+  return <Dashboard/>
 }
 ```
 
@@ -205,4 +234,4 @@ export default function App() {
 
 ---
 
-_Обновлено: 2026-06-19 12:54 UTC_
+_Обновлено: 2026-08-24 16:34 UTC_

@@ -75,18 +75,22 @@ receives signed user Init Data it can verify on its backend.
 
 Create one (user does this in the browser — guide click by click):
 
-1. Open **Control panel → Company → "School pages"** (`https://<school-domain>/manage/school/pages`).
-2. Press **Create page** and fill in:
+1. Open **Control panel → School → Customization → "Apps & pages"** (`https://<school-domain>/manage/school/pages`).
+   Requires the **Manage pages** manager permission.
+2. Press **Create app** and fill in:
    - **Title** — shown in the header and menu (per school language);
-   - **Slug** — lowercase latin letters, digits, hyphens, 2–64 chars; page opens at `/<slug>`; system platform addresses are reserved;
-   - **App URL** — the https address of the mini app (opens in the iframe);
+   - **App address (slug)** — lowercase latin letters, digits, hyphens, 2–64 chars; page opens at `/<slug>`; system platform addresses are reserved;
+   - **App URL (iframe)** — the https address of the mini app (opens in the iframe);
+   - **Window type** — `Page` (a normal platform page), `Floating window` (overlay that can be minimized), `Panel` (side panel next to the content);
+   - **Display** — `Page` window type only: `Full width` or `Island` (a card with padding);
    - **Available without login** — whether unauthenticated visitors can see it.
-3. Page menu → **Show secret** — the mini app's server needs it to verify Init Data. Store it only on the server; never print it into chat.
+3. Page menu → **Page secret** — the mini app's server needs it to verify Init Data. Store it only on the server; never print it into chat.
 4. Add a left-menu item for the page in **Settings → Left menu** with link `/<slug>` — navigation stays internal, no reload.
 
 Extra abilities:
 - **Main page:** in the page list you can assign any page (system or custom) as the main one — it opens at `/`. A custom page set as main cannot be deleted or disabled until another main page is assigned.
-- **Iframe lifecycle:** the iframe loads once and stays in memory across platform navigation — reopening is instant. The mini app can close itself with `app.ui.close()`.
+- **Iframe lifecycle:** the iframe loads once and stays in memory across platform navigation — reopening is instant. Minimizing a window does not reload it either. The mini app can minimize itself with `app.ui.minimize()` (window types only) and close itself with `app.ui.close()`.
+- **One expanded window at a time:** opening a second window minimizes the first; minimized windows stack into an opener.
 
 **To build the embedded app itself** (scaffold, `retrieveInitData`, server-side
 `verifyInitData`, deploy, connecting the secret) — switch to the **`exode-create-miniapp`**

@@ -311,6 +311,7 @@ await app.route.back()
 await app.ui.showSnackbar({ message: string, type?: 'success' | 'error' | 'info' })
 await app.ui.setTabbarVisible(visible: boolean)
 await app.ui.setHeaderVisible(visible: boolean)
+await app.ui.minimize()  // window-type pages only ('Floating' | 'Panel'); no-op for 'Page'
 await app.ui.close()
 // throw 'ExodeMiniApp is not initialized' if called before init()
 ```
@@ -368,10 +369,13 @@ useExodeTheme():      { scheme: 'light' | 'dark'; isDark: boolean }
 useExodeSchool():     { school: Record<string, unknown> | null }
 useExodeConfig():     { isDesktop: boolean; isMobile: boolean; language: string; platform: Platform }
 useExodeNavigation(): { navigate: (path, params?) => Promise<void>; back: () => Promise<void> }
-useExodeUI():         { showSnackbar; setTabbarVisible; setHeaderVisible; close }
+useExodeUI():         { showSnackbar; setTabbarVisible; setHeaderVisible; minimize; close }
+useExodeVisibility(): { visible: boolean }
+useExodeInitData():   { initData: string | null }
 ```
 
-All hooks must be used inside `<ExodeMiniAppProvider>`. `user` is `null` until handshake — guard with `isLoggedIn`.
+All hooks must be used inside `<ExodeMiniAppProvider>` — except `useExodeInitData`, which reads the
+address fragment and needs no provider. `user` is `null` until handshake — guard with `isLoggedIn`.
 
 ---
 

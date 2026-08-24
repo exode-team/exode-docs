@@ -51,7 +51,7 @@ Mode C.
 ## What an Exode mini app is
 
 A mini app is the user's own website that a school on the Exode platform embeds via
-an `iframe` (admin panel section "Company → Apps & pages"). When the page opens,
+an `iframe` (admin panel section "School → Customization → Apps & pages"). When the page opens,
 Exode appends a URL fragment `#exodeInitData=...` — a signed string with the
 visitor's identity (same idea as Telegram Mini Apps). The signature is verified
 **only on the server** with the page secret — that is how the app's backend learns
