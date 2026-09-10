@@ -300,7 +300,7 @@ def exode_webhook():
     - `user` — [пользователь](/ru/exode-api/objects/entities/user).
     - `profile` — карточка профиля (опционально).
     - `access` — объект [доступа](/ru/exode-api/objects/entities/product#productaccess) (опционально).
-      UTM-метки записи — в `access.meta.utmParams`, см. [UTM-атрибуция](#utm-атрибуция).
+    - `states.utmEnrollParams`, `states.utmSignupParams` — UTM-метки записи и регистрации, см. [UTM-атрибуция](#utm-атрибуция).
     - `product` — [продукт](/ru/exode-api/objects/entities/product) (опционально).
     - `course` — [курс](/ru/exode-api/objects/entities/course) (опционально).
 </Accordion>
@@ -366,16 +366,17 @@ UTM-метки приходят в трёх местах в зависимост
 | Событие | Где искать UTM |
 |---|---|
 | `UserSignedUp`, `UserAcquainted` | `states.utmSignupParams` — метки визита, с которого пользователь зарегистрировался |
-| `ProductEnrolledToFree`, `ProductEnrolledViaLms`, `ProductEnrolledViaPayment`, `ProductEnrolledByInviteLink`, `CourseProgressChanged`, `CourseCompleted` | `access.meta.utmParams` — метки визита, с которого пользователь записался на продукт |
+| `ProductEnrolledToFree`, `ProductEnrolledViaLms`, `ProductEnrolledViaPayment`, `ProductEnrolledByInviteLink`, `CourseProgressChanged`, `CourseCompleted` | `states.utmEnrollParams` — метки визита, с которого пользователь записался на продукт (дублируются в `access.meta.utmParams`); рядом `states.utmSignupParams` — метки регистрации |
 | `PaymentCompleted` | `payment.invoice.meta.utmParams` — метки визита, с которого был создан счёт |
 
 Ключи объекта UTM: `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, `gclid`, `fbclid`, `yclid`,
 `referrer`, `aff_id`, `sub_id`, `track_id` (присутствуют только переданные). Если пользователь пришёл без меток, объект
 отсутствует или пуст.
 
-`access.metaHistoryLogs` — история изменений `access.meta` (массив `{ timestamp, meta }`): первая запись фиксирует
-атрибуцию на момент записи. Путь `access.metaHistoryLogs[0].meta.utmParams` сохранён для совместимости с уже
-настроенными сценариями, в новых интеграциях используйте `access.meta.utmParams`.
+<Warning>
+    Путь `access.metaHistoryLogs[0].meta.utmParams`, который использовали ранние интеграции, в контракте больше не
+    отдаётся. Переключите сценарии на `states.utmEnrollParams` или `access.meta.utmParams`.
+</Warning>
 
 ### Пример: PaymentCompleted
 
