@@ -185,14 +185,15 @@ Common audit fields on most entities: `id, createdAt, updatedAt, deletedAt?, arc
 - **Events and `data`:**
   - `UserSignedUp` / `UserAcquainted`: `{ user, profile?, states?{utmSignupParams?} }`.
   - `UserTgConnected`: `{ user, profile?, prevTgId? }`.
-  - `CourseProgressChanged`: `{ user, course, product?, groups?, status?, lessonId? }`.
-  - `CourseCompleted`: `{ user, course, product?, groups? }`.
+  - `CourseProgressChanged`: `{ user, course, product?, access?, groups?, status?, lessonId? }`.
+  - `CourseCompleted`: `{ user, course, product?, access?, groups? }`.
   - `CourseLessonPracticeCompleted`: `{ user, course?, lesson?, practice?, attempt?, variantId? }`.
   - `CertificateIssued`: `{ user, course, product?, certificate }` — certificate issued for a completed course.
   - `PaymentCompleted`: `{ payment }` (with the invoice/products/acquiring tree). Sent only on an actual charge: card binding (recurrent init, `BindingCompleted`) does not trigger it.
   - `ProductEnrolledToFree`: `{ user, profile?, access?, product?, course? }`.
   - `ProductEnrolledByInviteLink`: `{ user, profile?, access?, product?, course?, inviteLinkId }` — enrollment via an invite link. Arrives **together with** `ProductEnrolledToFree` (the link grants free access); distinguished by the presence of `inviteLinkId`.
   - `SchoolCreated`: `{ school(+seller?) }` — system level only (not available for seller subscription).
+- **UTM attribution:** signup utm — `states.utmSignupParams` (`UserSignedUp`/`UserAcquainted`); enrollment utm — `access.meta.utmParams` (+ `access.meta.inviteLinkId`, history in `access.metaHistoryLogs[]{timestamp, meta}`; legacy path `access.metaHistoryLogs[0].meta.utmParams` kept) in every event carrying `access`; invoice utm — `payment.invoice.meta.utmParams` (`PaymentCompleted`). UTM keys: `utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|fbclid|yclid|referrer|aff_id|sub_id|track_id`. `updatedAt` of every entity is `string | null` (null until first update).
 
 ## Analytics target events (frontend, not REST API)
 

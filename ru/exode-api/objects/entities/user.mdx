@@ -81,7 +81,7 @@ description: "Структура объекта пользователя (user) 
 ### Системные поля аудита
 
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
-<ResponseField name="updatedAt" type="string" required>Дата последнего обновления (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string | null">Дата последнего обновления (ISO 8601) или `null`, если объект не менялся.</ResponseField>
 <ResponseField name="archivedAt" type="string | null">Дата архивации (ISO 8601) или `null`.</ResponseField>
 
 ## Поля `profile`

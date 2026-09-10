@@ -251,6 +251,8 @@ def exode_webhook():
     - `user` — [пользователь](/ru/exode-api/objects/entities/user) с профилем.
     - `course` — объект [курса](/ru/exode-api/objects/entities/course).
     - `product` — [продукт](/ru/exode-api/objects/entities/product) курса (опционально).
+    - `access` — [доступ](/ru/exode-api/objects/entities/product#productaccess) пользователя к продукту курса
+      с UTM-атрибуцией записи (опционально).
     - `groups` — массив [групп](/ru/exode-api/objects/entities/group) пользователя в курсе (опционально).
     - `status` — новый статус урока (`CourseProgressLessonStatus`, опционально).
     - `lessonId` — ID урока (опционально).
@@ -263,6 +265,8 @@ def exode_webhook():
     - `user` — пользователь с профилем.
     - `course` — объект курса.
     - `product` — продукт курса (опционально).
+    - `access` — [доступ](/ru/exode-api/objects/entities/product#productaccess) пользователя с UTM-атрибуцией записи
+      (опционально).
     - `groups` — массив групп (опционально).
 </Accordion>
 
@@ -295,7 +299,8 @@ def exode_webhook():
     `data`:
     - `user` — [пользователь](/ru/exode-api/objects/entities/user).
     - `profile` — карточка профиля (опционально).
-    - `access` — объект [доступа](/ru/exode-api/objects/entities/product) (опционально).
+    - `access` — объект [доступа](/ru/exode-api/objects/entities/product#productaccess) (опционально).
+      UTM-метки записи — в `access.meta.utmParams`, см. [UTM-атрибуция](#utm-атрибуция).
     - `product` — [продукт](/ru/exode-api/objects/entities/product) (опционально).
     - `course` — [курс](/ru/exode-api/objects/entities/course) (опционально).
 </Accordion>
@@ -308,6 +313,14 @@ def exode_webhook():
 <Accordion title="ProductEnrolledViaPayment — доступ выдан после оплаты">
     Триггер: доступ к продукту выдан после успешной оплаты.
     Структура `data` идентична `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`).
+</Accordion>
+
+<Accordion title="ProductEnrolledByInviteLink — запись по инвайт-ссылке">
+    Триггер: пользователь записался на курс по инвайт-ссылке. Приходит **вместе с** `ProductEnrolledToFree`
+    (ссылка выдаёт бесплатный доступ) — различайте события по полю `inviteLinkId`.
+
+    `data`: как у `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`) плюс:
+    - `inviteLinkId` — ID инвайт-ссылки, по которой пришёл пользователь (дублируется в `access.meta.inviteLinkId`).
 </Accordion>
 
 <Accordion title="ProductEnrolledByInviteLink — запись по ссылке-приглашению">
@@ -345,6 +358,24 @@ def exode_webhook():
     формальный контракт `data` для них ещё не зафиксирован — состав полезной нагрузки не гарантируется.
     Перед использованием сверьтесь с [поддержкой](https://t.me/exode_support_biz).
 </Note>
+
+### UTM-атрибуция
+
+UTM-метки приходят в трёх местах в зависимости от события:
+
+| Событие | Где искать UTM |
+|---|---|
+| `UserSignedUp`, `UserAcquainted` | `states.utmSignupParams` — метки визита, с которого пользователь зарегистрировался |
+| `ProductEnrolledToFree`, `ProductEnrolledViaLms`, `ProductEnrolledViaPayment`, `ProductEnrolledByInviteLink`, `CourseProgressChanged`, `CourseCompleted` | `access.meta.utmParams` — метки визита, с которого пользователь записался на продукт |
+| `PaymentCompleted` | `payment.invoice.meta.utmParams` — метки визита, с которого был создан счёт |
+
+Ключи объекта UTM: `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, `gclid`, `fbclid`, `yclid`,
+`referrer`, `aff_id`, `sub_id`, `track_id` (присутствуют только переданные). Если пользователь пришёл без меток, объект
+отсутствует или пуст.
+
+`access.metaHistoryLogs` — история изменений `access.meta` (массив `{ timestamp, meta }`): первая запись фиксирует
+атрибуцию на момент записи. Путь `access.metaHistoryLogs[0].meta.utmParams` сохранён для совместимости с уже
+настроенными сценариями, в новых интеграциях используйте `access.meta.utmParams`.
 
 ### Пример: PaymentCompleted
 

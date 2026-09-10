@@ -21,7 +21,7 @@ description: "Структуры объектов макета формы и з�
 <ResponseField name="sellerId" type="integer" required>ID продавца-владельца.</ResponseField>
 <ResponseField name="isEdited" type="boolean | null">Признак ручного редактирования.</ResponseField>
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
-<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string | null">Дата обновления (ISO 8601) или `null`, если объект не менялся.</ResponseField>
 <ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
 
 ## `formFieldValue`
@@ -57,7 +57,7 @@ description: "Структуры объектов макета формы и з�
     </Expandable>
 </ResponseField>
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
-<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string | null">Дата обновления (ISO 8601) или `null`, если объект не менялся.</ResponseField>
 
 {/* updated-stamp */}
 

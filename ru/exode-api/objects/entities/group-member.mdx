@@ -33,7 +33,7 @@ description: "Структура объекта участника группы 
 ### Системные поля аудита
 
 <ResponseField name="createdAt" type="string" required>Дата создания записи (ISO 8601).</ResponseField>
-<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string | null">Дата обновления (ISO 8601) или `null`, если объект не менялся.</ResponseField>
 <ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
 
 ## Пример объекта `groupMember`
