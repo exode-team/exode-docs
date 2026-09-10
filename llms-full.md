@@ -185,13 +185,13 @@ Common audit fields on most entities: `id, createdAt, updatedAt, deletedAt?, arc
 - **Events and `data`:**
   - `UserSignedUp` / `UserAcquainted`: `{ user, profile?, states?{utmSignupParams?} }`.
   - `UserTgConnected`: `{ user, profile?, prevTgId? }`.
-  - `CourseProgressChanged`: `{ user, course, product?, access?, groups?, status?, lessonId? }`.
-  - `CourseCompleted`: `{ user, course, product?, access?, groups? }`.
+  - `CourseProgressChanged`: `{ user, course, product?, access?, groups?, states?{utmSignupParams?, utmEnrollParams?}, status?, lessonId? }`.
+  - `CourseCompleted`: `{ user, course, product?, access?, groups?, states? }`.
   - `CourseLessonPracticeCompleted`: `{ user, course?, lesson?, practice?, attempt?, variantId? }`.
   - `CertificateIssued`: `{ user, course, product?, certificate }` — certificate issued for a completed course.
   - `PaymentCompleted`: `{ payment }` (with the invoice/products/acquiring tree). Sent only on an actual charge: card binding (recurrent init, `BindingCompleted`) does not trigger it.
-  - `ProductEnrolledToFree`: `{ user, profile?, access?, product?, course? }`.
-  - `ProductEnrolledByInviteLink`: `{ user, profile?, access?, product?, course?, inviteLinkId }` — enrollment via an invite link. Arrives **together with** `ProductEnrolledToFree` (the link grants free access); distinguished by the presence of `inviteLinkId`.
+  - `ProductEnrolledToFree` / `ProductEnrolledViaLms` / `ProductEnrolledViaPayment`: `{ user, profile?, access?, product?, course?, states?{utmSignupParams?, utmEnrollParams?} }`.
+  - `ProductEnrolledByInviteLink`: `{ user, profile?, access?, product?, course?, states?, inviteLinkId }` — enrollment via an invite link. Arrives **together with** `ProductEnrolledToFree` (the link grants free access); distinguished by the presence of `inviteLinkId`.
   - `SchoolCreated`: `{ school(+seller?) }` — system level only (not available for seller subscription).
 - **UTM attribution:** signup utm — `states.utmSignupParams` (`UserSignedUp`/`UserAcquainted`); enrollment utm — `states.utmEnrollParams` (duplicated in `access.meta.utmParams`, plus `access.meta.inviteLinkId`) in every event carrying `access`; `access.metaHistoryLogs` is not exposed; invoice utm — `payment.invoice.meta.utmParams` (`PaymentCompleted`). UTM keys: `utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|fbclid|yclid|referrer|aff_id|sub_id|track_id`. `updatedAt` of every entity is `string | null` (null until first update).
 

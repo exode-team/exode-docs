@@ -251,8 +251,8 @@ def exode_webhook():
     - `user` — [пользователь](/ru/exode-api/objects/entities/user) с профилем.
     - `course` — объект [курса](/ru/exode-api/objects/entities/course).
     - `product` — [продукт](/ru/exode-api/objects/entities/product) курса (опционально).
-    - `access` — [доступ](/ru/exode-api/objects/entities/product#productaccess) пользователя к продукту курса
-      с UTM-атрибуцией записи (опционально).
+    - `access` — [доступ](/ru/exode-api/objects/entities/product#productaccess) пользователя к продукту курса (опционально).
+    - `states.utmEnrollParams`, `states.utmSignupParams` — UTM-метки записи и регистрации, см. [UTM-атрибуция](#utm-атрибуция).
     - `groups` — массив [групп](/ru/exode-api/objects/entities/group) пользователя в курсе (опционально).
     - `status` — новый статус урока (`CourseProgressLessonStatus`, опционально).
     - `lessonId` — ID урока (опционально).
@@ -265,8 +265,8 @@ def exode_webhook():
     - `user` — пользователь с профилем.
     - `course` — объект курса.
     - `product` — продукт курса (опционально).
-    - `access` — [доступ](/ru/exode-api/objects/entities/product#productaccess) пользователя с UTM-атрибуцией записи
-      (опционально).
+    - `access` — [доступ](/ru/exode-api/objects/entities/product#productaccess) пользователя (опционально).
+    - `states.utmEnrollParams`, `states.utmSignupParams` — UTM-метки записи и регистрации, см. [UTM-атрибуция](#utm-атрибуция).
     - `groups` — массив групп (опционально).
 </Accordion>
 
@@ -307,19 +307,19 @@ def exode_webhook():
 
 <Accordion title="ProductEnrolledViaLms — доступ выдан вручную (LMS)">
     Триггер: доступ к продукту выдан администратором/менеджером через LMS или API.
-    Структура `data` идентична `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`).
+    Структура `data` идентична `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`, `states`).
 </Accordion>
 
 <Accordion title="ProductEnrolledViaPayment — доступ выдан после оплаты">
     Триггер: доступ к продукту выдан после успешной оплаты.
-    Структура `data` идентична `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`).
+    Структура `data` идентична `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`, `states`).
 </Accordion>
 
 <Accordion title="ProductEnrolledByInviteLink — запись по инвайт-ссылке">
     Триггер: пользователь записался на курс по инвайт-ссылке. Приходит **вместе с** `ProductEnrolledToFree`
     (ссылка выдаёт бесплатный доступ) — различайте события по полю `inviteLinkId`.
 
-    `data`: как у `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`) плюс:
+    `data`: как у `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`, `states`) плюс:
     - `inviteLinkId` — ID инвайт-ссылки, по которой пришёл пользователь (дублируется в `access.meta.inviteLinkId`).
 </Accordion>
 
