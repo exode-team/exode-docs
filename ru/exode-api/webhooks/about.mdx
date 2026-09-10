@@ -315,20 +315,12 @@ def exode_webhook():
     Структура `data` идентична `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`, `states`).
 </Accordion>
 
-<Accordion title="ProductEnrolledByInviteLink — запись по инвайт-ссылке">
-    Триггер: пользователь записался на курс по инвайт-ссылке. Приходит **вместе с** `ProductEnrolledToFree`
-    (ссылка выдаёт бесплатный доступ) — различайте события по полю `inviteLinkId`.
-
-    `data`: как у `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`, `states`) плюс:
-    - `inviteLinkId` — ID инвайт-ссылки, по которой пришёл пользователь (дублируется в `access.meta.inviteLinkId`).
-</Accordion>
-
 <Accordion title="ProductEnrolledByInviteLink — запись по ссылке-приглашению">
     Триггер: пользователь самостоятельно записался на курс по ссылке-приглашению.
 
-    `data`: те же поля, что и у `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`),
+    `data`: те же поля, что и у `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`, `states`),
     плюс:
-    - `inviteLinkId` — идентификатор ссылки, по которой пришёл пользователь.
+    - `inviteLinkId` — идентификатор ссылки, по которой пришёл пользователь (дублируется в `access.meta.inviteLinkId`).
 
     <Warning>
         При записи по ссылке отправляются **два** события: `ProductEnrolledToFree` и
