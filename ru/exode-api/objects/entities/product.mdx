@@ -28,7 +28,7 @@ description: "Структуры объектов продукта, доступ
 <ResponseField name="isFree" type="boolean | null">Бесплатный.</ResponseField>
 <ResponseField name="isPublished" type="boolean | null">Опубликован.</ResponseField>
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
-<ResponseField name="updatedAt" type="string | null">Дата обновления (ISO 8601) или `null`, если объект не менялся.</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
 <ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
 
 ## `productAccess`
@@ -44,7 +44,7 @@ description: "Структуры объектов продукта, доступ
   Атрибуция записи: `utmParams` — объект UTM-меток визита, с которого пользователь записался (см. [UTM-атрибуция](/ru/exode-api/webhooks/about#utm-атрибуция)); `inviteLinkId` — ID инвайт-ссылки, если записался по ней (`integer | null`).
 </ResponseField>
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
-<ResponseField name="updatedAt" type="string | null">Дата обновления (ISO 8601) или `null`, если объект не менялся.</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
 
 ## `productPrice`
 
@@ -69,7 +69,7 @@ description: "Структуры объектов продукта, доступ
 <ResponseField name="isInstallment" type="boolean | null">Рассрочка.</ResponseField>
 <ResponseField name="isSubscription" type="boolean | null">Подписка.</ResponseField>
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
-<ResponseField name="updatedAt" type="string | null">Дата обновления (ISO 8601) или `null`, если объект не менялся.</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
 
 ## `discount`
 
@@ -87,4 +87,4 @@ description: "Структуры объектов продукта, доступ
 
 ---
 
-_Обновлено: 2026-07-22 12:24 UTC_
+_Обновлено: 2026-09-14 13:01 UTC_

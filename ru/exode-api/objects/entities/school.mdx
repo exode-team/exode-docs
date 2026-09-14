@@ -25,7 +25,7 @@ description: "Структуры объектов школы, продавца �
 <ResponseField name="isPublic" type="boolean | null">Публичная.</ResponseField>
 <ResponseField name="isPrivate" type="boolean | null">Приватная.</ResponseField>
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
-<ResponseField name="updatedAt" type="string | null">Дата обновления (ISO 8601) или `null`, если объект не менялся.</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
 <ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
 
 ## `seller`
@@ -40,7 +40,7 @@ description: "Структуры объектов школы, продавца �
 <ResponseField name="isSchool" type="boolean | null">Является ли школой.</ResponseField>
 <ResponseField name="organization" type="object | null">Реквизиты организации (см. ниже).</ResponseField>
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
-<ResponseField name="updatedAt" type="string | null">Дата обновления (ISO 8601) или `null`, если объект не менялся.</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
 
 ## `organization`
 
@@ -55,10 +55,10 @@ description: "Структуры объектов школы, продавца �
 <ResponseField name="address" type="string | null">Адрес.</ResponseField>
 <ResponseField name="isOrganization" type="boolean | null">Является ли организацией.</ResponseField>
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
-<ResponseField name="updatedAt" type="string | null">Дата обновления (ISO 8601) или `null`, если объект не менялся.</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-07-22 12:24 UTC_
+_Обновлено: 2026-09-14 13:01 UTC_

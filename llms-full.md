@@ -193,7 +193,7 @@ Common audit fields on most entities: `id, createdAt, updatedAt, deletedAt?, arc
   - `ProductEnrolledToFree` / `ProductEnrolledViaLms` / `ProductEnrolledViaPayment`: `{ user, profile?, access?, product?, course?, states?{utmSignupParams?, utmEnrollParams?} }`.
   - `ProductEnrolledByInviteLink`: `{ user, profile?, access?, product?, course?, states?, inviteLinkId }` — enrollment via an invite link. Arrives **together with** `ProductEnrolledToFree` (the link grants free access); distinguished by the presence of `inviteLinkId`.
   - `SchoolCreated`: `{ school(+seller?) }` — system level only (not available for seller subscription).
-- **UTM attribution:** signup utm — `states.utmSignupParams` (`UserSignedUp`/`UserAcquainted`); enrollment utm — `states.utmEnrollParams` (duplicated in `access.meta.utmParams`, plus `access.meta.inviteLinkId`) in every event carrying `access`; `access.metaHistoryLogs` is not exposed; invoice utm — `payment.invoice.meta.utmParams` (`PaymentCompleted`). UTM keys: `utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|fbclid|yclid|referrer|aff_id|sub_id|track_id`. `updatedAt` of every entity is `string | null` (null until first update).
+- **UTM attribution:** signup utm — `states.utmSignupParams` (`UserSignedUp`/`UserAcquainted`); enrollment utm — `states.utmEnrollParams` (duplicated in `access.meta.utmParams`, plus `access.meta.inviteLinkId`) in every event carrying `access`; `access.metaHistoryLogs` is not exposed; invoice utm — `payment.invoice.meta.utmParams` (`PaymentCompleted`). UTM keys: `utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|fbclid|yclid|referrer|aff_id|sub_id|track_id`.
 
 ## Analytics target events (frontend, not REST API)
 

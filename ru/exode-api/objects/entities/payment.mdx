@@ -34,7 +34,7 @@ description: "Структуры объектов платежа, счёта, п
 <ResponseField name="acquiring" type="object | null">Эквайринг (см. ниже).</ResponseField>
 <ResponseField name="invoice" type="object | null">Счёт (см. ниже).</ResponseField>
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
-<ResponseField name="updatedAt" type="string | null">Дата обновления (ISO 8601) или `null`, если объект не менялся.</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
 <ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
 
 ## `invoice`
@@ -55,7 +55,7 @@ description: "Структуры объектов платежа, счёта, п
 </ResponseField>
 <ResponseField name="products" type="object[] | null">Позиции счёта (см. `invoiceProduct`).</ResponseField>
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
-<ResponseField name="updatedAt" type="string | null">Дата обновления (ISO 8601) или `null`, если объект не менялся.</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
 
 ## `invoiceProduct`
 
@@ -67,7 +67,7 @@ description: "Структуры объектов платежа, счёта, п
 <ResponseField name="discount" type="object | null">Скидка — объект [`discount`](./product).</ResponseField>
 <ResponseField name="product" type="object | null">Продукт — объект [`product`](./product); дополнительно может содержать `course`.</ResponseField>
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
-<ResponseField name="updatedAt" type="string | null">Дата обновления (ISO 8601) или `null`, если объект не менялся.</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
 
 ## `acquiring`
 
@@ -87,4 +87,4 @@ description: "Структуры объектов платежа, счёта, п
 
 ---
 
-_Обновлено: 2026-07-22 12:24 UTC_
+_Обновлено: 2026-09-14 13:01 UTC_
