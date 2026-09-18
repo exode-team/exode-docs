@@ -1,0 +1,287 @@
+---
+title: "Попытки практик"
+description: "Получение попыток прохождения практик курса с баллами и статусами проверки"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+import CourseAccessModeNote from '/snippets/ru/exode-api/course-access-mode-note.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/course/:courseId/practice-attempts
+```
+
+<CourseAccessModeNote/>
+
+<Info>
+    Возвращает попытки прохождения практик выбранного курса: набранные и максимальные баллы, статус
+    проверки, дедлайны и куратора. Одна запись — одна попытка одного ученика по одной практике.
+</Info>
+
+<Tip>
+    Если нужна выгрузка большого объёма попыток файлом, используйте
+    [выгрузку попыток практик](/ru/exode-api/school/query-export/practice-attempt-find-many).
+    Этот метод предназначен для синхронного получения данных постранично.
+</Tip>
+
+## Параметры пути
+
+<ParamField path="courseId" type="integer" required>
+    ID курса, попытки по которому нужно получить.
+</ParamField>
+
+## Параметры запроса
+
+<Note>
+    Параметры-массивы передаются повторением параметра в строке запроса: `userIds=1&userIds=2`.
+    Одиночное значение также допустимо.
+</Note>
+
+### Фильтры
+
+<ParamField query="userIds" type="integer[]" required={false}>
+    Ограничить выборку попытками конкретных учеников.
+</ParamField>
+
+<ParamField query="lessonIds" type="integer[]" required={false}>
+    Ограничить выборку попытками по конкретным урокам.
+</ParamField>
+
+<ParamField query="practiceIds" type="integer[]" required={false}>
+    Ограничить выборку попытками по конкретным практикам.
+</ParamField>
+
+<ParamField query="curatorIds" type="integer[]" required={false}>
+    Попытки, проверенные конкретными кураторами.
+</ParamField>
+
+<ParamField query="statuses" type="enum[]" required={false}>
+    Статусы попыток: `Created`, `OnReview`, `OnCorrection`, `Verified`, `AutoVerified`, `Failed`, `Stacked`.
+</ParamField>
+
+<ParamField query="finished" type="boolean" required={false}>
+    Только завершённые (`true`) или незавершённые (`false`) попытки.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+    Поиск по ученику.
+</ParamField>
+
+### Пагинация
+
+<ParamField query="skip" type="integer" required={false}>
+    Количество записей, которые нужно пропустить. По умолчанию `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Номер страницы (альтернатива `skip`). Начинается с `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Количество записей на странице. От `1` до `1000`. По умолчанию `100`.
+</ParamField>
+
+## Поля ответа
+
+<ResponseField name="payload" type="object">
+    Постраничный список попыток. Полная структура попытки — `courseLessonPracticeAttempt` в справочнике
+    [`course`](/ru/exode-api/objects/entities/course).
+
+    <Expandable title="Свойства payload">
+        <ResponseField name="items" type="object[]">
+            Массив попыток.
+
+            <Expandable title="Свойства элемента">
+                <ResponseField name="id" type="integer">ID попытки.</ResponseField>
+                <ResponseField name="uuid" type="string | null">UUID попытки.</ResponseField>
+                <ResponseField name="userId" type="integer">ID ученика.</ResponseField>
+                <ResponseField name="practiceId" type="integer">ID практики.</ResponseField>
+                <ResponseField name="lessonId" type="integer">ID урока, которому принадлежит практика.</ResponseField>
+                <ResponseField name="variantId" type="integer">ID выданного варианта.</ResponseField>
+                <ResponseField name="curatorId" type="integer | null">ID куратора, проверившего работу.</ResponseField>
+                <ResponseField name="status" type="enum | null">
+                    Статус попытки: `Created` — начата, `OnReview` — на проверке куратором,
+                    `OnCorrection` — отправлена на доработку, `Verified` — проверена куратором,
+                    `AutoVerified` — проверена автоматически, `Failed` — не пройдена, `Stacked` — прервана.
+                </ResponseField>
+                <ResponseField name="order" type="integer">Порядковый номер попытки ученика по этой практике.</ResponseField>
+                <ResponseField name="finished" type="boolean">Попытка завершена.</ResponseField>
+                <ResponseField name="pointsAmount" type="integer">Набранные баллы.</ResponseField>
+                <ResponseField name="maxPointsAmount" type="integer">Максимально возможные баллы этой попытки.</ResponseField>
+                <ResponseField name="correctPercent" type="integer | null">Процент правильных ответов.</ResponseField>
+                <ResponseField name="isPassed" type="boolean | null">Попытка зачтена.</ResponseField>
+                <ResponseField name="solvedCount" type="integer">Количество отвеченных заданий.</ResponseField>
+                <ResponseField name="sentToReviewAt" type="string | null">Дата отправки на проверку (ISO 8601).</ResponseField>
+                <ResponseField name="sentAfterDeadline" type="boolean">Работа отправлена после дедлайна.</ResponseField>
+                <ResponseField name="deadlineAt" type="string | null">Дедлайн попытки (ISO 8601).</ResponseField>
+                <ResponseField name="passedAt" type="string | null">Дата зачёта (ISO 8601).</ResponseField>
+                <ResponseField name="isExpired" type="boolean | null">Дедлайн попытки истёк.</ResponseField>
+                <ResponseField name="uncounted" type="boolean">Попытка не учитывается в результатах.</ResponseField>
+                <ResponseField name="statusHistoryLogs" type="object[] | null">
+                    История изменения статуса: массив объектов `{ timestamp, status }`.
+                </ResponseField>
+                <ResponseField name="createdAt" type="string">Дата создания (ISO 8601).</ResponseField>
+                <ResponseField name="updatedAt" type="string">Дата обновления (ISO 8601).</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Текущая страница.</ResponseField>
+        <ResponseField name="count" type="integer">Общее количество записей.</ResponseField>
+        <ResponseField name="pages" type="integer">Общее количество страниц.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Признак первой страницы.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Признак последней страницы.</ResponseField>
+        <ResponseField name="next" type="object">Параметры следующей страницы (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Параметры предыдущей страницы (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/course/10/practice-attempts?take=50&finished=true' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const getAttempts = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/course/10/practice-attempts', {
+    params: { take: 50, finished: true },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+getAttempts();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/course/10/practice-attempts?take=50&finished=true';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/course/10/practice-attempts'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'take': 50, 'finished': 'true' }, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/course/10/practice-attempts?take=50&finished=true");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Попытки получены");
+Иначе
+    Сообщить("Ошибка: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "id": 4501,
+        "uuid": "6f1c2a70-7f1a-4f0e-9d21-2f0f4f6b8a11",
+        "userId": 123,
+        "practiceId": 31,
+        "lessonId": 56,
+        "variantId": 88,
+        "curatorId": 17,
+        "status": "AutoVerified",
+        "order": 1,
+        "finished": true,
+        "pointsAmount": 10,
+        "maxPointsAmount": 12,
+        "correctPercent": 83,
+        "isPassed": true,
+        "solvedCount": 10,
+        "sentToReviewAt": "2025-01-16T11:00:00Z",
+        "sentAfterDeadline": false,
+        "deadlineAt": "2025-01-18T20:59:59Z",
+        "passedAt": "2025-01-16T14:20:00Z",
+        "isExpired": false,
+        "uncounted": false,
+        "createdAt": "2025-01-16T10:40:00Z",
+        "updatedAt": "2025-01-16T14:20:00Z"
+      }
+    ],
+    "next": {
+      "skip": 50,
+      "take": 50,
+      "page": 2
+    },
+    "prev": {
+      "skip": 0,
+      "take": 50,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+    Требуется аутентификация по токену и одно из прав: куратор курса (`CourseCurator`) или управление
+    пользователями школы (`SchoolManageUsers`). Куратору возвращаются попытки только тех групп,
+    которые он курирует.
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-09-17 13:27 UTC_
