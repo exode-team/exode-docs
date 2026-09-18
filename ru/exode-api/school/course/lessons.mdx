@@ -1,0 +1,353 @@
+---
+title: "Уроки курса"
+description: "Получение списка уроков курса с параметрами практики"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+import CourseAccessModeNote from '/snippets/ru/exode-api/course-access-mode-note.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/course/:courseId/lessons
+```
+
+<CourseAccessModeNote/>
+
+<Info>
+    Возвращает уроки выбранного курса в порядке отображения. Если у урока есть практическая часть,
+    её параметры возвращаются во вложенном объекте `practice`.
+</Info>
+
+<Tip>
+    Курс устроен деревом: модули лежат на верхнем уровне (`parentId: null`, `childrenCount > 0`),
+    а уроки ссылаются на свой модуль через `parentId`. Метод возвращает и модули, и уроки одним списком —
+    структура собирается на стороне клиента по этим двум полям.
+</Tip>
+
+## Параметры пути
+
+<ParamField path="courseId" type="integer" required>
+    ID курса, уроки которого нужно получить.
+</ParamField>
+
+## Параметры запроса
+
+<Note>
+    Параметры-массивы передаются повторением параметра в строке запроса: `statuses=Draft&statuses=Published`.
+    Одиночное значение (`statuses=Published`) также допустимо.
+</Note>
+
+### Фильтры
+
+<ParamField query="statuses" type="enum[]" required={false}>
+    Статусы уроков: `Draft`, `OnCheck`, `Published`. По умолчанию возвращаются уроки всех статусов.
+</ParamField>
+
+<ParamField query="lessonIds" type="integer[]" required={false}>
+    Ограничить выборку конкретными ID уроков.
+</ParamField>
+
+<ParamField query="withContent" type="boolean" required={false}>
+    Только уроки с теоретической частью (`true`) или без неё (`false`).
+</ParamField>
+
+<ParamField query="withPractice" type="boolean" required={false}>
+    Только уроки с практической частью (`true`) или без неё (`false`).
+</ParamField>
+
+### Пагинация
+
+<ParamField query="skip" type="integer" required={false}>
+    Количество записей, которые нужно пропустить. По умолчанию `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Номер страницы (альтернатива `skip`). Начинается с `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Количество записей на странице. От `1` до `1000`. По умолчанию `100`.
+</ParamField>
+
+## Поля ответа
+
+<ResponseField name="payload" type="object">
+    Постраничный список уроков. Полная структура урока — `courseLesson`, структура практики —
+    `courseLessonPractice` в справочнике [`course`](/ru/exode-api/objects/entities/course).
+
+    <Expandable title="Свойства payload">
+        <ResponseField name="items" type="object[]">
+            Массив уроков курса.
+
+            <Expandable title="Свойства элемента">
+                <ResponseField name="lessonId" type="integer">ID урока.</ResponseField>
+                <ResponseField name="courseId" type="integer">ID курса.</ResponseField>
+                <ResponseField name="parentId" type="integer | null">
+                    ID родительского урока (модуля) или `null` для верхнего уровня.
+                </ResponseField>
+                <ResponseField name="childrenCount" type="integer">
+                    Количество вложенных уроков. Значение больше нуля означает, что это модуль курса.
+                </ResponseField>
+                <ResponseField name="type" type="enum">Тип урока: `Regular`, `Webinar`.</ResponseField>
+                <ResponseField name="accessType" type="enum">Тип доступа: `Demo`, `Participant`.</ResponseField>
+                <ResponseField name="status" type="string | null">Статус урока: `Draft`, `OnCheck`, `Published`.</ResponseField>
+                <ResponseField name="name" type="string">Название урока.</ResponseField>
+                <ResponseField name="description" type="string">Описание урока.</ResponseField>
+                <ResponseField name="order" type="integer">Порядок урока в курсе.</ResponseField>
+                <ResponseField name="withContent" type="boolean">Есть теоретическая часть.</ResponseField>
+                <ResponseField name="withPractice" type="boolean">Есть практическая часть.</ResponseField>
+                <ResponseField name="previewImage" type="string | null">Превью урока.</ResponseField>
+                <ResponseField name="publishedAt" type="string | null">Дата публикации (ISO 8601).</ResponseField>
+                <ResponseField name="settings" type="object">Настройки урока.</ResponseField>
+                <ResponseField name="isPublished" type="boolean | null">Признак публикации.</ResponseField>
+                <ResponseField name="content" type="object">
+                    Сводка по содержимому урока. Сами блоки контента через этот метод не возвращаются.
+
+                    <Expandable title="Свойства content">
+                        <ResponseField name="blocksCount" type="integer">Количество блоков контента.</ResponseField>
+                        <ResponseField name="hasVideo" type="boolean">В уроке есть загруженное видео.</ResponseField>
+                        <ResponseField name="hasScorm" type="boolean">В уроке есть готовый SCORM-пакет.</ResponseField>
+                        <ResponseField name="totalVideoDuration" type="integer">
+                            Суммарная длительность видео урока в секундах.
+                        </ResponseField>
+                    </Expandable>
+                </ResponseField>
+                <ResponseField name="practice" type="object | null">
+                    Параметры практической части или `null`, если практики нет.
+
+                    <Expandable title="Свойства practice">
+                        <ResponseField name="practiceId" type="integer">ID практики.</ResponseField>
+                        <ResponseField name="name" type="string | null">Название практики.</ResponseField>
+                        <ResponseField name="questionMode" type="enum">Режим вопросов: `List`, `Sequence`.</ResponseField>
+                        <ResponseField name="resultMode" type="enum">
+                            Режим показа результатов: `ResultOnly`, `ShowCorrect`, `ShowIncorrect`.
+                        </ResponseField>
+                        <ResponseField name="variantMode" type="enum">Режим выдачи вариантов: `Random`, `Sequence`.</ResponseField>
+                        <ResponseField name="retryVariantMode" type="enum">Режим вариантов при пересдаче: `Random`, `Sequence`.</ResponseField>
+                        <ResponseField name="maxAttempts" type="integer | null">Максимальное число попыток.</ResponseField>
+                        <ResponseField name="timeLimitInMinutes" type="integer | null">Лимит времени на попытку (мин).</ResponseField>
+                        <ResponseField name="deadlineInDays" type="integer | null">Дедлайн практики (дней).</ResponseField>
+                        <ResponseField name="passThreshold" type="integer | null">Порог прохождения (%).</ResponseField>
+                        <ResponseField name="starsPerTaskPoint" type="integer | null">Звёзд за балл задания.</ResponseField>
+                        <ResponseField name="requireAllAnswers" type="boolean">Требуются ответы на все задания.</ResponseField>
+                        <ResponseField name="tasksCount" type="integer">Количество заданий.</ResponseField>
+                        <ResponseField name="maxPointsAmount" type="integer">
+                            Максимальный балл за практику. Если у практики несколько активных вариантов с разным
+                            набором заданий, возвращается среднее значение по вариантам, округлённое до целого.
+                        </ResponseField>
+                        <ResponseField name="activeVariantsCount" type="integer">
+                            Количество активных вариантов, из которых выдаётся попытка.
+                        </ResponseField>
+                        <ResponseField name="requiresCuratorReview" type="boolean">
+                            Практика содержит задания с развёрнутым ответом и уходит на проверку куратору.
+                        </ResponseField>
+                    </Expandable>
+                </ResponseField>
+                <ResponseField name="createdAt" type="string">Дата создания (ISO 8601).</ResponseField>
+                <ResponseField name="updatedAt" type="string">Дата обновления (ISO 8601).</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Текущая страница.</ResponseField>
+        <ResponseField name="count" type="integer">Общее количество записей.</ResponseField>
+        <ResponseField name="pages" type="integer">Общее количество страниц.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Признак первой страницы.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Признак последней страницы.</ResponseField>
+        <ResponseField name="next" type="object">Параметры следующей страницы (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Параметры предыдущей страницы (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/course/10/lessons?take=50&statuses=Published' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const getLessons = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/course/10/lessons', {
+    params: { take: 50, statuses: [ 'Published' ] },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+getLessons();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/course/10/lessons?take=50&statuses=Published';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/course/10/lessons'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'take': 50, 'statuses': 'Published' }, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/course/10/lessons?take=50&statuses=Published");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Уроки получены");
+Иначе
+    Сообщить("Ошибка: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 2,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "lessonId": 55,
+        "courseId": 10,
+        "type": "Regular",
+        "accessType": "Demo",
+        "status": "Published",
+        "name": "Введение",
+        "description": "",
+        "order": 0,
+        "withContent": true,
+        "withPractice": false,
+        "isPublished": true,
+        "publishedAt": "2025-01-10T09:00:00Z",
+        "settings": {},
+        "parentId": null,
+        "childrenCount": 3,
+        "content": {
+          "blocksCount": 0,
+          "hasVideo": false,
+          "hasScorm": false,
+          "totalVideoDuration": 0
+        },
+        "practice": null,
+        "createdAt": "2025-01-09T12:00:00Z",
+        "updatedAt": "2025-01-10T09:00:00Z"
+      },
+      {
+        "lessonId": 56,
+        "courseId": 10,
+        "type": "Regular",
+        "accessType": "Participant",
+        "status": "Published",
+        "name": "Практика по теме 1",
+        "description": "",
+        "order": 1,
+        "withContent": true,
+        "withPractice": true,
+        "isPublished": true,
+        "publishedAt": "2025-01-11T09:00:00Z",
+        "settings": {},
+        "parentId": 55,
+        "childrenCount": 0,
+        "content": {
+          "blocksCount": 3,
+          "hasVideo": true,
+          "hasScorm": false,
+          "totalVideoDuration": 1840
+        },
+        "practice": {
+          "practiceId": 31,
+          "name": "Проверочная работа",
+          "questionMode": "List",
+          "resultMode": "ShowCorrect",
+          "variantMode": "Sequence",
+          "retryVariantMode": "Random",
+          "maxAttempts": 3,
+          "timeLimitInMinutes": 40,
+          "deadlineInDays": 7,
+          "passThreshold": 80,
+          "starsPerTaskPoint": 1,
+          "requireAllAnswers": false,
+          "tasksCount": 10,
+          "maxPointsAmount": 12,
+          "activeVariantsCount": 2,
+          "requiresCuratorReview": true
+        },
+        "createdAt": "2025-01-09T12:05:00Z",
+        "updatedAt": "2025-01-11T09:00:00Z"
+      }
+    ],
+    "next": {
+      "skip": 50,
+      "take": 50,
+      "page": 2
+    },
+    "prev": {
+      "skip": 0,
+      "take": 50,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+    Требуется аутентификация по токену и одно из прав: куратор курса (`CourseCurator`) или управление
+    пользователями школы (`SchoolManageUsers`).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-09-17 13:27 UTC_

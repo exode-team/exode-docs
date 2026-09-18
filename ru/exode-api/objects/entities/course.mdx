@@ -61,6 +61,7 @@ description: "Структуры объектов курса, прогресса
 
 <ResponseField name="id" type="integer" required>ID урока.</ResponseField>
 <ResponseField name="courseId" type="integer" required>ID курса.</ResponseField>
+<ResponseField name="parentId" type="integer | null">ID родительского урока (модуля).</ResponseField>
 <ResponseField name="type" type="enum" required>Тип: `Regular`, `Webinar`.</ResponseField>
 <ResponseField name="accessType" type="enum" required>Тип доступа: `Demo`, `Participant`.</ResponseField>
 <ResponseField name="status" type="string | null">Статус урока.</ResponseField>
@@ -93,19 +94,37 @@ description: "Структуры объектов курса, прогресса
 <ResponseField name="starsPerTaskPoint" type="integer | null">Звёзд за балл задания.</ResponseField>
 <ResponseField name="requireAllAnswers" type="boolean" required>Требуются ответы на все задания.</ResponseField>
 <ResponseField name="tasksCount" type="integer" required>Количество заданий.</ResponseField>
+<ResponseField name="maxPointsAmount" type="integer">
+    Максимальный балл за практику: среднее по активным вариантам, округлённое до целого.
+    Возвращается только в методе [уроков курса](/ru/exode-api/school/course/lessons).
+</ResponseField>
+<ResponseField name="activeVariantsCount" type="integer">
+    Количество активных вариантов практики.
+    Возвращается только в методе [уроков курса](/ru/exode-api/school/course/lessons).
+</ResponseField>
+<ResponseField name="requiresCuratorReview" type="boolean">
+    Практика уходит на проверку куратору (есть задания с развёрнутым ответом).
+    Возвращается только в методе [уроков курса](/ru/exode-api/school/course/lessons).
+</ResponseField>
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
 <ResponseField name="updatedAt" type="string" required>Дата обновления (ISO 8601).</ResponseField>
 <ResponseField name="archivedAt" type="string | null">Дата архивации или `null`.</ResponseField>
 
 ## `courseLessonPracticeAttempt`
 
-Возвращается при выгрузке [попыток практик](/ru/exode-api/school/query-export/practice-attempt-find-many) и в
-вебхуке `CourseLessonPracticeCompleted`.
+Возвращается в методе [попыток практик](/ru/exode-api/school/course/practice-attempts), при выгрузке
+[попыток практик](/ru/exode-api/school/query-export/practice-attempt-find-many) и в вебхуке
+`CourseLessonPracticeCompleted`.
 
 <ResponseField name="id" type="integer" required>ID попытки.</ResponseField>
 <ResponseField name="uuid" type="string | null">UUID попытки.</ResponseField>
+<ResponseField name="practiceId" type="integer">ID практики.</ResponseField>
+<ResponseField name="lessonId" type="integer | null">
+    ID урока практики. Возвращается в методе [попыток практик](/ru/exode-api/school/course/practice-attempts).
+</ResponseField>
 <ResponseField name="variantId" type="integer" required>ID варианта.</ResponseField>
 <ResponseField name="userId" type="integer" required>ID пользователя.</ResponseField>
+<ResponseField name="curatorId" type="integer | null">ID куратора, проверившего работу.</ResponseField>
 <ResponseField name="status" type="enum | null">
     Статус: `Created`, `OnReview`, `OnCorrection`, `AutoVerified`, `Verified`, `Failed`, `Stacked`.
 </ResponseField>
