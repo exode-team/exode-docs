@@ -1,0 +1,365 @@
+---
+title: "Get field values"
+description: "Get custom field values of school users with filtering and pagination"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/form/custom-field/value/get
+```
+
+Requires authentication and the [**"Forms management"**](/en/exode-api/permissions) permission (`FormManage`).
+
+## Request parameters
+
+<Info>
+  All filter parameters are optional. If you pass no filters, all available custom field values within the school are returned.
+</Info>
+
+<Info>
+  Array parameters are passed by repeating the parameter in the query string: `userIds=1&userIds=2&userIds=3`.
+</Info>
+
+### Pagination
+
+<ParamField query="skip" type="integer" required={false}>
+  Number of records to skip. Defaults to `0`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+  Number of records per page. From `1` to `1000`. Defaults to `100`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+  Page number (starting at `1`). An alternative to `skip` — the offset is calculated automatically as `(page - 1) * take`.
+</ParamField>
+
+### Sorting
+
+<ParamField query="id" type="enum" required={false}>
+  Sort by record ID. Possible values: `ASC`, `DESC`.
+</ParamField>
+
+<ParamField query="createdAt" type="enum" required={false}>
+  Sort by creation date. Possible values: `ASC`, `DESC`.
+</ParamField>
+
+<ParamField query="updatedAt" type="enum" required={false}>
+  Sort by update date. Possible values: `ASC`, `DESC`.
+</ParamField>
+
+<ParamField query="order" type="enum" required={false}>
+  Sort by the field's order number. Possible values: `ASC`, `DESC`.
+</ParamField>
+
+### Filtering
+
+<ParamField query="userIds" type="integer[]" required={false}>
+  An array of user IDs. Returns field values only for the specified users.
+</ParamField>
+
+<ParamField query="fieldIds" type="integer[]" required={false}>
+  An array of field IDs. Returns values only for the specified fields.
+</ParamField>
+
+<ParamField query="fieldSlugs" type="string[]" required={false}>
+  An array of field slugs. An alternative to `fieldIds` for filtering by symbolic codes.
+</ParamField>
+
+<ParamField query="fillIds" type="integer[]" required={false}>
+  An array of form fill IDs. Returns values bound to specific fills.
+</ParamField>
+
+<ParamField query="layoutUuids" type="string[]" required={false}>
+  An array of form layout UUIDs.
+</ParamField>
+
+<ParamField query="layoutSlugs" type="string[]" required={false}>
+  An array of form layout slugs.
+</ParamField>
+
+<ParamField query="layoutModes" type="enum[]" required={false}>
+  An array of layout modes. Possible values: `Custom`, `Form`, `Signup`, `Welcome`, `Participant`.
+</ParamField>
+
+<ParamField query="productIds" type="integer[]" required={false}>
+  An array of product IDs. Returns values related to the specified products.
+</ParamField>
+
+<Warning>
+  Values of fields with `api = false` in the RBAC settings are automatically excluded from the response. Field visibility is configured in the school's admin panel.
+  The exclusion happens after the page is fetched: `count` includes hidden values too, so a page may
+  contain fewer items than `take`. To iterate over pages, rely on `isLast` / `pages`, not on
+  the size of `items`.
+</Warning>
+
+<Tip>
+  You can get `fieldId`, the field `slug` and `layoutId` from the nested `field` object in this method's response, and
+  the list of forms with their `id` from the [form list](/en/exode-api/school/form-layout/list). The form fields themselves are created and
+  configured in the school's admin panel — they cannot be created via the API.
+</Tip>
+
+<RequestExample>
+```bash cURL
+curl --location --request GET 'https://api.exode.biz/saas/v2/form/custom-field/value/get?userIds=27&userIds=42&fieldSlugs=city&fieldSlugs=company&createdAt=DESC' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const getCustomFieldValues = async () => {
+  try {
+    const response = await axios.get('https://api.exode.biz/saas/v2/form/custom-field/value/get', {
+      params: {
+        userIds: [ 27, 42 ],
+        fieldSlugs: [ 'city', 'company' ],
+        createdAt: 'DESC'
+      },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Values:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+getCustomFieldValues();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/form/custom-field/value/get';
+$params = http_build_query([
+  'userIds' => [ 27, 42 ],
+  'fieldSlugs' => [ 'city', 'company' ]
+], '', '&', PHP_QUERY_RFC3986);
+
+// For arrays use the format: userIds=27&userIds=42
+$queryString = 'userIds=27&userIds=42&fieldSlugs=city&fieldSlugs=company&createdAt=DESC';
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url . '?' . $queryString);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  echo "Values retrieved successfully\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/form/custom-field/value/get'
+
+params = [
+  ('userIds', 27),
+  ('userIds', 42),
+  ('fieldSlugs', 'city'),
+  ('fieldSlugs', 'company'),
+  ('createdAt', 'DESC')
+]
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.get(url, params=params, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Values retrieved successfully:')
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/form/custom-field/value/get?userIds=27&userIds=42&fieldSlugs=city&fieldSlugs=company&createdAt=DESC");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Field values retrieved");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "count": 3,
+    "page": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "next": { "skip": 0, "take": 100, "page": 1 },
+    "prev": { "skip": 0, "take": 100, "page": 1 },
+    "items": [
+      {
+        "id": 1,
+        "userId": 27,
+        "fieldId": 10,
+        "fillId": null,
+        "value": "Tashkent",
+        "createdAt": "2025-03-10T12:00:00.000Z",
+        "updatedAt": "2025-03-10T12:00:00.000Z",
+        "field": {
+          "id": 10,
+          "slug": "city",
+          "type": "Text",
+          "order": 0,
+          "layoutId": 5
+        }
+      },
+      {
+        "id": 2,
+        "userId": 27,
+        "fieldId": 11,
+        "fillId": null,
+        "value": "Acme LLC",
+        "createdAt": "2025-03-10T12:00:00.000Z",
+        "updatedAt": "2025-03-10T12:00:00.000Z",
+        "field": {
+          "id": 11,
+          "slug": "company",
+          "type": "Text",
+          "order": 1,
+          "layoutId": 5
+        }
+      },
+      {
+        "id": 3,
+        "userId": 42,
+        "fieldId": 10,
+        "fillId": null,
+        "value": "Tashkent",
+        "createdAt": "2025-03-10T14:30:00.000Z",
+        "updatedAt": "2025-03-10T14:30:00.000Z",
+        "field": {
+          "id": 10,
+          "slug": "city",
+          "type": "Text",
+          "order": 0,
+          "layoutId": 5
+        }
+      }
+    ]
+  }
+}
+```
+```json Success - Empty Result
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "count": 0,
+    "page": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "next": { "skip": 0, "take": 100, "page": 1 },
+    "prev": { "skip": 0, "take": 100, "page": 1 },
+    "items": []
+  }
+}
+```
+```json Error - Unauthorized
+{
+  "code": 401,
+  "success": false,
+  "cause": "Unauthorized",
+  "message": "Unauthorized",
+  "error": "Unauthorized"
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - permissions FormManage",
+  "error": "Forbidden seller resource - permissions FormManage"
+}
+```
+</ResponseExample>
+
+## Response fields
+
+<Info>
+  Each item contains:
+  - `value` — the field value (a string, number, boolean, date or JSON object, depending on the field type)
+  - `field` — a nested object with field information (`id`, `slug`, `type`, `order`, `layoutId`, `props`, `preference`, `permissions`)
+  - `userId`, `fieldId` — identifiers for linking
+  - typed columns (`text`, `number`, `boolean`, `date`, `json`) are also present in the response depending on the field type; the convenience field `value` holds the already-cast value
+</Info>
+
+## Permission requirements
+
+<Check>
+  Getting custom field values requires the service user to have the **"Forms management"** permission (`FormManage`).
+</Check>
+
+<Warning>
+  The service user must be authenticated with a token and have the appropriate access permissions for the specified
+  school.
+</Warning>
+
+<Info>
+  Data is returned only within the specified school. Field values of users from other schools are not included in the response.
+</Info>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

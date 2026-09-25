@@ -1,0 +1,671 @@
+---
+title: "Positions"
+description: "REST endpoints for managing employee positions in a corporate school"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+  Positions are a directory of job titles for school employees (for example, "Backend Engineer"). Positions
+  are assigned to employees on hiring and promotion and are used by the staff module to describe the employment
+  structure.
+</Info>
+
+<Warning>
+  All staff module endpoints are available **only to schools in the corporate segment** (`Corporate`).
+  Requests from schools in other segments are rejected.
+</Warning>
+
+## Permission requirements
+
+<Check>
+  Reading (`list`) requires the [**"Staff browsing"**](/en/exode-api/permissions) permission (`StaffView`). Creating, updating and deleting require the **"Staff Management"** permission (`StaffManage`).
+  In all cases, token authentication is required and the school must belong to the `Corporate` segment.
+</Check>
+
+<Warning>
+  The service user must be authenticated with a token and have the appropriate access rights to the specified
+  school.
+</Warning>
+
+<Info>
+  A position name is **unique within the school**, case-insensitive ("Manager" and "manager" are the same
+  name). Creating a position with, or renaming a position to, a name that already exists in the same school returns
+  the `StaffPositionNameIsNotUniq` error.
+</Info>
+
+<Info>
+  The `extId` field is the position's external ID from the client's system (CRM/1C, for example a GUID). It is unique within the
+  school among non-deleted records (unique index `school + extId`). 1 to 50 characters, cannot contain
+  `/` or whitespace characters, because the value is used in `ext/{extId}` paths.
+</Info>
+
+## List positions
+
+```
+GET /saas/v2/staff/position/list
+```
+
+Requires authentication and the **"Staff browsing"** permission (`StaffView`).
+
+<Info>
+  The endpoint returns a paginated list of positions. Pagination and filter parameters are passed as
+  query parameters.
+</Info>
+
+### Parameters
+
+<ParamField query="skip" type="integer" required={false}>
+  Number of records to skip (offset pagination). Minimum `0`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+  Number of records to return per page. From `1` to `1000`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+  Page number (an alternative to `skip`). Minimum `1`.
+</ParamField>
+
+<ParamField query="positionIds" type="integer[]" required={false}>
+  Filter by position IDs. Up to 250 values.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+  Search by position name. Maximum 50 characters. The search is fuzzy (it also finds partial matches), so to
+  find a specific position by name, compare the `name` of the returned records with your value case-insensitively,
+  or, more reliably, search by `extIds`.
+</ParamField>
+
+<ParamField query="extIds" type="string[]" required={false}>
+  Filter by a list of external IDs (`extId`). Up to 250 values, each up to 50 characters.
+</ParamField>
+
+<ParamField query="createdAt" type="enum" required={false}>
+  Sort direction by creation date. Possible values: `ASC`, `DESC`. The `id`
+  and `updatedAt` parameters work the same way.
+</ParamField>
+
+### Response
+
+<ResponseField name="payload" type="object" required>
+  Paginated object: `items` (array of positions), `page`, `count`, `pages`, `isFirst`, `isLast`, `next`,
+  `prev`.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/position/list?take=10&page=1&search=Backend' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function getPositionList() {
+  const { data } = await axios.get(
+    'https://api.exode.biz/saas/v2/staff/position/list',
+    {
+      params: {
+        take: 10,
+        page: 1,
+        search: 'Backend',
+      },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+getPositionList();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 2,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "id": 4,
+        "createdAt": "2026-07-02T11:15:47.216Z",
+        "updatedAt": "2026-07-02T11:15:47.260Z",
+        "archivedAt": null,
+        "schoolId": 198,
+        "name": "Staff Backend Engineer",
+        "extId": "e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47"
+      },
+      {
+        "id": 3,
+        "createdAt": "2026-07-02T11:15:47.207Z",
+        "updatedAt": "2026-07-02T11:15:47.207Z",
+        "archivedAt": null,
+        "schoolId": 198,
+        "name": "Backend Engineer",
+        "extId": null
+      }
+    ],
+    "next": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    },
+    "prev": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Create a position
+
+```
+POST /saas/v2/staff/position/create
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+### Request parameters
+
+<ParamField body="name" type="string" required>
+  Position name. 1 to 100 characters. Leading and trailing spaces are trimmed automatically. Must be
+  unique within the school.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  The position's external ID from the client's system (CRM/1C). 1 to 50 characters, cannot contain `/` or
+  whitespace characters. Must be unique within the school among non-deleted records.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/position/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Backend Engineer"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function createPosition() {
+  const { data } = await axios.post(
+    'https://api.exode.biz/saas/v2/staff/position/create',
+    {
+      name: 'Backend Engineer',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+createPosition();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 3,
+    "createdAt": "2026-07-02T11:15:47.207Z",
+    "updatedAt": "2026-07-02T11:15:47.207Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "name": "Backend Engineer",
+    "extId": null
+  }
+}
+```
+```json Error - Name Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNameIsNotUniq",
+  "message": "Staff position name is not uniq",
+  "error": "Staff position name is not uniq"
+}
+```
+```json Error - ExtId Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionExtIdIsNotUniq",
+  "message": "Staff position extId is not uniq",
+  "error": "Staff position extId is not uniq"
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
+}
+```
+</ResponseExample>
+
+## Update a position
+
+```
+PUT /saas/v2/staff/position/{positionId}/update
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+### Parameters
+
+<ParamField path="positionId" type="integer" required>
+  ID of the position to update within the school.
+</ParamField>
+
+<ParamField body="name" type="string" required={false}>
+  New position name. 1 to 100 characters. Leading and trailing spaces are trimmed automatically. Must be
+  unique within the school.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  The position's external ID from the client's system (CRM/1C). 1 to 50 characters, cannot contain `/` or
+  whitespace characters. Must be unique within the school among non-deleted records.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/position/4/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Staff Backend Engineer"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function updatePosition() {
+  const { data } = await axios.put(
+    'https://api.exode.biz/saas/v2/staff/position/4/update',
+    {
+      name: 'Staff Backend Engineer',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+updatePosition();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 4,
+    "createdAt": "2026-07-02T11:15:47.216Z",
+    "updatedAt": "2026-07-02T11:15:47.260Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "name": "Staff Backend Engineer",
+    "extId": null
+  }
+}
+```
+```json Error - Name Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNameIsNotUniq",
+  "message": "Staff position name is not uniq",
+  "error": "Staff position name is not uniq"
+}
+```
+```json Error - ExtId Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionExtIdIsNotUniq",
+  "message": "Staff position extId is not uniq",
+  "error": "Staff position extId is not uniq"
+}
+```
+</ResponseExample>
+
+## Update a position by extId
+
+```
+PUT /saas/v2/staff/position/ext/{extId}/update
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+<Info>
+  Equivalent of the update-by-ID endpoint: the position is looked up by the external ID `extId` within the school.
+  The `extId` value in the path must be URL-encoded.
+</Info>
+
+### Parameters
+
+<ParamField path="extId" type="string" required>
+  External ID (`extId`) of the position to update within the school. Must be URL-encoded.
+</ParamField>
+
+<ParamField body="name" type="string" required={false}>
+  New position name. 1 to 100 characters. Leading and trailing spaces are trimmed automatically. Must be
+  unique within the school.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  New external ID of the position. 1 to 50 characters, cannot contain `/` or whitespace characters.
+  Must be unique within the school among non-deleted records.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/position/ext/e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Staff Backend Engineer"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function updatePositionByExtId() {
+  const extId = encodeURIComponent('e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47');
+
+  const { data } = await axios.put(
+    `https://api.exode.biz/saas/v2/staff/position/ext/${extId}/update`,
+    {
+      name: 'Staff Backend Engineer',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+updatePositionByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 4,
+    "createdAt": "2026-07-02T11:15:47.216Z",
+    "updatedAt": "2026-07-02T11:15:47.260Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "name": "Staff Backend Engineer",
+    "extId": "e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47"
+  }
+}
+```
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotFound",
+  "message": "Staff position not found",
+  "error": "Staff position not found"
+}
+```
+```json Error - Name Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNameIsNotUniq",
+  "message": "Staff position name is not uniq",
+  "error": "Staff position name is not uniq"
+}
+```
+```json Error - ExtId Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionExtIdIsNotUniq",
+  "message": "Staff position extId is not uniq",
+  "error": "Staff position extId is not uniq"
+}
+```
+</ResponseExample>
+
+## Delete a position
+
+```
+DELETE /saas/v2/staff/position/{positionId}/delete
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+<Warning>
+  A position cannot be deleted while it has active employees (including a scheduled hire with a future date):
+  the method returns `StaffPositionHasActiveEmployments`. First change the employees' position via
+  [`promote`](/en/exode-api/school/staff/employment#change-position) or terminate them.
+</Warning>
+
+### Parameters
+
+<ParamField path="positionId" type="integer" required>
+  ID of the position to delete within the school.
+</ParamField>
+
+### Response
+
+<ResponseField name="affected" type="integer" required>
+  Number of deleted records (`1` on successful deletion).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/position/4/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function deletePosition() {
+  const { data } = await axios.delete(
+    'https://api.exode.biz/saas/v2/staff/position/4/delete',
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+deletePosition();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+```json Error - Has Active Employments
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionHasActiveEmployments",
+  "message": "Staff position has active employments",
+  "error": "Staff position has active employments"
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
+}
+```
+</ResponseExample>
+
+## Delete a position by extId
+
+```
+DELETE /saas/v2/staff/position/ext/{extId}/delete
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+<Warning>
+  A position cannot be deleted while it has active employees (including a scheduled hire with a future date):
+  the method returns `StaffPositionHasActiveEmployments`. First change the employees' position via
+  [`promote`](/en/exode-api/school/staff/employment#change-position) or terminate them.
+</Warning>
+
+<Info>
+  Equivalent of the delete-by-ID endpoint: the position is looked up by the external ID `extId` within the school.
+  The `extId` value in the path must be URL-encoded.
+</Info>
+
+### Parameters
+
+<ParamField path="extId" type="string" required>
+  External ID (`extId`) of the position to delete within the school. Must be URL-encoded.
+</ParamField>
+
+### Response
+
+<ResponseField name="affected" type="integer" required>
+  Number of deleted records (`1` on successful deletion).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/position/ext/e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function deletePositionByExtId() {
+  const extId = encodeURIComponent('e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47');
+
+  const { data } = await axios.delete(
+    `https://api.exode.biz/saas/v2/staff/position/ext/${extId}/delete`,
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+deletePositionByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotFound",
+  "message": "Staff position not found",
+  "error": "Staff position not found"
+}
+```
+```json Error - Has Active Employments
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionHasActiveEmployments",
+  "message": "Staff position has active employments",
+  "error": "Staff position has active employments"
+}
+```
+</ResponseExample>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

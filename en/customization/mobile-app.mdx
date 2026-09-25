@@ -1,0 +1,238 @@
+---
+title: "Mobile app"
+description: "How to open a specific lesson (or another screen) from your app directly in the ExodeBiz app via a deep link, with optional token-based sign-in"
+---
+
+<Info>
+  From your <b>native app</b>, you can open the ExodeBiz app directly on the screen you need —
+  select the school, sign the user in with a token if needed, and open a lesson. All it takes is opening
+  the scheme link the standard way (`Intent.ACTION_VIEW` on Android / `UIApplication.open` on iOS).
+</Info>
+
+## Link format
+
+The deep link uses the app's URL scheme `exodebizapp://`. All parameters go into a single `data`
+parameter — a <b>URL-encoded query string</b>:
+
+```
+exodebizapp://?data=<url-encoded "action=open-page&domain=...&pageId=...&params=...&extra=...">
+```
+
+Parameters inside `data`:
+
+<ParamField query="action" type="string" required>
+  Always `open-page`.
+</ParamField>
+
+<ParamField query="domain" type="string" required>
+  The school's domain (FQDN), for example `my-school.com` or `my-school.exode.biz`.
+</ParamField>
+
+<ParamField query="pageId" type="string" required>
+  Screen identifier. For a lesson, see the "Open a lesson" section.
+</ParamField>
+
+<ParamField query="params" type="string (JSON)" required>
+  JSON with the screen parameters, for example `{"page":"1","courseId":"42","lessonId":"123"}`.
+</ParamField>
+
+<ParamField query="extra" type="string (base64url)" required={false}>
+  A list of additional actions (for example, sign-in). See the "extra" section.
+</ParamField>
+
+<Warning>
+  Parameter values contain special characters and require <b>double encoding</b>: first build the
+  query string `action=...&domain=...` (with URL-encoded values), then encode it as a whole and put it
+  into `data`. Don't build it manually — use standard builders (`URLSearchParams`, `Uri.Builder`,
+  `URLComponents`), see the code examples below.
+</Warning>
+
+## Open a lesson
+
+| Field    | Value |
+|----------|----------|
+| `pageId` | `/courses/:page([0-9]+)/:courseId([0-9]+)/study/:lessonId([0-9]+)` |
+| `params` | `{"page":"1","courseId":"<course ID>","lessonId":"<lesson ID>"}` |
+
+- `page` — the page in the course list; to go to a lesson, specify `"1"`.
+- `courseId`, `lessonId` — the course and lesson IDs in your school.
+
+A ready-made link — substitute `DOMAIN`, `COURSE_ID`, `LESSON_ID`:
+
+```
+exodebizapp://?data=action%3Dopen-page%26domain%3DDOMAIN%26pageId%3D%252Fcourses%252F%253Apage%2528%255B0-9%255D%252B%2529%252F%253AcourseId%2528%255B0-9%255D%252B%2529%252Fstudy%252F%253AlessonId%2528%255B0-9%255D%252B%2529%26params%3D%257B%2522page%2522%253A%25221%2522%252C%2522courseId%2522%253A%2522COURSE_ID%2522%252C%2522lessonId%2522%253A%2522LESSON_ID%2522%257D
+```
+
+### Other screens
+
+By changing `pageId` and `params`, you can open any screen:
+
+| Screen | `pageId` | `params` |
+|-------|----------|----------|
+| Lesson | `/courses/:page([0-9]+)/:courseId([0-9]+)/study/:lessonId([0-9]+)` | `{"page":"1","courseId":"42","lessonId":"123"}` |
+| Course | `/course/:courseId([0-9_A-Za-z]+)` | `{"courseId":"42"}` |
+
+<Tip>
+  Need another screen? Contact support and we'll tell you the correct `pageId` and parameters.
+</Tip>
+
+## extra — nested actions (sign-in)
+
+The `extra` parameter lets you pass a <b>list of actions</b> to the app that run along with
+opening it — for example, token-based sign-in. `extra` is `base64url(JSON.stringify({ actions: [...] }))`.
+
+JSON structure:
+
+```json
+{
+  "actions": [
+    { "type": "login-by-token", "token": "USER_TOKEN" }
+  ]
+}
+```
+
+Supported actions:
+
+| `type`           | Fields | Description |
+|------------------|------|----------|
+| `login-by-token` | `token` | Sign the user in with a token |
+| `open-page`      | `pageId`, `params` | Navigate to a screen |
+
+<Info>
+  <b>The execution order is guaranteed:</b> first the actions from `extra` (in array order), then
+  the navigation from `open-page`. So an `open-page` link + `extra:[{login-by-token}]` does exactly this:
+  <b>open the app → sign in → open the page</b>.
+</Info>
+
+<Steps>
+<Step title="Get the user's session token">
+  The token is created with the [Create a session token](/en/exode-api/school/user/session/auth-token) method
+  (`POST /saas/v2/user/session/auth-token`). Take the value of the `token` field from the response.
+</Step>
+
+<Step title="Build extra">
+  `extra = base64url(JSON.stringify({ actions: [{ type: 'login-by-token', token }] }))`.
+
+  Example (with the placeholder token `USER_TOKEN`):
+
+  ```
+  eyJhY3Rpb25zIjpbeyJ0eXBlIjoibG9naW4tYnktdG9rZW4iLCJ0b2tlbiI6IlVTRVJfVE9LRU4ifV19
+  ```
+</Step>
+
+<Step title="Add extra to data">
+  Add `extra` to the query string inside `data` — the app switches the school, signs the user in
+  and opens the lesson.
+</Step>
+</Steps>
+
+<Warning>
+  A link with `login-by-token` signs in as a specific user — anyone who has the link
+  will be signed in as that user. Such links must be <b>short-lived / personal</b> and must not
+  be published.
+</Warning>
+
+<Note>
+  Use <b>base64url</b> specifically (`-`/`_` instead of `+`/`/`, no `=` padding) — regular base64 may
+  not pass through a query string correctly.
+</Note>
+
+## Building and opening the link in code
+
+<CodeGroup>
+```js JavaScript
+const SCHEME = 'exodebizapp';
+const LESSON = '/courses/:page([0-9]+)/:courseId([0-9]+)/study/:lessonId([0-9]+)';
+
+const b64url = (obj) =>
+  btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+function buildLessonLink({ domain, courseId, lessonId, page = 1, token }) {
+  const inner = new URLSearchParams({
+    action: 'open-page',
+    domain,
+    pageId: LESSON,
+    params: JSON.stringify({
+      page: String(page), courseId: String(courseId), lessonId: String(lessonId),
+    }),
+  });
+
+  // optional: auto sign-in
+  if (token) {
+    inner.set('extra', b64url({ actions: [{ type: 'login-by-token', token }] }));
+  }
+
+  return `${SCHEME}://?data=${encodeURIComponent(inner.toString())}`;
+}
+```
+
+```kotlin Android
+fun buildLessonLink(domain: String, courseId: Long, lessonId: Long, page: Int = 1): String {
+  val pageId = "/courses/:page([0-9]+)/:courseId([0-9]+)/study/:lessonId([0-9]+)"
+  val paramsJson = """{"page":"$page","courseId":"$courseId","lessonId":"$lessonId"}"""
+  val inner = Uri.Builder()
+    .appendQueryParameter("action", "open-page")
+    .appendQueryParameter("domain", domain)
+    .appendQueryParameter("pageId", pageId)
+    .appendQueryParameter("params", paramsJson)
+    .build().encodedQuery ?: ""
+  return "exodebizapp://?data=" + Uri.encode(inner)
+}
+
+// open with a fallback
+try {
+  startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+} catch (e: ActivityNotFoundException) {
+  // app not installed → open the store / website
+}
+```
+
+```swift iOS
+func buildLessonLink(domain: String, courseId: Int, lessonId: Int, page: Int = 1) -> URL {
+  let pageId = "/courses/:page([0-9]+)/:courseId([0-9]+)/study/:lessonId([0-9]+)"
+  let paramsJson = "{\"page\":\"\(page)\",\"courseId\":\"\(courseId)\",\"lessonId\":\"\(lessonId)\"}"
+
+  var inner = URLComponents()
+  inner.queryItems = [
+    .init(name: "action", value: "open-page"),
+    .init(name: "domain", value: domain),
+    .init(name: "pageId", value: pageId),
+    .init(name: "params", value: paramsJson),
+  ]
+
+  let data = (inner.percentEncodedQuery ?? "")
+    .addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
+  return URL(string: "exodebizapp://?data=\(data)")!
+}
+
+// open with a fallback
+UIApplication.shared.open(link, options: [:]) { success in
+  if !success { /* app not installed → open the store / website */ }
+}
+```
+</CodeGroup>
+
+## Behavior
+
+- The deep link <b>works only if the app is installed</b>. If it isn't, the OS opens nothing:
+  handle this yourself and show a fallback (the app store or the school's website). On Android, catch
+  `ActivityNotFoundException`; on iOS, check `success == false` in the `open` completion handler.
+- If the school hasn't been added to the app yet, it is <b>added automatically</b> and becomes active.
+- Navigation follows the usual authorization rules: without an `extra` sign-in, an unauthenticated user sees
+  the sign-in screen.
+
+## Troubleshooting
+
+| Symptom | Cause / solution |
+|---------|-------------------|
+| Nothing happens when opening the link | The app is not installed, or the context doesn't recognize custom schemes. Implement a fallback. |
+| The wrong lesson opened | Check `pageId` (character for character) and the values in `params`; make sure `data` is built correctly (double encoding). |
+| "School not found" | Incorrect `domain`. Specify the school's exact FQDN. |
+| The sign-in screen opens | The user is not signed in / has no access. For auto sign-in, use `extra` with `login-by-token`. |
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

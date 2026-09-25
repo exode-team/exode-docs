@@ -1,0 +1,73 @@
+---
+title: 'Overview'
+description: 'Exode SDK — a package for integrating with the Exode platform'
+---
+
+`@exode-team/sdk` is the official Exode npm package that combines two independent modules: a server-side client for the School API and a bridge for embedded mini apps (MiniApp) — a client part for the iframe and a server part for verifying signatures.
+
+<CardGroup cols={2}>
+  <Card title="API Client" icon="plug" href="/en/exode-sdk/api-client">
+    A typed client for the `/saas/v2/*` REST endpoints. Used on the server (Node.js) and covers
+    users, employees (HR), groups, courses, certificates, accesses, invoices, forms and exports.
+  </Card>
+
+  <Card title="MiniApp Bridge" icon="window-restore" href="/en/exode-sdk/miniapp/introduction">
+    Client SDK for iframe apps: handshake with the host, navigation, UI commands, events, React hooks.
+  </Card>
+</CardGroup>
+
+## Package modules
+
+| Import | Purpose | Environment |
+|--------|-----------|-------|
+| `@exode-team/sdk/api` | Server-side SaaS API client | Node.js ≥18 |
+| `@exode-team/sdk/miniapp` | Bridge for iframe mini apps | Browser |
+| `@exode-team/sdk/miniapp/react` | React hooks on top of the bridge | Browser + React ≥17 |
+| `@exode-team/sdk/miniapp/server` | Signature verification for [Init Data](/en/exode-sdk/miniapp/init-data) and webhooks (`verifyInitData`, `verifyWebhookSignature`) | Node.js ≥18 |
+
+<Info>
+  The package is split into independent subpath exports. Import only the module you need — tree-shaking removes the rest from the bundle.
+</Info>
+
+## Current version
+
+<Card title="npm: @exode-team/sdk@0.3.4" icon="box" href="https://www.npmjs.com/package/@exode-team/sdk">
+  The latest published version. The package is under active development — follow the CHANGELOG.
+</Card>
+
+## Context for AI assistants
+
+<Card title="Download llms.txt" icon="robot" href="/en/exode-sdk/llms.txt">
+  A single file with the complete SDK reference: public API, signatures, types, enums, examples,
+  common mistakes. Give it to ChatGPT, Claude or Copilot, and the AI can immediately write
+  correct integration code without additional context.
+</Card>
+
+<Tip>
+  The file's contents are automatically kept in sync with the sources of the
+  `@exode-team/sdk` package. It works both as a system prompt and as a chat attachment.
+</Tip>
+
+## What's next
+
+<Steps>
+  <Step title="Installation">
+    Go to [Installation](/en/exode-sdk/installation) to add the package via npm or CDN.
+  </Step>
+
+  <Step title="Choose a module">
+    - Server-side integration → [API Client](/en/exode-sdk/api-client). Get the token, `Seller-Id` and `School-Id`
+      in the school's account — see [Working with the API](/en/exode-api/setup)
+    - An app embedded inside Exode → [MiniApp](/en/exode-sdk/miniapp/introduction)
+  </Step>
+
+  <Step title="Support">
+    If you have any questions, contact [technical support](https://t.me/exode_support_biz).
+  </Step>
+</Steps>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

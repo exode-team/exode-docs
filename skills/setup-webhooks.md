@@ -85,8 +85,8 @@ Gotchas documented by Exode:
   [Exode support](https://t.me/exode_support_biz) before relying on them.
 
 Nested entities (`user`, `payment`, `course`, ...) are described in the object
-reference: https://docs.exode.biz/ru/exode-api/objects/entities/index. Full docs:
-https://docs.exode.biz/ru/exode-api/webhooks/about.
+reference: https://docs.exode.biz/en/exode-api/objects/entities/index. Full docs:
+https://docs.exode.biz/en/exode-api/webhooks/about.
 
 ## Step 1. Build the receiver (Next.js on Vercel — same stack as `exode-create-miniapp`)
 

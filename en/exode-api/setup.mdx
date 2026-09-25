@@ -1,0 +1,330 @@
+---
+title: 'Working with the API'
+description: 'Base URL, authentication, response and error format, rate limits and pagination'
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+The Exode SaaS API is a REST API over HTTPS. All endpoints are under the `saas/v2/` prefix.
+
+## Base URL
+
+```text
+https://api.exode.biz
+```
+
+The full method address is `https://api.exode.biz/saas/v2/<module>/<method>` — for example, `https://api.exode.biz/saas/v2/user/create`.
+
+## Authentication
+
+Requests are made on behalf of a **service user** (API client) — a school employee with a configured
+set of permissions and their own API token.
+
+- Authenticate with the `Authorization: Bearer <TOKEN>` header.
+- The token does not expire, and you can revoke it at any time.
+- The token must belong to a user with the **API client** flag (a service user created on the
+  API keys page gets it) — otherwise SaaS endpoints return `403` `Forbidden`, even if all other
+  permissions are in place.
+
+### How to get the token and IDs
+
+<Steps>
+<Step title="Create an API key">
+    The school owner opens **Manage → School → For developers → API keys** (`/manage/school/api-keys`) and creates a key —
+    this also creates a service user and issues a token. A school can have at most **5** keys.
+    The same page lists the keys with a token preview and issue date, and lets you rotate (reissue) the token.
+</Step>
+
+<Step title="Save the token">
+    Copy the token right away — it is shown in full only once (see below). This is the value of the
+    `Authorization: Bearer <TOKEN>` header.
+</Step>
+
+<Step title="Copy the Seller-Id and School-Id">
+    On the same page, the **"Integration data → Identifiers"** card shows both IDs as
+    `Seller-Id: 123; School-Id: 456` — click the line to copy it. These are numbers; they do not change when the token is rotated.
+</Step>
+</Steps>
+
+If you prefer, contact [support](https://t.me/exode_support_biz) and we will help you set things up.
+
+<Info>
+    The token is shown in full **only at creation or rotation** — save it right away. The key list
+    shows only a preview (the first and last 4 characters) and the issue date. Rotation issues a new token and
+    immediately revokes the old one.
+</Info>
+
+<Info>
+    A new key immediately receives all the permissions SaaS API methods need, so your first request works without setup.
+    The set depends on the school segment (`school.segment`: `Commerce` — a commercial online school, `Corporate` —
+    corporate employee training): commercial schools additionally get "School Sales" and "School Refunds",
+    corporate schools get "Staff Management" and "Staff browsing" (employee sync from HR/1C works out of
+    the box). You can change the set on the key's page; for details, see
+    [API key permissions](/en/exode-api/permissions#default-permissions).
+</Info>
+
+<Warning>
+    Never store the token in code or a repository. Use environment variables. The token grants access to
+    school data — do not share it with third parties.
+</Warning>
+
+## Required headers
+
+<HeaderParamFields/>
+
+<Warning>
+    A missing or invalid `Authorization` header results in `401` `Unauthorized`. Without `Seller-Id` (or with the ID
+    of a seller the token does not belong to), methods return `401` `Forbidden`. The API determines the school from the seller
+    and checks `School-Id` against it: if you pass the ID of a different school, you get `400` `ForbiddenSchoolMismatch`.
+</Warning>
+
+<Note>
+    In the examples on method pages, header values are written as `{{ sellerId }}` and `{{ schoolId }}` —
+    these are variables of the [Postman collection](https://www.postman.com/exode-team/exode-biz/collection/18268987-c847eaab-7143-41fd-86d0-80f1f222a784).
+    When running cURL from a terminal, replace them with the numeric IDs, and replace `YOUR_TOKEN` with your token.
+</Note>
+
+## Response format
+
+Every successful response is wrapped in a single structure:
+
+<ResponseField name="success" type="boolean" required>
+    `true` for successful responses (HTTP codes `200`–`206`).
+</ResponseField>
+
+<ResponseField name="code" type="integer" required>
+    HTTP response code (`200`, `201`, etc.).
+</ResponseField>
+
+<ResponseField name="payload" type="any" required>
+    The method's payload. Its structure is described on the page of the specific method and strictly matches the
+    response schema (extra fields are not returned).
+</ResponseField>
+
+```json Successful response
+{
+  "success": true,
+  "code": 200,
+  "payload": { /* method data */ }
+}
+```
+
+## Error format
+
+Errors are returned in the same envelope plus the `cause`, `message`, `error` fields and an optional `data` field:
+
+<ResponseField name="success" type="boolean" required>
+    Always `false` for errors.
+</ResponseField>
+
+<ResponseField name="code" type="integer" required>
+    HTTP error code: `400`, `401`, `403`, `404`, `429`, `500`.
+</ResponseField>
+
+<ResponseField name="cause" type="string" required>
+    Machine-readable cause code. Use it to build your error handling. Examples: `validation`, `Unauthorized`,
+    `Forbidden`, `EmailIsBusy`, `Rate`.
+</ResponseField>
+
+<ResponseField name="message" type="string | string[]" required>
+    Human-readable error message. With `cause: "validation"`, it is an array of strings, one for each
+    violated rule (for example, `["extId must be shorter than or equal to 50 characters"]`).
+</ResponseField>
+
+<ResponseField name="error" type="string" required>
+    Technical description (matches `message` by default).
+</ResponseField>
+
+<ResponseField name="data" type="object">
+    Additional data (for example, `retryAfter` for `429`). Optional.
+</ResponseField>
+
+```json Error example
+{
+  "success": false,
+  "code": 400,
+  "cause": "EmailIsBusy",
+  "message": "Email is busy",
+  "error": "Email is busy"
+}
+```
+
+### Common cause codes (`cause`)
+
+| HTTP | `cause` | When it occurs |
+|---|---|---|
+| 400 | `validation` | The body/parameters failed validation (type, length, format, enum). What exactly is wrong is in `message` |
+| 400 | `ForbiddenSchoolMismatch` | `School-Id` does not match the school of the seller from `Seller-Id` |
+| 401 | `Unauthorized` | The token is missing/invalid (`Invalid token credentials`) |
+| 401 | `Blocked` | The token's user is inactive or banned (`User is not active or banned`) |
+| 401 | `Forbidden` | No access to the seller's data. The `message` shows the reason: `Forbidden seller resource - permissions <Code>` — the key does not have the required permission enabled (see [API key permissions](/en/exode-api/permissions#permission-reference)) or the `Seller-Id` is missing/belongs to someone else; `seller not entity owner` — the object (user, group, course…) belongs to another school; `Allowed only for school` / `Allowed only for Corporate school` — the method is available only to schools or only to corporate schools |
+| 403 | `Forbidden` | The token belongs to a user without the API client flag (`Access to the resource is restricted`) — use a token from the API keys page |
+| 429 | `Rate` | Rate limit exceeded (see below) |
+
+<Tip>
+    The specific `cause` codes for each method are listed on its page (in the "Error" responses). For example,
+    creating a user can return `UserAlreadyExist`, `EmailIsBusy`, `PhoneIsBusy`, `TgIdIsBusy`.
+</Tip>
+
+## Access permissions (RBAC)
+
+Each method checks the API key's permissions — the checkboxes on the key's page in the account. If a method lists several
+permissions, **any one** of them is enough. Without the required permission, the method returns `401` with the message
+`Forbidden seller resource - permissions <Code>`.
+
+<Card title="API key permissions" icon="shield-check" href="/en/exode-api/permissions">
+    Which checkboxes to enable for your integration task, which methods each permission unlocks and which permissions a
+    new key receives.
+</Card>
+
+## Rate limits
+
+Some methods are rate-limited. When the limit is exceeded, the API returns **HTTP `429`** with `cause: "Rate"`:
+
+```json Rate limit exceeded
+{
+  "success": false,
+  "code": 429,
+  "cause": "Rate",
+  "message": "Rate limit exceeded",
+  "error": "Rate limit exceeded",
+  "data": { "retryAfter": "2025-01-18T12:45:10.000Z" }
+}
+```
+
+- The limit is counted per service user (token).
+- The `data.retryAfter` field tells you when you can retry the request.
+- Limits are listed on method pages. For example, generating exports is limited to **100 requests per hour**.
+
+<Info>
+    Implement retries that respect `retryAfter`, with exponential backoff for transient errors (`429`, `5xx`).
+</Info>
+
+## Pagination
+
+List methods (`.../list/raw`, course progress, etc.) accept pagination parameters in the query:
+
+<ParamField query="take" type="integer" required={false}>
+    Page size. From `1` to `1000`. Defaults to `100`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Page number (starting from `1`). An alternative to `skip`: used only if `skip` is not passed.
+</ParamField>
+
+<ParamField query="skip" type="integer" required={false}>
+    Offset (number of records to skip). If both `skip` and `page` are passed, `skip` takes effect.
+</ParamField>
+
+A list method's response is a single envelope with a page:
+
+```json Page structure
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "items": [ /* items */ ],
+    "page": 1,
+    "count": 245,
+    "pages": 3,
+    "isFirst": true,
+    "isLast": false,
+    "next": { "skip": 100, "take": 100, "page": 2 },
+    "prev": { "skip": 0, "take": 100, "page": 1 }
+  }
+}
+```
+
+<Info>
+    Pass array parameters by repeating the key: `userIds=1&userIds=2&userIds=3`. Pass ranges
+    as nested fields, for example `createdAtDateRange[from]` and `createdAtDateRange[to]`.
+</Info>
+
+## Request example
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/user/find?extId=crm_12345' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const client = axios.create({
+  baseURL: 'https://api.exode.biz/saas/v2',
+  headers: {
+    Authorization: `Bearer ${process.env.EXODE_TOKEN}`,
+    'Seller-Id': process.env.SELLER_ID,
+    'School-Id': process.env.SCHOOL_ID,
+  },
+});
+
+const { data } = await client.get('/user/find', { params: { extId: 'crm_12345' } });
+console.log(data.payload.user);
+```
+
+```php PHP
+<?php
+$url = 'https://api.exode.biz/saas/v2/user/find?extId=crm_12345';
+$headers = [
+  'Authorization: Bearer ' . $_ENV['EXODE_TOKEN'],
+  'Seller-Id: ' . $_ENV['SELLER_ID'],
+  'School-Id: ' . $_ENV['SCHOOL_ID'],
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+echo curl_exec($ch);
+curl_close($ch);
+```
+
+```python Python
+import os, requests
+
+session = requests.Session()
+session.headers.update({
+  'Authorization': f"Bearer {os.environ['EXODE_TOKEN']}",
+  'Seller-Id': os.environ['SELLER_ID'],
+  'School-Id': os.environ['SCHOOL_ID'],
+})
+
+r = session.get('https://api.exode.biz/saas/v2/user/find', params={'extId': 'crm_12345'})
+print(r.json()['payload']['user'])
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/user/find?extId=crm_12345");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("User found");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<Tip>
+    Always check `success`/`code` and handle the error `cause` — this speeds up integration troubleshooting.
+</Tip>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

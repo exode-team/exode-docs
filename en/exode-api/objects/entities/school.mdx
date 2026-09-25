@@ -1,0 +1,76 @@
+---
+title: "School and seller"
+description: "Object structures of the school, seller and organization based on shared zod schemas"
+---
+
+Public structures: `school`, `seller`, `organization`. The nested `school` object comes, for example, in
+`invoice.user.school` of the `PaymentCompleted` webhook. The full `school` tree with `seller` is sent only in
+the system `SchoolCreated` webhook — you cannot subscribe to it from the school's admin panel.
+
+A seller (`seller`) has exactly one school; their numeric IDs are the values of the `Seller-Id` and `School-Id` headers.
+
+## `school`
+
+<ResponseField name="id" type="integer" required>School ID.</ResponseField>
+<ResponseField name="name" type="string" required>School name.</ResponseField>
+<ResponseField name="description" type="string | null">Description.</ResponseField>
+<ResponseField name="segment" type="enum" required>
+    Segment: `Commerce` — a commercial online school, `Corporate` — corporate employee training (the `staff/*`
+    org structure methods work only in such schools).
+</ResponseField>
+<ResponseField name="accessType" type="enum" required>
+    Access type: `Public` — the school's catalog and pages are open to everyone; `Private` — a closed school, the content
+    is available only to authenticated users of this school.
+</ResponseField>
+<ResponseField name="domainType" type="enum" required>
+    Domain type: `Base` — the school runs on an Exode subdomain (`baseDomain`), `Custom` — on its own domain
+    (`customDomain`).
+</ResponseField>
+<ResponseField name="baseDomain" type="string" required>Base domain (Exode subdomain).</ResponseField>
+<ResponseField name="customDomain" type="string | null">Custom domain.</ResponseField>
+<ResponseField name="domain" type="string | null">Current active domain.</ResponseField>
+<ResponseField name="fqdn" type="string | null">Fully qualified domain name.</ResponseField>
+<ResponseField name="baseFqdn" type="string | null">Fully qualified name on the base domain.</ResponseField>
+<ResponseField name="publicUrl" type="string | null">Public URL of the school.</ResponseField>
+<ResponseField name="iconUrl" type="string | null">Icon URL.</ResponseField>
+<ResponseField name="active" type="boolean" required>The school is active.</ResponseField>
+<ResponseField name="isPublic" type="boolean | null">Public.</ResponseField>
+<ResponseField name="isPrivate" type="boolean | null">Private.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Archiving date or `null`.</ResponseField>
+
+## `seller`
+
+<ResponseField name="id" type="integer" required>Seller ID.</ResponseField>
+<ResponseField name="type" type="enum" required>Type: `Tutor`, `School`, `Producer`, `University`.</ResponseField>
+<ResponseField name="active" type="boolean" required>Active.</ResponseField>
+<ResponseField name="verified" type="boolean" required>Verified.</ResponseField>
+<ResponseField name="balance" type="number" required>Balance.</ResponseField>
+<ResponseField name="payoutBalance" type="number" required>Balance available for payout.</ResponseField>
+<ResponseField name="baseCurrency" type="enum" required>Base currency: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ResponseField>
+<ResponseField name="isSchool" type="boolean | null">Whether it is a school.</ResponseField>
+<ResponseField name="organization" type="object | null">Organization details (see below).</ResponseField>
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+
+## `organization`
+
+<ResponseField name="id" type="integer" required>Organization ID.</ResponseField>
+<ResponseField name="form" type="string" required>Organization form.</ResponseField>
+<ResponseField name="name" type="string" required>Name.</ResponseField>
+<ResponseField name="organizationName" type="string | null">Legal name.</ResponseField>
+<ResponseField name="selfEmployedName" type="string | null">Name of the self-employed person.</ResponseField>
+<ResponseField name="inn" type="string | null">INN (taxpayer identification number).</ResponseField>
+<ResponseField name="ogrn" type="string | null">OGRN (primary state registration number).</ResponseField>
+<ResponseField name="logo" type="string | null">Logo.</ResponseField>
+<ResponseField name="address" type="string | null">Address.</ResponseField>
+<ResponseField name="isOrganization" type="boolean | null">Whether it is an organization.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

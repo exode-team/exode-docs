@@ -1,0 +1,217 @@
+---
+title: "List groups"
+description: "Get a list of school groups with filtering and pagination"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+import CourseAccessModeNote from '/snippets/en/exode-api/course-access-mode-note.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/group/list/raw
+```
+
+<CourseAccessModeNote/>
+
+<Info>
+    All filter parameters are optional. If you pass no filters, all school groups are returned,
+    subject to pagination.
+</Info>
+
+<Info>
+    Pass array parameters by repeating the parameter in the query string: `groupIds=1&groupIds=2&groupIds=3`.
+</Info>
+
+## Request parameters
+
+### Pagination
+
+<ParamField query="skip" type="integer" required={false}>
+    Number of records to skip. Default: `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Page number (an alternative to `skip`). Starts at `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Number of records per page. From `1` to `1000`. Default: `100`.
+</ParamField>
+
+### Filtering
+
+<ParamField query="groupIds" type="integer[]" required={false}>
+    Filter by group IDs.
+</ParamField>
+
+<ParamField query="productIds" type="integer[]" required={false}>
+    Filter by IDs of the products the groups are linked to.
+</ParamField>
+
+<ParamField query="courseIds" type="integer[]" required={false}>
+    Filter by course IDs.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+    Search by group name. Maximum 50 characters.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="payload" type="object">
+    Paginated list of groups (compact projection). For the full structure, see the
+    [`group`](/en/exode-api/objects/entities/group) reference.
+
+    <Expandable title="payload properties">
+        <ResponseField name="items" type="object[]">
+            Array of groups.
+
+            <Expandable title="Item properties">
+                <ResponseField name="groupId" type="integer">Group ID.</ResponseField>
+                <ResponseField name="name" type="string">Group name.</ResponseField>
+                <ResponseField name="courseId" type="integer | null">ID of the linked course.</ResponseField>
+                <ResponseField name="courseName" type="string | null">Name of the linked course.</ResponseField>
+                <ResponseField name="membersCount" type="integer">Number of group members.</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Current page.</ResponseField>
+        <ResponseField name="count" type="integer">Total number of records.</ResponseField>
+        <ResponseField name="pages" type="integer">Total number of pages.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Whether this is the first page.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Whether this is the last page.</ResponseField>
+        <ResponseField name="next" type="object">Next page parameters (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Previous page parameters (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/group/list/raw?take=20&courseIds=10' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listGroups = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/group/list/raw', {
+    params: { take: 20, courseIds: [10] },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listGroups();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/group/list/raw?take=20&courseIds=10';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/group/list/raw'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'take': 20, 'courseIds': [10] }, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/group/list/raw?take=20&courseIds=10");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Group list received");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "groupId": 501,
+        "name": "Cohort #1",
+        "courseId": 10,
+        "courseName": "Exam preparation",
+        "membersCount": 42
+      }
+    ],
+    "next": {
+      "skip": 20,
+      "take": 20,
+      "page": 2
+    },
+    "prev": {
+      "skip": 0,
+      "take": 20,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+    Requires token authentication and the [**"School User Management"**](/en/exode-api/permissions) permission (`SchoolManageUsers`).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

@@ -1,0 +1,62 @@
+---
+title: "Course enrollment"
+description: "How to grant a user access to a course by enrolling them in a group"
+---
+
+<Info>
+    You enroll a user in a course by adding them to a group linked to that course.
+    When a member is added to a group, the related member and access records are created automatically,
+    and the user gets access to the course.
+</Info>
+
+<Card title="Adding members to a group" icon="user-plus" href="/en/exode-api/school/group-member/create-many">
+    The endpoint for enrolling users in a course group — `POST /saas/v2/group/:groupId/member/create-many`.
+</Card>
+
+## How to enroll a user in a course
+
+<Steps>
+    <Step title="Find the course group">
+        Get the list of groups filtered by course — the
+        [Group list](/en/exode-api/school/group/list) endpoint with the `courseIds` parameter.
+        In the response, each group has `courseId` and `courseName`, which let you confirm
+        that the group belongs to the right course. The course's group IDs are also returned by the
+        [Course list](/en/exode-api/school/course/list) in the `groupIds` field.
+
+        If the course has several groups (for example, cohorts), choose the one you need by its `name` — the group
+        determines the member's schedule, curator and chats.
+    </Step>
+
+    <Step title="Add users to the group">
+        Enroll users in the group you found — the
+        [Adding members](/en/exode-api/school/group-member/create-many) endpoint:
+
+        ```
+        POST /saas/v2/group/:groupId/member/create-many
+        ```
+
+        The request body contains a `userIds` array (numeric user IDs in Exode) — up to 250 users
+        per request. If a user is already a member of the group, they won't be added again, so you can
+        safely retry the request. If the user doesn't exist in the school yet, create them first with
+        [`user/create`](/en/exode-api/school/user/create) or [`user/upsert`](/en/exode-api/school/user/upsert).
+    </Step>
+</Steps>
+
+<Check>
+    Once added to the group, the user gets access to the course the group is linked to, and your
+    endpoint receives the `ProductEnrolledViaLms` webhook (if you are subscribed to it, see
+    [Webhooks](/en/exode-api/webhooks/about)).
+</Check>
+
+## Related sections
+
+- [Group list](/en/exode-api/school/group/list) — find a group by `courseIds`
+- [Adding members](/en/exode-api/school/group-member/create-many) — enroll users in a group
+- [Removing members](/en/exode-api/school/group-member/delete-many) — revoke course access
+- [Access list](/en/exode-api/school/product-access/list) — check granted access
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

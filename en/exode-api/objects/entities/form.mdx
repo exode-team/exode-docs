@@ -1,0 +1,66 @@
+---
+title: "Forms and fields"
+description: "Object structures of a form layout and a custom field value, based on shared zod schemas"
+---
+
+Public form structures: `formLayout` (layout) and `formFieldValue` (field value). Returned by the
+[form](/en/exode-api/school/form-layout/create) and
+[custom field](/en/exode-api/school/custom-field/get) methods.
+
+## `formLayout`
+
+<ResponseField name="id" type="integer" required>Layout ID.</ResponseField>
+<ResponseField name="uuid" type="string" required>Layout UUID.</ResponseField>
+<ResponseField name="slug" type="string" required>Layout slug.</ResponseField>
+<ResponseField name="name" type="string" required>Name.</ResponseField>
+<ResponseField name="internalName" type="string | null">Internal name.</ResponseField>
+<ResponseField name="note" type="string | null">Note.</ResponseField>
+<ResponseField name="mode" type="enum" required>Mode: `Form`, `Signup`, `Custom`, `Welcome`, `Participant`.</ResponseField>
+<ResponseField name="status" type="enum | null">Status: `Draft`, `Published`.</ResponseField>
+<ResponseField name="config" type="object" required>Layout configuration (for example, `resubmitMode`).</ResponseField>
+<ResponseField name="sellerId" type="integer" required>ID of the owner seller.</ResponseField>
+<ResponseField name="isEdited" type="boolean | null">Whether it was edited manually.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Archive date or `null`.</ResponseField>
+
+## `formFieldValue`
+
+<ResponseField name="id" type="integer" required>Value ID.</ResponseField>
+<ResponseField name="userId" type="integer" required>User ID.</ResponseField>
+<ResponseField name="fieldId" type="integer" required>Field ID.</ResponseField>
+<ResponseField name="fillId" type="integer | null">Form submission ID.</ResponseField>
+<ResponseField name="value" type="any | null">Normalized field value (universal).</ResponseField>
+<ResponseField name="text" type="string | null">Text value (`Text`, `Select`, `Radio`, `Textarea`).</ResponseField>
+<ResponseField name="number" type="number | null">Numeric value (`Number`).</ResponseField>
+<ResponseField name="boolean" type="boolean | null">Boolean value (`Boolean`, `Switch`, `Checkbox`).</ResponseField>
+<ResponseField name="date" type="string | null">Date (`Date`, ISO 8601).</ResponseField>
+<ResponseField name="json" type="any | null">JSON value (`Json`, `File`, `Multiselect`).</ResponseField>
+<ResponseField name="field" type="object | null">
+    Field description.
+
+    <Expandable title="field properties">
+        <ResponseField name="id" type="integer">Field ID.</ResponseField>
+        <ResponseField name="slug" type="string | null">Field slug.</ResponseField>
+        <ResponseField name="type" type="string | null">
+            Field type: `Text`, `File`, `Json`, `Date`, `Radio`, `Switch`, `Number`, `Select`, `Boolean`,
+            `Textarea`, `Checkbox`, `Multiselect`.
+        </ResponseField>
+        <ResponseField name="order" type="integer | null">Field order.</ResponseField>
+        <ResponseField name="layoutId" type="integer | null">Layout ID.</ResponseField>
+        <ResponseField name="props" type="object | null">Field properties.</ResponseField>
+        <ResponseField name="preference" type="object | null">Display settings.</ResponseField>
+        <ResponseField name="permissions" type="object | null">
+            Field access permissions: `read` and `write`, each is `{ api, user, manager }` (boolean). Fields with
+            `read.api = false` are excluded from API output; fields with `write.api = false` cannot be written.
+        </ResponseField>
+    </Expandable>
+</ResponseField>
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

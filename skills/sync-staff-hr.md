@@ -9,7 +9,7 @@ You are an engineer wiring an HR system (1C ZUP, custom HR, CRM) to a **corporat
 school** over the SaaS REST API. The result: departments, positions, employees with
 employments, managers and absences mirror the HR export, and repeated runs are safe.
 
-Full endpoint reference lives in the docs (`docs.exode.biz/ru/exode-api/school/staff/*`);
+Full endpoint reference lives in the docs (`docs.exode.biz/en/exode-api/school/staff/*`);
 this skill contains everything needed to run standalone. **Never invent endpoints or
 fields** — use only what is listed here.
 
@@ -211,7 +211,7 @@ resolves only open employments.
 **1C ZUP:** a complete documented BSL implementation (update-by-extId → NotFound →
 create, position ensure-by-GUID with name fallback, domain-from-login sanitizer, HTTP
 wrapper reading `cause`) is in the docs page
-`ru/exode-api/school/integrations/examples/1c-staff-sync` — reuse it as-is, replacing
+`en/exode-api/school/integrations/examples/1c-staff-sync` — reuse it as-is, replacing
 `<AUTH_TOKEN>` / `<SCHOOL_ID>` / `<SELLER_ID>`. Run it as a 1C scheduled job (регламентное
 задание); the loop is idempotent, hourly runs are safe.
 

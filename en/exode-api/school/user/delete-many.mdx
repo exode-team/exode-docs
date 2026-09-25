@@ -1,0 +1,220 @@
+---
+title: "Delete users"
+description: "Bulk delete school users by their IDs"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Warning>
+    This operation deletes users **permanently**. The school owner cannot be deleted: such IDs
+    are skipped and returned in the `skipped` field.
+</Warning>
+
+<Info>
+    A deleted user gets the `Deleted` status: credentials are wiped and sign-in is impossible, but the data
+    is kept for reports. In [`user/list`](/en/exode-api/school/user/list), you can find such users with the
+    `statuses=Deleted` filter.
+</Info>
+
+<Note>
+    Deletion clears only `email`, `phone` and `tgId`, so you can reuse them for a new user right away.
+    `extId` and `domain` stay with the deleted record: [`user/find`](/en/exode-api/school/user/find) by `extId`
+    returns this user with the `Deleted` status, and creating a new user with the same `extId` or `domain`
+    fails with `ExtIdIsBusy` / `DomainIsBusy`. If you need to reuse the identifier, reset it
+    via [`user/update`](/en/exode-api/school/user/update) (`"extId": null`) **before** deletion.
+</Note>
+
+```
+DELETE /saas/v2/user/delete-many
+```
+
+## Request parameters
+
+<Tip>
+    The maximum number of users per request is **250**. To delete more,
+    make several requests.
+</Tip>
+
+<ParamField body="userIds" type="integer[]" required>
+    Array of numeric Exode user IDs (the `id` field from [`user/find`](/en/exode-api/school/user/find) or
+    [`user/list`](/en/exode-api/school/user/list)). Up to 250 per request. Calling again with the same IDs
+    is safe: already deleted users end up in `skipped`.
+</ParamField>
+
+<ParamField body="reason" type="string" required>
+    Reason for deletion. Up to 256 characters. Stored in the system for auditing.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="payload" type="object">
+    <Expandable title="payload properties">
+        <ResponseField name="deleted" type="integer[]">
+            IDs of the users that were successfully deleted.
+        </ResponseField>
+
+        <ResponseField name="skipped" type="integer[]">
+            IDs that were skipped. Skipped are: the school owner, manager employees (those who
+            have management access to the seller), already deleted users, and IDs that were not found or
+            belong to another school.
+        </ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/user/delete-many' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "userIds": [123, 124, 125],
+    "reason": "Access closed on request"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const deleteUsers = async () => {
+  const { data } = await axios.delete('https://api.exode.biz/saas/v2/user/delete-many', {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+    data: {
+      userIds: [123, 124, 125],
+      reason: 'Access closed on request',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+deleteUsers();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/user/delete-many';
+$data = [
+  'userIds' => [123, 124, 125],
+  'reason'  => 'Access closed on request',
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+curl_close($ch);
+
+echo $response;
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/user/delete-many'
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+data = {
+  'userIds': [123, 124, 125],
+  'reason': 'Access closed on request'
+}
+
+response = requests.delete(url, json=data, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+ИдентификаторыПользователей = Новый Массив;
+ИдентификаторыПользователей.Добавить(123);
+ИдентификаторыПользователей.Добавить(124);
+ИдентификаторыПользователей.Добавить(125);
+
+Данные = Новый Структура;
+Данные.Вставить("userIds", ИдентификаторыПользователей);
+Данные.Вставить("reason", "Access closed on request");
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/user/delete-many");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("DELETE", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Users deleted");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "deleted": [
+      123,
+      124
+    ],
+    "skipped": [
+      125
+    ]
+  }
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+    Requires token authentication and the [**"School User Management"**](/en/exode-api/permissions) permission (`SchoolManageUsers`).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

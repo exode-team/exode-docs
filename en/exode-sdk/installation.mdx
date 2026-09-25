@@ -1,0 +1,128 @@
+---
+title: 'Installation'
+description: 'Add the Exode SDK via npm or CDN'
+---
+
+## Requirements
+
+<CardGroup cols={3}>
+  <Card title="Node.js" icon="node-js">
+    ≥ 18.0.0
+  </Card>
+  <Card title="TypeScript" icon="code">
+    ≥ 5.7 (optional, types included)
+  </Card>
+  <Card title="React" icon="react">
+    ≥ 17 (only for `miniapp/react`)
+  </Card>
+</CardGroup>
+
+## Installing via npm
+
+<CodeGroup>
+```bash npm
+npm install @exode-team/sdk
+```
+
+```bash yarn
+yarn add @exode-team/sdk
+```
+
+```bash pnpm
+pnpm add @exode-team/sdk
+```
+</CodeGroup>
+
+<Tip>
+  React is an optional peer dependency. If your project doesn't use React, the `miniapp/react` module won't pull it in and won't end up in the bundle.
+</Tip>
+
+## Imports
+
+The package has four subpath exports — import only the one you need:
+
+```ts
+import { ExodeAPI }        from '@exode-team/sdk/api'             // server (Node.js)
+import { ExodeMiniApp }    from '@exode-team/sdk/miniapp'         // browser, inside an iframe
+import { useExodeUser }    from '@exode-team/sdk/miniapp/react'   // browser + React
+import { verifyInitData }  from '@exode-team/sdk/miniapp/server'  // server (Node.js)
+```
+
+<Warning>
+  `@exode-team/sdk/api` and `@exode-team/sdk/miniapp/server` are for the server only: the first works
+  with the school's API token, the second with the page secret and uses the Node.js `crypto` module. Do not import them
+  into the client bundle.
+</Warning>
+
+<Warning>
+  Do not import from the root (`@exode-team/sdk`) — the root export is not defined, to avoid accidentally loading server and client code in the same bundle.
+</Warning>
+
+## Using a CDN
+
+For static pages without a build step, an IIFE bundle of the MiniApp module (`ExodeMiniApp`, `retrieveInitData`) is available.
+React hooks and server functions are not shipped via the CDN.
+
+
+<CodeGroup>
+
+```html Specific version (recommended)
+
+<script src="https://static.exode.biz/sdk/v0.3.1/miniapp.global.js"></script>
+
+```
+
+
+```html Latest version
+
+<script src="https://static.exode.biz/sdk/latest/miniapp.global.js"></script>
+
+```
+
+</CodeGroup>
+
+Once loaded, the global `ExodeMiniAppSDK` object becomes available:
+
+```html
+<script>
+  const app = new ExodeMiniAppSDK.ExodeMiniApp({ appId: 'my-app' })
+
+  app.init().then((ctx) => {
+    console.log('User:', ctx.user.firstName)
+  })
+
+  // Signed user data for your backend (see the Init Data section)
+  const initData = ExodeMiniAppSDK.retrieveInitData()
+</script>
+```
+
+<Info>
+  In production, always pin the version (`v0.3.0`, `v0.3.1`, etc.). The `latest` tag updates automatically and may introduce breaking changes.
+  `retrieveInitData` is available in the CDN bundle starting from `v0.3.1`. Version numbers on the CDN may lag behind npm — if the version
+  you need is not on the CDN, install via npm.
+</Info>
+
+## TypeScript
+
+Types ship with the package; no additional `@types/...` package is required.
+
+```ts
+import type { ExodeAPIConfig, User } from '@exode-team/sdk/api'
+
+import type {
+  ExodeMiniAppConfig,
+  MiniAppContext,
+  MiniAppUser,
+} from '@exode-team/sdk/miniapp'
+
+import type { InitDataPayload } from '@exode-team/sdk/miniapp/server'
+
+// The Platform type is not exported separately — take it from the context:
+type Platform = MiniAppContext['platform'] // 'web' | 'native'
+```
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

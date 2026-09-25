@@ -1,0 +1,325 @@
+---
+title: "Create a form layout"
+description: "Create a new form layout for the school with mode, status and product binding settings"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+POST /saas/v2/form/layout/create
+```
+
+Requires authentication and the [**"Forms management"**](/en/exode-api/permissions) permission (`FormManage`).
+
+<Tip>
+  **Layout and custom fields.** A form layout is a container for fields. Only the layout itself is created via the API;
+  the fields in it (their type and `slug`) are added in the school's admin panel. Field values for specific users
+  are read and written with the [get](/en/exode-api/school/custom-field/get) and
+  [set values](/en/exode-api/school/custom-field/set) methods, where the layout is passed as `layoutId` — the `id` from
+  this method's response.
+</Tip>
+
+## Request parameters
+
+<ParamField body="mode" type="enum" required={true}>
+  Form layout mode. Determines where and how the form is used.
+
+  Possible values:
+  - `Custom` — user custom fields
+  - `Form` — a fillable form (questionnaire)
+  - `Signup` — sign-up form (one per school)
+  - `Welcome` — welcome form (one per school)
+  - `Participant` — product participant form
+</ParamField>
+
+<ParamField body="name" type="string" required={true}>
+  Form layout name. Up to 255 characters.
+</ParamField>
+
+<ParamField body="internalName" type="string" required={true}>
+  Internal layout name. Up to 255 characters. Used to identify the layout in the management interface.
+</ParamField>
+
+<ParamField body="status" type="enum" required={false}>
+  Layout status. Possible values: `Draft`, `Published`. Defaults to `Draft`.
+</ParamField>
+
+<ParamField body="slug" type="string" required={false}>
+  Symbolic code of the layout. From 1 to 50 characters. Must be unique within the seller (school).
+</ParamField>
+
+<ParamField body="note" type="string" required={false}>
+  A note for the layout. Up to 255 characters.
+</ParamField>
+
+<ParamField body="productIds" type="integer[]" required={false}>
+  An array of IDs of products the layout is bound to — the `productId` field from the
+  [course list](/en/exode-api/school/course/list).
+</ParamField>
+
+<ParamField body="config" type="object" required={false}>
+  Layout settings.
+
+  <Expandable title="config properties">
+    <ParamField body="resubmitMode" type="enum" required={false}>
+      Form resubmission mode. Possible values:
+      - `Overwrite` — overwrite the existing fill (default)
+      - `NewFill` — create a new fill
+      - `NotAllowed` — resubmission is not allowed
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<Info>
+  For the `Signup` and `Welcome` modes, only one layout per seller (school) is allowed. Attempting to create a second layout with the same mode returns the `LayoutWithModeAlreadyExists` error.
+</Info>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/form/layout/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "mode": "Custom",
+    "name": "Additional client data",
+    "internalName": "CRM extra fields",
+    "status": "Published",
+    "slug": "client-extra",
+    "note": "Additional fields for CRM",
+    "config": {
+      "resubmitMode": "Overwrite"
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const createLayout = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/form/layout/create', {
+      mode: 'Custom',
+      name: 'Additional client data',
+      internalName: 'CRM extra fields',
+      status: 'Published',
+      slug: 'client-extra',
+      note: 'Additional fields for CRM',
+      config: {
+        resubmitMode: 'Overwrite'
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Layout created:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+createLayout();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/form/layout/create';
+$data = [
+  'mode' => 'Custom',
+  'name' => 'Additional client data',
+  'internalName' => 'CRM extra fields',
+  'status' => 'Published',
+  'slug' => 'client-extra',
+  'note' => 'Additional fields for CRM',
+  'config' => [
+    'resubmitMode' => 'Overwrite'
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Layout created successfully\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/form/layout/create'
+
+data = {
+  'mode': 'Custom',
+  'name': 'Additional client data',
+  'internalName': 'CRM extra fields',
+  'status': 'Published',
+  'slug': 'client-extra',
+  'note': 'Additional fields for CRM',
+  'config': {
+    'resubmitMode': 'Overwrite'
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Layout created successfully:')
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+
+```bsl 1С
+Конфигурация = Новый Структура;
+Конфигурация.Вставить("resubmitMode", "Overwrite");
+
+Данные = Новый Структура;
+Данные.Вставить("mode", "Custom");
+Данные.Вставить("name", "Additional client data");
+Данные.Вставить("internalName", "CRM extra fields");
+Данные.Вставить("status", "Published");
+Данные.Вставить("slug", "client-extra");
+Данные.Вставить("note", "Additional fields for CRM");
+Данные.Вставить("config", Конфигурация);
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/form/layout/create");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
+
+Если Ответ.КодСостояния = 201 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Form created");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 5,
+    "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "mode": "Custom",
+    "status": "Published",
+    "slug": "client-extra",
+    "name": "Additional client data",
+    "internalName": "CRM extra fields",
+    "note": "Additional fields for CRM",
+    "sellerId": 1,
+    "createdAt": "2025-03-10T12:00:00.000Z",
+    "updatedAt": "2025-03-10T12:00:00.000Z",
+    "config": {
+      "resubmitMode": "Overwrite"
+    }
+  }
+}
+```
+```json Error - Duplicate Slug
+{
+  "code": 400,
+  "success": false,
+  "cause": "LayoutWithSlugAlreadyExists",
+  "message": "Form layout with slug \"client-extra\" already exists",
+  "error": "Form layout with slug \"client-extra\" already exists"
+}
+```
+```json Error - Duplicate Mode (Signup / Welcome)
+{
+  "code": 400,
+  "success": false,
+  "cause": "LayoutWithModeAlreadyExists",
+  "message": "Form layout with mode \"Signup\" already exists",
+  "error": "Form layout with mode \"Signup\" already exists"
+}
+```
+```json Error - Validation
+{
+  "code": 400,
+  "success": false,
+  "cause": "BadRequest",
+  "message": "name must be shorter than or equal to 255 characters",
+  "error": "name must be shorter than or equal to 255 characters"
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+  Creating a form layout requires the service user to have the **"Forms management"** permission (`FormManage`).
+</Check>
+
+<Warning>
+  The service user must be authenticated with a token and have the appropriate access permissions for the specified
+  school.
+</Warning>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

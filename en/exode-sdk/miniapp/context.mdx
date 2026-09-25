@@ -1,0 +1,171 @@
+---
+title: 'Context and types'
+description: 'The MiniAppContext structure, host events and MiniApp commands'
+---
+
+## MiniAppContext
+
+The full context the host passes to the MiniApp during the handshake. It is returned from `app.init()` and available via `app.getContext()`.
+
+```ts
+interface MiniAppContext {
+  user: MiniAppUser
+  school: Record<string, unknown>
+  theme: MiniAppTheme
+  platform: Platform
+  config: MiniAppConfig
+}
+```
+
+### MiniAppUser
+
+<ResponseField name="id" type="number" required>
+  The user's internal ID in Exode. For an unauthenticated visitor (a page with the
+  "Available without login" option) it is `0`, and the other fields are empty.
+</ResponseField>
+
+<ResponseField name="uuid" type="string | null">
+  The user's public UUID.
+</ResponseField>
+
+<ResponseField name="firstName" type="string | null">
+  The user's first name.
+</ResponseField>
+
+<ResponseField name="lastName" type="string | null">
+  The user's last name.
+</ResponseField>
+
+<ResponseField name="avatar" type="object | null">
+  Avatar: `id` and links in three sizes, `small`, `medium`, `maximum` (each `string | null`).
+</ResponseField>
+
+<ResponseField name="email" type="string | null">
+  The user's email.
+</ResponseField>
+
+<ResponseField name="phone" type="string | null">
+  The user's phone number.
+</ResponseField>
+
+<ResponseField name="role" type="string" required>
+  Role: `Student`, `Tutor`, `Parent`, etc.
+</ResponseField>
+
+<ResponseField name="language" type="string | null">
+  Interface language: `en`, `ru`, `uz`, `qa`.
+</ResponseField>
+
+### MiniAppTheme
+
+```ts
+interface MiniAppTheme {
+  scheme: 'light' | 'dark'
+}
+```
+
+### MiniAppConfig
+
+```ts
+interface MiniAppConfig {
+  isDesktop: boolean
+  isMobile: boolean
+  language: string
+}
+```
+
+### Platform
+
+```ts
+type Platform = 'web' | 'native'
+```
+
+<Info>
+  `native` means Exode is running inside a native shell (for example, an iOS/Android app). Otherwise it is `web`.
+</Info>
+
+### school
+
+The `school` field contains the school's public data used by the Exode app itself (for example, `name`, `domain`,
+`preferenceSettings`). The SDK types it as `Record<string, unknown>`: the set of fields is not fixed by the contract,
+so check that the field you need is present before using it.
+
+## Host events (MiniAppEventMap)
+
+Sent by the host when data changes. The MiniApp subscribes via `app.on(event, handler)`.
+
+| Event | Payload | When it fires |
+|---------|---------|-------------------|
+| `theme:changed` | `MiniAppTheme` | The user switched the theme |
+| `user:updated` | `MiniAppUser` | The profile changed or the account was switched |
+| `school:updated` | `Record<string, unknown>` | The school data changed |
+| `config:updated` | `MiniAppConfig` | Window size or language changed |
+| `route:changed` | `{ path, params }` | The host changed the route; `path` is the route template, for example `/course/:courseId([0-9_A-Za-z]+)` |
+| `context:updated` | `Partial<MiniAppContext>` | Partial context update (reserved: the current host version does not send this event) |
+| `visibility:changed` | `{ visible: boolean }` | The iframe became visible/hidden |
+
+<Tip>
+  The `context:updated` event is applied to the internal cache automatically. Other events do not update the
+  `app.getContext()` cache; see [Getting the current context](/en/exode-sdk/miniapp/client#getting-the-current-context).
+</Tip>
+
+## MiniApp → host commands (MiniAppCommandMap)
+
+Called via the `app.route` and `app.ui` namespaces.
+
+| Command | Payload | SDK method |
+|---------|---------|-----------|
+| `navigate` | `{ path, params? }` — `path` is the route template | `app.route.navigate()` |
+| `navigate:back` | — | `app.route.back()` |
+| `showSnackbar` | `{ message, type? }` | `app.ui.showSnackbar()` |
+| `setTabbarVisible` | `{ visible }` | `app.ui.setTabbarVisible()` |
+| `setHeaderVisible` | `{ visible }` | `app.ui.setHeaderVisible()` (no effect on custom pages yet) |
+| `minimize` | — | `app.ui.minimize()` |
+| `close` | — | `app.ui.close()` |
+
+<Note>
+  `minimize` collapses the app window and works only for pages with the
+  "Floating window" or "Side panel" window type (see [Custom pages](/en/customization/custom-pages)).
+  For the "Page" type the command does nothing. A collapsed window is not unloaded: the iframe stays alive,
+  its state is preserved, and the app receives `visibility:changed` with `visible: false`.
+</Note>
+
+## BridgeMessage
+
+The low-level `postMessage` message format. You usually do not need it, but it is useful for debugging.
+
+```ts
+interface BridgeMessage<T = unknown> {
+  type: string
+  requestId?: string
+  payload?: T
+  source: 'exode-host' | 'exode-miniapp'
+}
+```
+
+<Warning>
+  Do not send `postMessage` manually. All valid interactions go through the `ExodeMiniApp` methods: only they guarantee a correct handshake, requestId and origin validation.
+</Warning>
+
+## Importing types
+
+```ts
+import type {
+  MiniAppContext,
+  MiniAppUser,
+  MiniAppTheme,
+  MiniAppConfig,
+  MiniAppEventMap,
+  MiniAppCommandMap,
+  BridgeMessage,
+} from '@exode-team/sdk/miniapp'
+
+// Platform is not exported separately:
+type Platform = MiniAppContext['platform']
+```
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

@@ -1,0 +1,231 @@
+---
+title: "Form layout list"
+description: "Paginated list of the school's form layouts with filtering by mode and status, and search"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/form/layout/list
+```
+
+Requires authentication and the [**"Forms management"**](/en/exode-api/permissions) permission (`FormManage`).
+
+<Info>
+    All filter parameters are optional. Without filters, the method returns all of the school's form layouts, paginated.
+    The layout structure is the same as in the [`form/layout/create`](/en/exode-api/school/form-layout/create) response.
+</Info>
+
+<Info>
+    Array parameters are passed by repeating the parameter: `modes=Form&modes=Signup`.
+</Info>
+
+## Request parameters
+
+### Pagination
+
+<ParamField query="take" type="integer" required={false}>
+    Number of records per page. From `1` to `1000`. Defaults to `100`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Page number (starting at `1`). An alternative to `skip`.
+</ParamField>
+
+<ParamField query="skip" type="integer" required={false}>
+    Number of records to skip. Defaults to `0`.
+</ParamField>
+
+### Filtering
+
+<ParamField query="layoutIds" type="integer[]" required={false}>
+    Filter by layout IDs.
+</ParamField>
+
+<ParamField query="layoutUuids" type="string[]" required={false}>
+    Filter by layout UUIDs.
+</ParamField>
+
+<ParamField query="slugs" type="string[]" required={false}>
+    Filter by layout slugs.
+</ParamField>
+
+<ParamField query="modes" type="enum[]" required={false}>
+    Filter by layout mode: `Form` (form submission), `Signup` (user fields at registration),
+    `Custom`, `Welcome`, `Participant` (product participant questionnaire).
+</ParamField>
+
+<ParamField query="statuses" type="enum[]" required={false}>
+    Filter by layout status: `Draft`, `Published`.
+</ParamField>
+
+<ParamField query="productIds" type="integer[]" required={false}>
+    Filter by product IDs (for layouts linked to a product, such as participant questionnaires).
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+    Search by layout name. Maximum 50 characters.
+</ParamField>
+
+### Sorting
+
+<ParamField query="id" type="enum" required={false}>
+    Sort by ID: `ASC` or `DESC`.
+</ParamField>
+
+<ParamField query="createdAt" type="enum" required={false}>
+    Sort by creation date: `ASC` or `DESC`.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="payload" type="object">
+    Paginated list of form layouts.
+
+    <Expandable title="payload properties">
+        <ResponseField name="items" type="object[]">
+            Array of layouts.
+
+            <Expandable title="Item properties">
+                <ResponseField name="id" type="integer">Layout ID.</ResponseField>
+                <ResponseField name="uuid" type="string">Layout UUID.</ResponseField>
+                <ResponseField name="slug" type="string">Layout slug.</ResponseField>
+                <ResponseField name="name" type="string">Layout name.</ResponseField>
+                <ResponseField name="internalName" type="string | null">Internal name.</ResponseField>
+                <ResponseField name="note" type="string | null">Note.</ResponseField>
+                <ResponseField name="mode" type="enum">Mode: `Form`, `Signup`, `Custom`, `Welcome`, `Participant`.</ResponseField>
+                <ResponseField name="status" type="enum | null">Status: `Draft`, `Published`.</ResponseField>
+                <ResponseField name="config" type="object">Layout configuration (fields, settings).</ResponseField>
+                <ResponseField name="sellerId" type="integer">Seller ID.</ResponseField>
+                <ResponseField name="isEdited" type="boolean | null">Whether the layout has edits.</ResponseField>
+                <ResponseField name="createdAt" type="string">Creation date (ISO 8601).</ResponseField>
+                <ResponseField name="updatedAt" type="string | null">Update date (ISO 8601).</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Current page.</ResponseField>
+        <ResponseField name="count" type="integer">Total number of records.</ResponseField>
+        <ResponseField name="pages" type="integer">Total number of pages.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Whether this is the first page.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Whether this is the last page.</ResponseField>
+        <ResponseField name="next" type="object">Parameters of the next page (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Parameters of the previous page (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/form/layout/list?take=20&modes=Signup&statuses=Published' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listFormLayouts = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/form/layout/list', {
+    params: { take: 20, modes: ['Signup'], statuses: ['Published'] },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listFormLayouts();
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/form/layout/list'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={
+  'take': 20,
+  'modes': ['Signup'],
+  'statuses': ['Published'],
+}, headers=headers)
+
+print(response.json()['payload']['items'])
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/form/layout/list?take=20&modes=Signup&statuses=Published");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Layout list received");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 2,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "id": 34,
+        "createdAt": "2026-05-12T09:30:00.000Z",
+        "updatedAt": "2026-06-01T14:20:00.000Z",
+        "uuid": "b3f1a2c4-88f0-4f4e-9a2f-1c2d3e4f5a6b",
+        "slug": "signup-main",
+        "name": "Registration form",
+        "internalName": "Main questionnaire",
+        "note": null,
+        "mode": "Signup",
+        "status": "Published",
+        "config": { "fields": [] },
+        "sellerId": 77,
+        "isEdited": false
+      }
+    ],
+    "next": { "skip": 20, "take": 20, "page": 2 },
+    "prev": { "skip": 0, "take": 20, "page": 1 }
+  }
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+    Requires token authentication and the **"Forms management"** permission (`FormManage`).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

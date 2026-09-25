@@ -1,0 +1,93 @@
+---
+title: "Payment and invoice"
+description: "Structures of the payment, invoice, invoice item and acquiring objects based on shared zod schemas"
+---
+
+Public structures of financial objects: `payment`, `invoice`, `invoiceProduct`, `acquiring`. The full
+`payment` tree arrives in the [`PaymentCompleted`](/en/exode-api/webhooks/about) webhook.
+
+<Info>
+    The [`invoice/list/raw`](/en/exode-api/school/invoice/list) method returns a compact projection of the invoice
+    (`invoiceId`, `invoiceUuid`, `type`, `status`, amounts, `currency`, `user`, `products`). The full
+    public schemas are below. Monetary fields are numbers (decimals from the database are cast to number).
+</Info>
+
+## `payment`
+
+<ResponseField name="id" type="integer" required>Payment ID.</ResponseField>
+<ResponseField name="uuid" type="string" required>Payment UUID.</ResponseField>
+<ResponseField name="type" type="enum" required>Type: `OneTime`, `RecurrentPay`, `RecurrentInit`.</ResponseField>
+<ResponseField name="status" type="enum | null">
+    Status: `Created`, `WaitingPay`, `WaitingForBinding`, `Processing`, `Completed`, `BindingCompleted`, `Canceled`.
+</ResponseField>
+<ResponseField name="released" type="boolean" required>
+    The purchase has been delivered to the user: after payment, Exode processed the invoice items — granted or extended access to
+    the products.
+</ResponseField>
+<ResponseField name="checkoutPaymentId" type="string | null">Payment ID in the payment system.</ResponseField>
+<ResponseField name="checkoutUrl" type="string | null">Payment URL.</ResponseField>
+<ResponseField name="paidAt" type="string | null">Payment date (ISO 8601).</ResponseField>
+<ResponseField name="expireAt" type="string | null">Expiration date (ISO 8601).</ResponseField>
+<ResponseField name="isCompleted" type="boolean | null">The payment is completed.</ResponseField>
+<ResponseField name="isCanceled" type="boolean | null">The payment is canceled.</ResponseField>
+<ResponseField name="meta" type="object | null">Internal metadata.</ResponseField>
+<ResponseField name="webhookLogs" type="object[] | null">Payment system webhook logs.</ResponseField>
+<ResponseField name="chargeLogs" type="object[] | null">Charge logs.</ResponseField>
+<ResponseField name="statusHistoryLogs" type="object[] | null">Status history: `{ timestamp, status }`.</ResponseField>
+<ResponseField name="acquiring" type="object | null">Acquiring (see below).</ResponseField>
+<ResponseField name="invoice" type="object | null">Invoice (see below).</ResponseField>
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Archiving date or `null`.</ResponseField>
+
+## `invoice`
+
+<ResponseField name="id" type="integer" required>Invoice ID.</ResponseField>
+<ResponseField name="uuid" type="string" required>Invoice UUID.</ResponseField>
+<ResponseField name="humanId" type="integer | null">Human-readable invoice number.</ResponseField>
+<ResponseField name="type" type="enum" required>Type: `Regular`, `InstallmentPay`, `InstallmentInit`, `SubscriptionPay`, `SubscriptionInit`.</ResponseField>
+<ResponseField name="status" type="enum | null">Status: `Active`, `Canceled`.</ResponseField>
+<ResponseField name="totalAmount" type="number" required>Total amount.</ResponseField>
+<ResponseField name="discountAmount" type="number" required>Discount amount.</ResponseField>
+<ResponseField name="currency" type="enum" required>Currency: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ResponseField>
+<ResponseField name="expireAt" type="string | null">Expiration date (ISO 8601).</ResponseField>
+<ResponseField name="isActive" type="boolean | null">The invoice is active.</ResponseField>
+<ResponseField name="meta" type="object | null">Internal invoice metadata.</ResponseField>
+<ResponseField name="user" type="object | null">
+    The buyer — a [user with profile](./user) object; may additionally contain `school`.
+</ResponseField>
+<ResponseField name="products" type="object[] | null">Invoice items (see `invoiceProduct`).</ResponseField>
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+
+## `invoiceProduct`
+
+<ResponseField name="id" type="integer" required>Item ID.</ResponseField>
+<ResponseField name="originalPrice" type="number" required>Original price.</ResponseField>
+<ResponseField name="totalPrice" type="number" required>Total price.</ResponseField>
+<ResponseField name="discountAmount" type="number" required>Discount amount for the item.</ResponseField>
+<ResponseField name="price" type="object | null">Product price — a [`productPrice`](./product) object.</ResponseField>
+<ResponseField name="discount" type="object | null">Discount — a [`discount`](./product) object.</ResponseField>
+<ResponseField name="product" type="object | null">Product — a [`product`](./product) object; may additionally contain `course`.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+
+## `acquiring`
+
+<ResponseField name="id" type="integer" required>Acquiring ID.</ResponseField>
+<ResponseField name="uuid" type="string" required>Acquiring UUID.</ResponseField>
+<ResponseField name="active" type="boolean | null">Active.</ResponseField>
+<ResponseField name="name" type="string | null">Name.</ResponseField>
+<ResponseField name="description" type="string | null">Description.</ResponseField>
+<ResponseField name="hasProviderCommission" type="boolean | null">Whether the provider charges a commission.</ResponseField>
+<ResponseField name="provider" type="object | null">Provider: `{ id, type, name, active }`.</ResponseField>
+
+<Note>
+    Provider secrets (apiKey, configuration) and the payment method/card number are not returned in the public schema.
+</Note>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

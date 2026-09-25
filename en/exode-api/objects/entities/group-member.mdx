@@ -1,0 +1,81 @@
+---
+title: "Group member"
+description: "Structure of the group member object (groupMember) in the Exode API"
+---
+
+The `groupMember` object describes a user's link to a group: membership status, blocks and Telegram integration
+metadata. It is returned, for example, by [`group/:groupId/member/create-many`](/en/exode-api/school/group-member/create-many).
+
+## `groupMember` fields
+
+### Main
+
+<ResponseField name="id" type="integer" required>Member record ID.</ResponseField>
+<ResponseField name="groupId" type="integer | null">Group ID.</ResponseField>
+<ResponseField name="userId" type="integer | null">ID of the member user.</ResponseField>
+<ResponseField name="inviterId" type="integer | null">ID of the inviting user.</ResponseField>
+<ResponseField name="active" type="boolean" required>Whether the member is active in the group.</ResponseField>
+<ResponseField name="blockedUntil" type="string | null">Block end date (ISO 8601) or `null`.</ResponseField>
+<ResponseField name="user" type="object | null">
+    The [user](./user) object (without profile). May be absent depending on the method.
+</ResponseField>
+
+### Telegram
+
+<ResponseField name="isAddedToTg" type="boolean | null">Whether the member has been added to at least one Telegram chat/channel.</ResponseField>
+<ResponseField name="tgChannelMeta" type="object | null">
+    Metadata of adding to the Telegram channel (for example, `chatInviteLink`).
+</ResponseField>
+<ResponseField name="tgGroupChatMeta" type="object | null">
+    Metadata of adding to the Telegram group chat (for example, `chatInviteLink`).
+</ResponseField>
+
+### System audit fields
+
+<ResponseField name="createdAt" type="string" required>Record creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Archiving date or `null`.</ResponseField>
+
+## Example `groupMember` object
+
+```json
+{
+  "id": 1227,
+  "groupId": 101,
+  "userId": 15,
+  "inviterId": null,
+  "active": true,
+  "blockedUntil": null,
+  "isAddedToTg": false,
+  "createdAt": "2025-07-19T15:45:51.212Z",
+  "updatedAt": "2025-07-19T15:45:51.212Z",
+  "archivedAt": null,
+  "tgChannelMeta": {
+    "chatInviteLink": null
+  },
+  "tgGroupChatMeta": {
+    "chatInviteLink": null
+  },
+  "user": {
+    "id": 15,
+    "uuid": "YRnh3REH1Wbd",
+    "status": "Active",
+    "active": true,
+    "activated": true,
+    "banned": false,
+    "email": "user@example.com",
+    "phone": "+9876543210"
+  }
+}
+```
+
+## Related objects
+
+- `user` — the [`User`](./user) object.
+- `groupId` references the [`Group`](./group) object.
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

@@ -1,0 +1,210 @@
+---
+title: 'ExodeMiniApp client'
+description: 'Vanilla JS API: init, route, ui, events'
+---
+
+`ExodeMiniApp` is the main client class. Use one instance per app. All methods are typed and return a `Promise`.
+
+## Creating an instance
+
+```ts
+import { ExodeMiniApp } from '@exode-team/sdk/miniapp'
+
+const app = new ExodeMiniApp({
+  appId: 'my-app',                             // required
+  targetOrigin: 'https://my-school.exode.biz', // origin of the school; default '*'
+  timeout: 10_000,                             // ms, default 10000
+})
+```
+
+### Configuration parameters
+
+<ResponseField name="appId" type="string" required>
+  The mini app identifier, passed to the host during the handshake. For [custom pages](/en/customization/custom-pages),
+  you can choose any value; it is not registered anywhere: the host trusts the app based on the origin of the address in the
+  **App URL (iframe)** field.
+</ResponseField>
+
+<ResponseField name="targetOrigin" type="string">
+  The origin of the school page the app is opened in, for example `https://my-school.exode.biz` or your
+  school's own domain. The SDK sends messages only to this origin and accepts responses only from it.
+  Defaults to `*` (any origin); in this case the SDK writes a warning to the console. In production, specify
+  the origin explicitly.
+</ResponseField>
+
+<ResponseField name="timeout" type="number">
+  Timeout for the handshake and all commands (ms). Defaults to `10000`.
+</ResponseField>
+
+<Warning>
+  The client must run **inside an iframe**. Calling `init()` in a top-level window throws the error `ExodeMiniApp must be used inside an iframe`.
+</Warning>
+
+## Initialization
+
+```ts
+const ctx = await app.init()
+
+console.log(ctx.user.firstName)
+console.log(ctx.theme.scheme)
+```
+
+The method performs the handshake with the host and returns a [`MiniAppContext`](/en/exode-sdk/miniapp/context). Calling `init()` again throws an error.
+
+If the page is opened without signing in (the **Available without login** option), the handshake still succeeds, but `ctx.user.id`
+is `0` and the personal fields are empty, so check `ctx.user.id > 0` before showing user data.
+
+<Warning>
+  The context from `init()` is not signed and is suitable for display only. To reliably identify the user on
+  your backend, use [Init Data](/en/exode-sdk/miniapp/init-data).
+</Warning>
+
+<Info>
+  If the handshake does not complete within `timeout` ms, the Promise is rejected. Make sure the iframe is opened inside Exode and `targetOrigin` is correct.
+</Info>
+
+## Navigation (app.route)
+
+`path` is a platform route template (not a ready-made URL); values are substituted from `params`:
+
+```ts
+// Open the course page: route template + params
+await app.route.navigate('/course/:courseId([0-9_A-Za-z]+)', { courseId: '123' })
+
+// Back through host history
+await app.route.back()
+```
+
+The route templates are the same as in [mobile app deep links](/en/customization/mobile-app#other-screens)
+(`pageId`). The host's current route arrives in the same format in the `route:changed` event.
+
+<Note>
+  When the app is hidden (the user went to another page or minimized the window), the host ignores the
+  `navigate`, `navigate:back` and `setTabbarVisible` commands.
+</Note>
+
+## UI commands (app.ui)
+
+```ts
+// Snackbar notification
+await app.ui.showSnackbar({
+  message: 'Saved!',
+  type: 'success', // 'success' | 'error' | 'info'
+})
+
+// Hide / show host bottom navigation
+await app.ui.setTabbarVisible(false)
+
+// Hide / show host header (see the note below)
+await app.ui.setHeaderVisible(false)
+
+// Minimize the window (window-type pages only)
+await app.ui.minimize()
+
+// Close the mini app
+await app.ui.close()
+```
+
+<Note>
+  `minimize()` works only for pages with the **Floating window** or **Side panel** window type
+  (see [Custom pages](/en/customization/custom-pages)). A minimized window is not unloaded:
+  the app receives the `visibility:changed` event with `visible: false` and keeps running.
+
+  On the school's custom pages, the host currently does not handle the `setHeaderVisible` command, and it has no effect.
+</Note>
+
+<Info>
+  A command's Promise resolves when the host confirms receipt. The host also confirms commands that
+  do nothing in the current context, so a resolved Promise does not guarantee a visible effect.
+</Info>
+
+## Events (app.on)
+
+Subscribe to host events. Returns an unsubscribe function.
+
+```ts
+const unsubscribe = app.on('theme:changed', (theme) => {
+  document.body.className = theme.scheme
+})
+
+app.on('user:updated', (user) => {
+  console.log('User changed:', user.firstName)
+})
+
+app.on('route:changed', ({ path, params }) => {
+  console.log('Host navigated to:', path)
+})
+
+// Unsubscribe
+unsubscribe()
+```
+
+<Tip>
+  The full list of events and their payloads is in the [Context and types](/en/exode-sdk/miniapp/context) section.
+</Tip>
+
+## Getting the current context
+
+`init()` returns the context once. For later access, use `getContext()`: it returns the
+context from the handshake, to which the bridge applies only `context:updated` events.
+
+<Warning>
+  The `theme:changed`, `user:updated`, `school:updated` and `config:updated` events do **not** update the object from
+  `getContext()`. If you need the current theme, user or config, subscribe to these events via
+  `app.on(...)` and store the values yourself, or use the [React hooks](/en/exode-sdk/miniapp/react), which
+  do this automatically.
+</Warning>
+
+```ts
+const ctx = app.getContext()
+
+if (ctx) {
+  console.log(ctx.user.firstName)
+}
+```
+
+## Shutting down
+
+```ts
+app.destroy()
+```
+
+Closes the bridge, removes the `postMessage` listeners and clears event handlers. Call it when the app unmounts.
+
+## Full example
+
+```ts
+import { ExodeMiniApp } from '@exode-team/sdk/miniapp'
+
+const app = new ExodeMiniApp({
+  appId: 'my-app',
+  targetOrigin: 'https://my-school.exode.biz',
+})
+
+async function start() {
+  const ctx = await app.init()
+
+  document.body.className = ctx.theme.scheme
+  document.getElementById('hello')!.textContent = ctx.user.id > 0
+    ? `Hello, ${ctx.user.firstName ?? ''}`
+    : 'Hello, guest'
+
+  app.on('theme:changed', (theme) => {
+    document.body.className = theme.scheme
+  })
+
+  document.getElementById('btn-save')!.addEventListener('click', async () => {
+    await app.ui.showSnackbar({ message: 'Saved!', type: 'success' })
+  })
+}
+
+start().catch(console.error)
+
+window.addEventListener('beforeunload', () => app.destroy())
+```
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

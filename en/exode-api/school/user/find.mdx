@@ -1,0 +1,305 @@
+---
+title: "Find by identifier"
+sidebarTitle: "Find one"
+description: "Find a user in the school by login, Telegram ID or external extId"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/user/find
+```
+
+Requires authentication and the [**"School User Management"**](/en/exode-api/permissions) permission (`SchoolManageUsers`).
+
+<Tip>
+    To find several users at once, use
+    [Find by a list of identifiers](/en/exode-api/school/user/find-many).
+</Tip>
+
+## Query parameters
+
+##### To find a user, pass one of the parameters listed below
+
+<Info>
+  The search is performed by login (email/phone/domain), then by Telegram ID, then by the external identifier
+  `extId`. If several parameters are passed, they are checked in order `login` → `tgId` → `extId`, and
+  the first user found is returned: for example, if no one matches `login`, the search continues by `tgId`.
+  If no user is found by any parameter, `user: null` is returned (this is not an error; the response code is `200`).
+</Info>
+
+<ParamField query="login" type="string" required={false}>
+  User login, 2 to 50 characters. It can be an email address, a phone number in international format
+  or a domain login (`domain`) — by default it looks like `id12345`, but a custom one can be set when
+  creating/updating the user. The value is passed in the query string, so encode it
+  (`encodeURIComponent`): without encoding, the `+` sign in a phone number turns into a space — pass `%2B9876543210`.
+</ParamField>
+
+<ParamField query="tgId" type="integer" required={false}>
+  The user's Telegram ID. An integer.
+</ParamField>
+
+<ParamField query="extId" type="string" required={false}>
+  The user's external identifier from your system (1 to 50 characters) — the value passed in `extId` when
+  [creating](/en/exode-api/school/user/create) or [updating](/en/exode-api/school/user/update) the user.
+</ParamField>
+
+<Info>
+  A user's **login** can be:
+  - An email address (for example: `user@example.com`)
+  - A phone number in international format (for example: `+9876543210`)
+  - The user's domain (for example, `id12345`)
+</Info>
+
+<Warning>
+  You must pass **at least one** of the parameters. Check order: `login` → `tgId` → `extId` — the first
+  user found is returned.
+</Warning>
+
+<RequestExample>
+```bash cURL
+curl --location --request GET 'https://api.exode.biz/saas/v2/user/find?extId=crm_12345' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const findUser = async () => {
+  try {
+    const response = await axios.get('https://api.exode.biz/saas/v2/user/find', {
+      params: { extId: 'crm_12345' },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('User found:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+findUser();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/user/find';
+$params = [ 'extId' => 'crm_12345' ];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url . '?' . http_build_query($params));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  if ($result['payload']) {
+    echo "User found successfully\n";
+    print_r($result['payload']);
+  } else {
+    echo "User not found\n";
+  }
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/user/find'
+
+params = { 'extId': 'crm_12345' }
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.get(url, params=params, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  if result['payload']:
+    print('User found successfully:')
+    print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+  else:
+    print('User not found')
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/user/find?extId=crm_12345");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("User found");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success - User Found
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "user": {
+      "id": 1683,
+      "createdAt": "2026-07-02T11:15:46.896Z",
+      "updatedAt": "2026-07-02T11:15:46.940Z",
+      "archivedAt": null,
+      "uuid": "e-cjTT0CWMCB",
+      "active": true,
+      "activated": true,
+      "banned": false,
+      "status": "Active",
+      "alive": true,
+      "domain": "id1683",
+      "email": "user@example.com",
+      "phone": "+9876543210",
+      "tgId": 987654321,
+      "vkId": null,
+      "appleId": null,
+      "extId": "crm_12345",
+      "schoolId": 198,
+      "language": "Uz",
+      "timezone": 5,
+      "lastOnlineAt": "2026-07-02T10:36:11.446Z",
+      "starsBalance": 0,
+      "currentTime": "2026-07-02T11:15:46+00:00",
+      "isSleepingNow": false,
+      "profile": {
+        "id": 1665,
+        "createdAt": "2026-07-02T11:15:46.932Z",
+        "updatedAt": "2026-07-02T11:15:46.932Z",
+        "archivedAt": null,
+        "userId": 1683,
+        "official": false,
+        "firstName": "Firstname",
+        "lastName": "Lastname",
+        "fullName": "Firstname Lastname",
+        "fullNameShort": "Firstname L.",
+        "bdate": null,
+        "sex": "Ufo",
+        "country": null,
+        "city": null,
+        "role": "Student",
+        "status": null,
+        "title": "",
+        "emojiTitle": "",
+        "avatar": {
+          "id": 1665,
+          "small": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/small/avatar.png",
+          "medium": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/medium/avatar.png",
+          "maximum": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/avatar.png"
+        },
+        "titleState": {
+          "manualTitle": null,
+          "manualEmojiTitle": null,
+          "manualNextTitle": null,
+          "manualNextEmojiTitle": null,
+          "manualExpiredAt": null,
+          "locationTitle": null,
+          "locationEmojiTitle": null,
+          "achievementTitle": null,
+          "achievementEmojiTitle": null
+        }
+      }
+    }
+  }
+}
+```
+```json Success - User Not Found
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "user": null
+  }
+}
+```
+```json Error - Invalid Login
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": [
+    "login must be longer than or equal to 2 characters"
+  ],
+  "error": "Bad Request"
+}
+```
+```json Error - Invalid Telegram ID
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": [
+    "tgId must be an integer number"
+  ],
+  "error": "Bad Request"
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+Finding a user requires the **"School User Management"** permission (`SchoolManageUsers`).
+</Check>
+
+<Warning>
+  The service user must be authenticated by token and have the appropriate access permissions for the specified
+  school.
+</Warning>
+
+<Info>
+  The search is performed only within the specified school. Users from other schools will not be found.
+</Info>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

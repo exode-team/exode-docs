@@ -1,0 +1,73 @@
+---
+title: "Meta Pixel (Facebook)"
+description: "Automatic sending of platform conversion events to Meta Pixel"
+---
+
+## Setup
+
+Paste the standard Meta Pixel snippet with your Pixel ID into the school's [custom code](/en/customization/js-config) (**For developers → Custom code**, HTML tab).
+The platform detects `window.fbq` and starts sending events automatically.
+
+## Events sent
+
+[Conversion events](/en/analytics/events) are mapped to
+[Meta standard events](https://www.facebook.com/business/help/402791146561655)
+(which support automatic ad optimization) and two custom events:
+
+### Sign-up
+
+<ParamField body="CompleteRegistration" type="track">
+    Registration of a new account. The `registration_method` parameter is `email` or `phone`.
+</ParamField>
+
+### Lead (onboarding form)
+
+<ParamField body="Lead" type="track">
+    The onboarding form is filled in.
+</ParamField>
+
+### Course view
+
+<ParamField body="ViewContent" type="track">
+    Course page view. Parameters: `content_type: 'product'`, `content_ids`.
+</ParamField>
+
+### Demo lesson opened
+
+<ParamField body="ViewDemoLesson" type="trackCustom">
+    A demo lesson is opened. Parameters: `content_ids`, `lesson_id`. A custom event:
+    you can set up a custom conversion for it in Events Manager.
+</ParamField>
+
+### Free course enrollment
+
+<ParamField body="StartTrial" type="track">
+    Enrollment in a free course. Parameter: `content_ids`.
+</ParamField>
+
+### Checkout initiated
+
+<ParamField body="InitiateCheckout" type="track">
+    Proceeding to checkout. Parameters: `num_items`, `content_ids`.
+</ParamField>
+
+### Purchase
+
+<ParamField body="Purchase" type="track">
+    Successful payment. Parameters: `value`, `currency` (ISO 4217), `content_type`, `content_ids`.
+    The invoice uuid is passed as `eventID`: Meta itself merges duplicates with the same `eventID`
+    within 48 hours. The event is not sent for payments in internal currencies (points), because
+    Meta requires a real currency.
+</ParamField>
+
+### Course completion
+
+<ParamField body="CompleteCourse" type="trackCustom">
+    Course completion. Parameter: `content_ids`. A custom event.
+</ParamField>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

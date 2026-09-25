@@ -1,0 +1,615 @@
+---
+title: "Sync example"
+description: "A complete example of syncing employees from 1C to Exode: create and update (2-in-1), HR changes, BSL code and a 1-to-1 JSON mapping"
+---
+
+Input: the JSON export from the HR system (the client's structure, as is):
+
+```json
+{
+  "partial": false,
+  "items": [
+    {
+      "last_name": "Ivanov",
+      "middle_name": "Ivanovich",
+      "first_name": "Ivan",
+      "email": "ivanov@company.ru",
+      "job_position_name": "Manager",
+      "job_position_external_id": "e3b0c442-98fc-4b39-96f7-9c2a4d001a01",
+      "department_external_ids": ["ПОДР-001"],
+      "city": null,
+      "status": "Работает",
+      "gender": "м",
+      "external_id": "i.ivanov.01011990",
+      "leader_external_ids": ["p.petrov.15051980"],
+      "role": "user",
+      "date_of_hire": "2020-03-01T00:00:00Z",
+      "date_of_hire_job_poition": "2020-03-01T00:00:00Z",
+      "tag_list": null,
+      "email_for_notifications": "",
+      "date_of_birth": "1990-01-01T00:00:00Z",
+      "login": "i.ivanov.01011990",
+      "password": null
+    }
+  ]
+}
+```
+
+Each item is processed as follows: `PUT /saas/v2/user/ext/{extId}/update` (updates the profile
+by external ID); if the employee does not exist (`NotFound`), `POST /saas/v2/user/create`
+(creates the user **and** hires them via the `extra.staff.employments` array). The user,
+department and position are addressed directly by extId, so you do not need our system's internal
+IDs at all. `extra` is a container for related entities: `staff.employments` for now, and later
+custom field values and so on.
+
+```bsl
+// ============================================================
+// Loading employees into Exode: update by extId → NotFound → create (2-in-1)
+// ============================================================
+
+Процедура ЗагрузитьСотрудников(СтрокаJSONВыгрузки) Экспорт
+
+	ЧтениеJSON = Новый ЧтениеJSON;
+	ЧтениеJSON.УстановитьСтроку(СтрокаJSONВыгрузки);
+	Выгрузка = ПрочитатьJSON(ЧтениеJSON, Ложь);
+
+	Для Каждого Сотрудник Из Выгрузка.items Цикл
+
+		// ---------- profile ----------
+		Профиль = Новый Структура;
+		Профиль.Вставить("firstName", Сотрудник.first_name);   // "Ivan"
+		Профиль.Вставить("lastName",  Сотрудник.last_name);    // "Ivanov"
+		// middle_name ("Ivanovich") has no separate field; if needed:
+		// Профиль.Вставить("firstName", Сотрудник.first_name + " " + Сотрудник.middle_name);
+
+		Если ЗначениеЗаполнено(Сотрудник.date_of_birth) Тогда
+			Профиль.Вставить("bdate", Лев(Сотрудник.date_of_birth, 10)); // "1990-01-01"
+		КонецЕсли;
+
+		Если Сотрудник.gender = "м" Тогда
+			Профиль.Вставить("sex", "Men");
+		ИначеЕсли Сотрудник.gender = "ж" Тогда
+			Профиль.Вставить("sex", "Women");
+		КонецЕсли;
+
+		// ---------- employments (staff is an ARRAY, supports secondary employment) ----------
+		// In a Corporate school, at least one employment is REQUIRED on creation;
+		// without it you get the StaffEmploymentInputRequired error
+		Назначение = Новый Структура;
+		Назначение.Вставить("departmentExtId", Сотрудник.department_external_ids[0]); // "ПОДР-001"
+
+		// The employment extId is IMPORTANT to set: HR changes are addressed by it later
+		// (transfer/promote/terminate; see "What to do when something changes in 1C")
+		Назначение.Вставить("extId", Сотрудник.external_id + ":" + Сотрудник.department_external_ids[0]);
+
+		// startAt = date of appointment to the position; if absent, the company hire date
+		Если ЗначениеЗаполнено(ПолучитьЗначение(Сотрудник, "date_of_hire_job_poition")) Тогда
+			Назначение.Вставить("startAt", Сотрудник.date_of_hire_job_poition);
+		Иначе
+			Назначение.Вставить("startAt", Сотрудник.date_of_hire);
+		КонецЕсли;
+
+		// Position: the correct way is the GUID from 1C (extId); the name is mutable and not unique.
+		// The GUID is optional: if it is missing (old export format), fall back to resolving by name
+		ГуидДолжности = ПолучитьЗначение(Сотрудник, "job_position_external_id"); // GUID or Неопределено
+
+		Если ЗначениеЗаполнено(ГуидДолжности) Тогда
+			ОбеспечитьДолжностьПоГуид(ГуидДолжности, Сотрудник.job_position_name);
+			Назначение.Вставить("positionExtId", ГуидДолжности);
+		Иначе
+			Назначение.Вставить("positionId", ИдДолжностиПоИмени(Сотрудник.job_position_name));
+		КонецЕсли;
+
+		Штат = Новый Массив;
+		Штат.Добавить(Назначение);
+		// Secondary employment: a second employment is another array element
+		// with kind = "InternalSecondary" and its own department/position
+
+		// ---------- user ----------
+		Тело = Новый Структура;
+		Тело.Вставить("extId",   Сотрудник.external_id);  // "i.ivanov.01011990" is the sync key
+		Тело.Вставить("profile", Профиль);
+
+		// Login: if there is an email, the employee signs in with it; if not, pass domain
+		// so the employee can sign in with it (login + password)
+		Если ЗначениеЗаполнено(Сотрудник.email) Тогда
+			Тело.Вставить("email", Сотрудник.email);
+		Иначе
+			Тело.Вставить("domain", ДоменИзЛогина(Сотрудник.login)); // "i.ivanov.01011990" → "i.ivanov.01011990" (as is)
+		КонецЕсли;
+
+		Если ЗначениеЗаполнено(Сотрудник.password) Тогда
+			Тело.Вставить("password", Сотрудник.password);
+		КонецЕсли;
+
+		// status "Работает" (Working) → "Active" (lifts a previously set block).
+		// "Уволен" (Dismissed) is NOT mapped to a status: termination goes through employment/terminate
+		// (the Terminated status is set automatically; see Prerequisites).
+		// Active for a user terminated in Exode (Terminated) re-enables sign-in but does NOT restore
+		// employment; handle re-hiring as a hire (see "What to do when something changes in 1C")
+		Если Сотрудник.status = "Работает" Тогда
+			Тело.Вставить("status", "Active");
+		КонецЕсли;
+
+		// city, role, tag_list, email_for_notifications, date_of_hire_job_poition,
+		// leader_external_ids are not sent to the API
+		// (managers are assigned with a separate department-manager/set call)
+
+		// ---------- UPDATE: existing employee's profile (by extId, no internal IDs) ----------
+		// (HR changes go through /staff/employment/*; see Prerequisites)
+		Ответ = ВызватьAPI("PUT",
+			"/saas/v2/user/ext/" + КодироватьСтроку(Сотрудник.external_id, СпособКодированияСтроки.КодировкаURL) + "/update",
+			Тело);
+
+		Если Ответ.КодОтвета >= 300 И Ответ.Причина = "NotFound" Тогда
+
+			// ---------- CREATE: user + hire (2-in-1) ----------
+			// Related entities go in extra (staff.employments now, form fills etc. later)
+			СтаффЭкстра = Новый Структура;
+			СтаффЭкстра.Вставить("employments", Штат);
+
+			Экстра = Новый Структура;
+			Экстра.Вставить("staff", СтаффЭкстра);
+
+			Тело.Вставить("extra", Экстра);
+
+			Ответ = ВызватьAPI("POST", "/saas/v2/user/create", Тело);
+
+		КонецЕсли;
+
+		Если Ответ.КодОтвета >= 300 Тогда
+			ВызватьИсключение "Employee " + Сотрудник.external_id + ": " + Ответ.Причина;
+		КонецЕсли;
+
+	КонецЦикла;
+
+КонецПроцедуры
+
+// Domain allows Latin letters, digits, "_" and dots (a dot only inside:
+// not first/last and not consecutive). Logins like "i.ivanov.01011990" pass as is;
+// other characters are replaced with "_"
+Функция ДоменИзЛогина(Логин)
+
+	Разрешённые = "abcdefghijklmnopqrstuvwxyz0123456789_.";
+	Результат   = "";
+
+	Для Номер = 1 По СтрДлина(Логин) Цикл
+		Символ = НРег(Сред(Логин, Номер, 1));
+		Результат = Результат + ?(СтрНайти(Разрешённые, Символ) > 0, Символ, "_");
+	КонецЦикла;
+
+	// Dots at the edges and consecutive dots are not allowed
+	Пока СтрНайти(Результат, "..") > 0 Цикл
+		Результат = СтрЗаменить(Результат, "..", ".");
+	КонецЦикла;
+
+	Результат = ?(Лев(Результат, 1) = ".", Сред(Результат, 2), Результат);
+	Результат = ?(Прав(Результат, 1) = ".", Лев(Результат, СтрДлина(Результат) - 1), Результат);
+
+	Возврат Результат;
+
+КонецФункции
+
+// Position by GUID (the correct way): update the name by extId;
+// if not found, create it with extId = GUID. No internal IDs needed at all.
+Процедура ОбеспечитьДолжностьПоГуид(Гуид, Наименование)
+
+	Ответ = ВызватьAPI("PUT",
+		"/saas/v2/staff/position/ext/" + Гуид + "/update",
+		Новый Структура("name", Наименование)); // the name is mutable, so refresh it on every sync
+
+	Если Ответ.КодОтвета < 300 Тогда
+		Возврат;
+	КонецЕсли;
+
+	Если Ответ.Причина <> "StaffPositionNotFound" Тогда
+		ВызватьИсключение "Position " + Гуид + ": " + Ответ.Причина;
+	КонецЕсли;
+
+	Тело = Новый Структура;
+	Тело.Вставить("name",  Наименование);
+	Тело.Вставить("extId", Гуид);
+
+	Ответ = ВызватьAPI("POST", "/saas/v2/staff/position/create", Тело);
+
+	Если Ответ.КодОтвета >= 300 Тогда
+		// StaffPositionNameIsNotUniq: a position with this name already exists under a DIFFERENT GUID.
+		// The name is unique within the school; consolidate the organizations' GUIDs into one on your side
+		ВызватьИсключение "Position """ + Наименование + """: " + Ответ.Причина;
+	КонецЕсли;
+
+КонецПроцедуры
+
+// Fallback for exports without a GUID: search by name; if not found, create
+Функция ИдДолжностиПоИмени(Наименование)
+
+	Ответ = ВызватьAPI("GET",
+		"/saas/v2/staff/position/list?search=" + КодироватьСтроку(Наименование, СпособКодированияСтроки.КодировкаURL));
+
+	// Successful response: { "success": true, "code": 200, "payload": { "items": [...] } }
+	// search is fuzzy, so compare the name exactly (case-insensitive, like name uniqueness in Exode)
+	Для Каждого Должность Из Ответ.Тело.payload.items Цикл
+		Если НРег(Должность.name) = НРег(Наименование) Тогда
+			Возврат Должность.id;
+		КонецЕсли;
+	КонецЦикла;
+
+	Ответ = ВызватьAPI("POST", "/saas/v2/staff/position/create",
+		Новый Структура("name", Наименование));
+
+	Если Ответ.КодОтвета >= 300 Тогда
+		ВызватьИсключение "Position """ + Наименование + """: " + Ответ.Причина;
+	КонецЕсли;
+
+	Возврат Ответ.Тело.payload.id;
+
+КонецФункции
+
+// Safe read of an optional export field
+Функция ПолучитьЗначение(Структура, Имя)
+
+	Значение = Неопределено;
+	Структура.Свойство(Имя, Значение);
+
+	Возврат Значение;
+
+КонецФункции
+
+// HTTP wrapper
+Функция ВызватьAPI(Метод, Путь, ТелоЗапроса = Неопределено)
+
+	Соединение = Новый HTTPСоединение("api.exode.biz", 443,,,, 30, Новый ЗащищенноеСоединениеOpenSSL());
+
+	Запрос = Новый HTTPЗапрос(Путь);
+	Запрос.Заголовки.Вставить("Authorization", "Bearer <AUTH_TOKEN>");
+	Запрос.Заголовки.Вставить("school-id",     "<SCHOOL_ID>");
+	Запрос.Заголовки.Вставить("seller-id",     "<SELLER_ID>");
+	Запрос.Заголовки.Вставить("Content-Type",  "application/json");
+
+	Если ТелоЗапроса <> Неопределено Тогда
+		ЗаписьJSON = Новый ЗаписьJSON;
+		ЗаписьJSON.УстановитьСтроку();
+		ЗаписатьJSON(ЗаписьJSON, ТелоЗапроса);
+		Запрос.УстановитьТелоИзСтроки(ЗаписьJSON.Закрыть(), КодировкаТекста.UTF8);
+	КонецЕсли;
+
+	Ответ = Соединение.ВызватьHTTPМетод(Метод, Запрос);
+
+	Результат = Новый Структура("КодОтвета, Тело, Причина", Ответ.КодСостояния, Неопределено, "");
+
+	СтрокаОтвета = Ответ.ПолучитьТелоКакСтроку();
+
+	Если ЗначениеЗаполнено(СтрокаОтвета) Тогда
+		ЧтениеJSON = Новый ЧтениеJSON;
+		ЧтениеJSON.УстановитьСтроку(СтрокаОтвета);
+		Результат.Тело = ПрочитатьJSON(ЧтениеJSON, Ложь);
+	КонецЕсли;
+
+	Если Результат.КодОтвета >= 400 И Результат.Тело <> Неопределено И Результат.Тело.Свойство("cause") Тогда
+		Результат.Причина = Результат.Тело.cause; // e.g. StaffDepartmentNotFound
+	КонецЕсли;
+
+	Возврат Результат;
+
+КонецФункции
+```
+
+## What actually goes to the API for Ivanov: a 1-to-1 mapping
+
+The input item from the export:
+
+```json
+{
+    "last_name": "Ivanov",
+    "middle_name": "Ivanovich",
+    "first_name": "Ivan",
+    "email": "ivanov@company.ru",
+    "job_position_name": "Manager",
+    "job_position_external_id": "e3b0c442-98fc-4b39-96f7-9c2a4d001a01",
+    "department_external_ids": ["ПОДР-001"],
+    "city": null,
+    "status": "Работает",
+    "gender": "м",
+    "external_id": "i.ivanov.01011990",
+    "leader_external_ids": ["p.petrov.15051980"],
+    "role": "user",
+    "date_of_hire": "2020-03-01T00:00:00Z",
+    "date_of_hire_job_poition": "2020-03-01T00:00:00Z",
+    "tag_list": null,
+    "email_for_notifications": "",
+    "date_of_birth": "1990-01-01T00:00:00Z",
+    "login": "i.ivanov.01011990",
+    "password": null
+}
+```
+
+What goes to the API (a new employee: create + hire in a single call):
+
+```jsonc
+// POST /saas/v2/user/create
+// Authorization: Bearer <AUTH_TOKEN>
+// school-id: <SCHOOL_ID>
+// seller-id: <SELLER_ID>
+
+{
+    "extId": "i.ivanov.01011990",               // ← external_id (sync key)
+    "email": "ivanov@company.ru",               // ← email (if present)
+    "domain": "i.ivanov.01011990",              // ← login, ONLY if email is empty (see the variant below)
+    "password": "<password>",                   // ← you can pass i.ivanov.01011990, come up with your own, or omit it
+                                                //   if you omit password and pass email, we send the password ourselves
+    "status": "Active",                         // ← status: "Работает" (Working) → "Active"; "Уволен" (Dismissed) → NOT via status,
+                                                //   but via employment/terminate (Terminated is set automatically)
+
+    "profile": {
+        "firstName": "Ivan",                    // ← first_name
+        "lastName": "Ivanov",                   // ← last_name
+                                                // ← middle_name ("Ivanovich") has no separate field;
+                                                //   optionally: "firstName": "Ivan Ivanovich"
+        "bdate": "1990-01-01",                  // ← date_of_birth (date only, no time)
+        "sex": "Men"                            // ← gender: "м" → "Men", "ж" → "Women"
+    },
+
+    "extra": {
+        "staff": {
+            "employments": [
+                {
+                    "extId": "i.ivanov.01011990:ПОДР-001",                      // ← employment key (external_id + department code);
+                                                                                //   used later for transfer/promote/terminate
+                    "departmentExtId": "ПОДР-001",                              // ← department_external_ids[0]
+                    "positionExtId": "e3b0c442-98fc-4b39-96f7-9c2a4d001a01",    // ← job_position_external_id (GUID);
+                                                                                //   job_position_name is only the name for creating the position
+                    "startAt": "2020-03-01T00:00:00Z"                           // ← date_of_hire_job_poition (or date_of_hire)
+                }
+            ]
+        }
+    }
+}
+
+// NOT sent (no counterpart in the API):
+//   city, role, tag_list, email_for_notifications
+// Separate calls:
+//   leader_external_ids → POST /staff/department-manager/set (department manager)
+//   date_of_hire (company hire date), if it differs from the appointment date;
+//   the API only stores the employment's startAt
+```
+
+Response: `{ "success": true, "code": 201, "payload": { "user": { ... } } }`: the user is created and hired
+into "ПОДР-001" as "Manager" in a single call.
+
+An existing employee: update the profile by extId, no internal ID needed
+(if the user does not exist, you get `NotFound`, and then you go to create):
+
+```http
+PUT /saas/v2/user/ext/i.ivanov.01011990/update
+
+{
+    "email": "ivanov@company.ru",
+    "status": "Active",
+    "profile": {
+        "firstName": "Ivan",
+        "lastName": "Ivanov",
+        "bdate": "1990-01-01",
+        "sex": "Men"
+    }
+}
+```
+
+No `extra.staff` here, on purpose: sending the employment again is harmless (an idempotent no-op),
+but if the employee was **transferred** to another department in 1C, `extra` would create a second
+employment for them (secondary employment) rather than a transfer. HR changes go through `/staff/employment/*`.
+
+`extra` is also supported in update, in the same format as in create. Let's look at what happens
+to each `employments` element:
+
+```jsonc
+// PUT /saas/v2/user/ext/i.ivanov.01011990/update
+// Authorization: Bearer <AUTH_TOKEN>
+// school-id: <SCHOOL_ID>
+// seller-id: <SELLER_ID>
+
+{
+    // ----- profile: updated as usual -----
+    "email": "ivanov@company.ru",
+    "status": "Active",
+    "profile": {
+        "firstName": "Ivan",
+        "lastName": "Ivanov"
+    },
+
+    // ----- employments: applied IDEMPOTENTLY -----
+    "extra": {
+        "staff": {
+            "employments": [
+                {
+                    // Ivanov ALREADY has an active employment in ПОДР-001 with this position:
+                    // nothing happens (no-op, no duplicate is created), so it is safe
+                    // to send on every sync
+                    "departmentExtId": "ПОДР-001",
+                    "positionExtId": "e3b0c442-98fc-4b39-96f7-9c2a4d001a01"
+                },
+                {
+                    // Ivanov has NO active employment with this department + position pair:
+                    // a NEW employment is created (secondary employment),
+                    // and the old one in ПОДР-001 stays active
+                    "departmentExtId": "ПОДР-002",
+                    "positionExtId": "0f8e2d10-11aa-4c00-8b2f-777d12003b02",
+                    "kind": "InternalSecondary",
+                    "startAt": "2026-07-01T00:00:00Z"
+                }
+            ]
+        }
+    }
+}
+```
+
+The rule is simple: `extra.employments` can only **"make sure the employment exists"**
+(if not, hire; if it does, skip). It CANNOT close or change existing employments:
+- the employee was **transferred** → `POST /staff/employment/ext/{extId}/transfer`;
+- **promoted** (position changed) → `POST /staff/employment/ext/{extId}/promote`;
+- **dismissed** → `POST /staff/employment/ext/{extId}/terminate`.
+
+The mirror consequence: if you do **NOT include** an existing employment in `employments`,
+NOTHING happens to it, and it stays active. The array is not a "full list to
+sync": an employment missing from it ≠ termination of that employment. You can remove an employment
+only with an explicit `terminate` call. So you can send one employment or all of them:
+listed ones are hired or skipped, unlisted ones are left untouched.
+
+If you send a new pair in `extra` during a transfer, you get an employee with TWO active
+employments (the old and the new one), not a transfer.
+
+Secondary employment: several employments in one array (up to 10):
+
+```json
+"extra": {
+    "staff": {
+        "employments": [
+            { "departmentExtId": "ПОДР-001", "positionExtId": "ДОЛЖ-РУК", "kind": "Main" },
+            { "departmentExtId": "ПОДР-002", "positionExtId": "ДОЛЖ-МЕНТОР", "kind": "InternalSecondary" }
+        ]
+    }
+}
+```
+
+The variant without email: sign-in with domain + password (domain is built from login by replacing
+disallowed characters with `_`):
+
+```jsonc
+// POST /saas/v2/user/create
+{
+    "extId": "s.sidorov.02021991",              // ← external_id
+    "domain": "s.sidorov.02021991",             // ← login "s.sidorov.02021991" (email is empty, passed as is)
+    "password": "Sid$2024!",                    // ← password (REQUIRED without email, otherwise there is no way to sign in)
+    "status": "Active",                         // ← status "Работает" (Working)
+    "profile": {
+        "firstName": "Semyon",                  // ← first_name
+        "lastName": "Sidorov",                  // ← last_name
+        "bdate": "1991-02-02",                  // ← date_of_birth
+        "sex": "Men"                            // ← gender "м"
+    },
+    "extra": {
+        "staff": {
+            "employments": [
+                {
+                    "departmentExtId": "ПОДР-001",                              // ← department_external_ids[0]
+                    "positionExtId": "e3b0c442-98fc-4b39-96f7-9c2a4d001a01",    // ← job_position_external_id
+                    "startAt": "2021-06-15T00:00:00Z"                           // ← date_of_hire_job_poition
+                }
+            ]
+        }
+    }
+}
+```
+
+## What to do when something changes in 1C
+
+The loop above is idempotent: you can run it as often as every hour, and repeated runs are safe.
+It picks up profile changes on its own, but **HR** changes it does not; they have separate calls.
+All of them are addressed by the **employment** `extId` (the same `extId` you passed in the
+`employments` element when hiring, which is why it matters to set it).
+
+| Changed in 1C | What to call |
+|---|---|
+| Full name, email, date of birth, gender | Nothing separate: the next run of the loop (`PUT /user/ext/{extId}/update`) updates the profile |
+| Unblocked ("Работает" (Working) is back) | Also the loop: `"status": "Active"` lifts the block |
+| Transferred to another department | `POST /staff/employment/ext/{employment extId}/transfer` |
+| Position changed (promotion) | `POST /staff/employment/ext/{employment extId}/promote` |
+| Dismissed | `POST /staff/employment/ext/{employment extId}/terminate` |
+| Re-hired | `PUT /user/ext/{extId}/update` with `extra.staff.employments` (or `POST /staff/employment/hire`); the `Active` status returns automatically. The regular loop does not work for this: it does not send `extra` for an existing employee |
+| Transferred and changed position at the same time | `.../transfer`, then `.../promote` with the same employment extId and the same `startAt` |
+| Secondary employment added | One more element in `extra.staff.employments` (or `POST /staff/employment/hire`) |
+| Vacation / sick leave | `POST /staff/absence/create`; the `OnLeave` status is set automatically |
+| Position renamed | Nothing: `ОбеспечитьДолжностьПоГуид` refreshes the name during the run |
+| Department renamed | `PUT /staff/department/ext/{code}/update { "name": "..." }` |
+| New department | `POST /staff/department/create` (before syncing employees; see Prerequisites) |
+
+Examples of HR calls (the employment extId from the example above is `i.ivanov.01011990:ПОДР-001`). For
+readability, the extId in paths is shown as is; in a real request, encode it
+(`КодироватьСтроку(..., СпособКодированияСтроки.КодировкаURL)`), otherwise Cyrillic characters in the path will not arrive correctly:
+`i.ivanov.01011990%3A%D0%9F%D0%9E%D0%94%D0%A0-001`.
+
+```http
+// Ivanov was transferred from ПОДР-001 to ПОДР-002 (the old employment is closed, a new one is opened):
+POST /saas/v2/staff/employment/ext/i.ivanov.01011990:ПОДР-001/transfer
+
+{ "toDepartmentExtId": "ПОДР-002" }
+```
+
+```http
+// Promoted: the position changed (GUID of the new position from 1C):
+POST /saas/v2/staff/employment/ext/i.ivanov.01011990:ПОДР-001/promote
+
+{ "toPositionExtId": "0f8e2d10-11aa-4c00-8b2f-777d12003b02" }
+```
+
+```http
+// Dismissed (if this is the last active employment, user.status becomes Terminated automatically,
+// sign-in is disabled and sessions are ended):
+POST /saas/v2/staff/employment/ext/i.ivanov.01011990:ПОДР-001/terminate
+
+{}
+```
+
+```http
+// On vacation from August 1 to August 14 inclusive (the OnLeave status is set automatically; sign-in is NOT blocked).
+// finishAt is the end moment: to cover the whole last day, pass its end.
+// extId is the ID of the absence document in 1C: used later for update/delete
+POST /saas/v2/staff/absence/create
+
+{
+    "extId": "ОТП-2026-0001",
+    "employmentExtId": "i.ivanov.01011990:ПОДР-001",
+    "type": "Vacation",
+    "startAt": "2026-08-01T00:00:00Z",
+    "finishAt": "2026-08-14T23:59:59Z"
+}
+```
+
+A nuance with extId on transfer/promote: the employment is closed and a new one is opened, but **the extId
+moves to the new record**: after the transfer, the same `i.ivanov.01011990:ПОДР-001` still
+points to the employee's current employment. If the extId embeds a department code (as in the
+example), it will no longer match the actual department; this is not an error, it is just a key.
+If you want precision, use the ID of the employment record from 1C as the extId.
+
+## Prerequisites
+
+- Departments (`ПОДР-001`, etc.) must be created in advance:
+  `POST /saas/v2/staff/department/create { "name": "Sales Department", "extId": "ПОДР-001", "parentExtId": "ПОДР-000" }`.
+  If `departmentExtId` is not found, create returns `StaffDepartmentNotFound` and the user is not created.
+- **HR changes for an existing employee** go through the employment endpoints by employment extId:
+  transfer: `POST /staff/employment/ext/{extId}/transfer { "toDepartmentExtId": "ПОДР-002" }`,
+  position change: `.../promote { "toPositionExtId": "<GUID>" }`, termination: `.../terminate`.
+  A new employment (including secondary employment): `POST /staff/employment/hire`, or `extra.staff.employments`
+  in `user/update`/`user/upsert`, which hires idempotently (repeating the same active
+  department + position pair is a no-op); transfers and terminations cannot be expressed through `extra`.
+- **Termination of the last active employment automatically closes the account**: `user.status`
+  becomes `Terminated`, all sessions are ended, and sign-in is blocked. A repeated hire (`hire`)
+  automatically restores `Active`. You cannot terminate the school owner or yourself
+  (`StaffCannotTerminateSchoolOwner` / `StaffCannotTerminateSelf`).
+- **The `Blocked` status (blocked by an admin)** is set via `user/update { "status": "Blocked" }`:
+  sign-in is disabled, sessions are ended, and new course assignments are prohibited; the data is kept
+  and visible in reports. `{ "status": "Active" }` lifts the block, and access is restored.
+  The school owner cannot be blocked.
+- **Absences control the `OnLeave` status**: when an employee's absence becomes effective
+  (vacation, sick leave, etc.), `user.status` automatically becomes `OnLeave`; when it ends or is deleted,
+  it returns to `Active`. `OnLeave` is an informational status: **sign-in remains available**.
+- `leader_external_ids` maps not to the employee but to the department manager, with a separate call:
+  `POST /saas/v2/staff/department-manager/set { "departmentExtId": "ПОДР-001", "employmentExtId": "<employment extId>", "isPrimary": true }`.
+  Pass `isPrimary` explicitly on every call: `set` without it turns the primary manager into a regular one.
+- **`status` from the export maps to `user.status`**: "Работает" (Working) → `"Active"`. "Уволен" (Dismissed) is not
+  passed directly as a status: termination is done via `employment/terminate`, and `Terminated`
+  is set automatically. `OnLeave` is not set manually either; absences control it.
+- `role`/`tag_list`/`city`/`email_for_notifications` have no counterpart in the API; these fields are ignored.
+- **Employees without email**: pass `domain` (Latin letters/digits/`_`/dots; a dot not at the edges and not consecutive;
+  the server converts it to lowercase; unique within the school; if taken → `DomainIsBusy`) and **always
+  `password`**: without email and phone, domain + password becomes the only way to sign in.
+- **Positions by GUID (`positionExtId`), not by name**: the name is mutable and not unique on the 1C side
+  ("someone adds a soft sign and the integration breaks"). The GUID is optional: without it, the name fallback works.
+  Limitation: a position name is unique within the school, so you cannot create two positions with the same name but different GUIDs
+  (different organizations in 1C) (`StaffPositionNameIsNotUniq`); consolidate the GUIDs into one
+  or do not pass a GUID for the second organization.
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

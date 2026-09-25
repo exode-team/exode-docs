@@ -1,0 +1,311 @@
+---
+title: "Invoices"
+description: "Export school invoices with amounts, types, payment statuses and UTM tags"
+---
+
+**type:** `QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY`
+
+Exports the list of the school's invoices with amounts, types, payment statuses and related payments.
+
+This is a report type for the [`query-export/generate`](/en/exode-api/school/query-export/generate) method: pass it
+in the `type` field, and pass the fields described below in `variables`.
+
+<Info>
+  The set of filters matches the [Invoice list](/en/exode-api/school/invoice/list) method, which also describes
+  the nested `payment` and `utmParams` filters. An unknown field or an invalid value is not ignored: the export
+  finishes with `status: Failed`.
+</Info>
+
+---
+
+### Variables (`variables`)
+
+<ParamField body="filter" type="object" required>
+  Filter parameters. Required: to export all records without filtering, pass an empty object `{}`.
+
+  <Expandable title="filter properties">
+    <ParamField body="invoiceIds" type="integer[]">
+      Filter by invoice IDs.
+    </ParamField>
+
+    <ParamField body="userIds" type="integer[]">
+      Filter by user (payer) IDs.
+    </ParamField>
+
+    <ParamField body="productIds" type="integer[]">
+      Filter by product IDs.
+    </ParamField>
+
+    <ParamField body="types" type="string[]">
+      Filter by invoice types. An array of values: `Regular`, `InstallmentInit`, `InstallmentPay`,
+      `SubscriptionInit`, `SubscriptionPay`.
+    </ParamField>
+
+    <ParamField body="search" type="string">
+      Text search, up to 50 characters.
+    </ParamField>
+
+    <ParamField body="totalAmountRange" type="object">
+      Invoice amount range. The `from` and `to` properties are numbers.
+    </ParamField>
+
+    <ParamField body="createdAtDateRange" type="object">
+      Range of invoice creation dates. The `from` and `to` properties are dates in ISO 8601 format.
+    </ParamField>
+
+    <ParamField body="payment" type="object">
+      Nested filter by the related payment (status, provider, etc.).
+    </ParamField>
+
+    <ParamField body="utmParams" type="object">
+      Filter by the invoice's UTM tags. The `value` field is an array of `{ key, value }` pairs (non-empty strings).
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="sort" type="object">
+  Sorting parameters. Values: `ASC` (ascending) or `DESC` (descending).
+
+  <Expandable title="sort properties">
+    <ParamField body="id" type="string">Sort by ID. `ASC` | `DESC`.</ParamField>
+    <ParamField body="createdAt" type="string">Sort by creation date. `ASC` | `DESC`.</ParamField>
+    <ParamField body="updatedAt" type="string">Sort by update date. `ASC` | `DESC`.</ParamField>
+    <ParamField body="status" type="string">Sort by invoice status. `ASC` | `DESC`.</ParamField>
+    <ParamField body="totalAmount" type="string">Sort by amount. `ASC` | `DESC`.</ParamField>
+    <ParamField body="paidAtOrCreatedAt" type="string">Sort by payment date (or creation date). `ASC` | `DESC`.</ParamField>
+    <ParamField body="userLastOnlineAt" type="string">Sort by the payer's last activity. `ASC` | `DESC`.</ParamField>
+    <ParamField body="paymentActualStatus" type="string">Sort by the actual payment status. `ASC` | `DESC`.</ParamField>
+  </Expandable>
+</ParamField>
+
+### Report columns
+
+**Invoices** sheet: User ID, Full name, Login method, Phone number, Email, Telegram, Payment ID, Payment
+date, Course ID, Course name, Tariff ID, Tariff, Payment type, Payment method, Status, Total amount,
+Currency.
+
+Column names are given as they appear without the `Ux-Language` header (in English); with the header, they are translated
+into the specified language (see the [`generate`](/en/exode-api/school/query-export/generate) description for details).
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/query-export/generate' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data '{
+    "type": "QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY",
+    "variables": {
+      "filter": {
+        "types": ["Regular"],
+        "createdAtDateRange": { "from": "2025-01-01T00:00:00Z", "to": "2025-12-31T23:59:59Z" }
+      },
+      "sort": {
+        "paidAtOrCreatedAt": "DESC"
+      }
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const exportInvoices = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/query-export/generate', {
+      type: 'QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY',
+      variables: {
+        filter: {
+          types: ['Regular'],
+          createdAtDateRange: { from: '2025-01-01T00:00:00Z', to: '2025-12-31T23:59:59Z' }
+        },
+        sort: {
+          paidAtOrCreatedAt: 'DESC'
+        }
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    const { uuid } = response.data.payload;
+    console.log('Execution UUID:', uuid);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+exportInvoices();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/query-export/generate';
+$data = [
+  'type' => 'QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY',
+  'variables' => [
+    'filter' => [
+      'types' => ['Regular'],
+      'createdAtDateRange' => ['from' => '2025-01-01T00:00:00Z', 'to' => '2025-12-31T23:59:59Z']
+    ],
+    'sort' => [
+      'paidAtOrCreatedAt' => 'DESC'
+    ]
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200 || $httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Execution UUID: " . $result['payload']['uuid'] . "\n";
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/query-export/generate'
+
+data = {
+  'type': 'QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY',
+  'variables': {
+    'filter': {
+      'types': ['Regular'],
+      'createdAtDateRange': {'from': '2025-01-01T00:00:00Z', 'to': '2025-12-31T23:59:59Z'}
+    },
+    'sort': {
+      'paidAtOrCreatedAt': 'DESC'
+    }
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print(f"Execution UUID: {result['payload']['uuid']}")
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+```
+
+```bsl 1С
+Типы = Новый Массив;
+Типы.Добавить("Regular");
+
+ДиапазонДат = Новый Структура;
+ДиапазонДат.Вставить("from", "2025-01-01T00:00:00Z");
+ДиапазонДат.Вставить("to", "2025-12-31T23:59:59Z");
+
+Фильтр = Новый Структура;
+Фильтр.Вставить("types", Типы);
+Фильтр.Вставить("createdAtDateRange", ДиапазонДат);
+
+Сортировка = Новый Структура;
+Сортировка.Вставить("paidAtOrCreatedAt", "DESC");
+
+Переменные = Новый Структура;
+Переменные.Вставить("filter", Фильтр);
+Переменные.Вставить("sort", Сортировка);
+
+Данные = Новый Структура;
+Данные.Вставить("type", "QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY");
+Данные.Вставить("variables", Переменные);
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/query-export/generate");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
+
+Если Ответ.КодСостояния = 200 ИЛИ Ответ.КодСостояния = 201 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Export started");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "uuid": "ac4140c9-12d3-4c1f-a7aa-d12f16c7bbdd",
+    "flow": "QueryExport",
+    "status": "Processing",
+    "isCompleted": false,
+    "userId": 5562,
+    "createdAt": "2025-01-18T12:44:55.812Z",
+    "updatedAt": "2025-01-18T12:44:55.812Z"
+  }
+}
+```
+</ResponseExample>
+
+The method's response is a generation task with a `uuid`. Get the file via
+[result retrieval](/en/exode-api/school/query-export/result).
+
+## Permission requirements
+
+<Check>
+  Requires token authentication and the [**"School Sales"**](/en/exode-api/permissions) permission (`SellerSales`). Without the permission, the generation request
+  succeeds, but the export finishes with `status: Failed`.
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

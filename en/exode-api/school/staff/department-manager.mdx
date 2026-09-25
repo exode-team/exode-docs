@@ -1,0 +1,369 @@
+---
+title: "Department managers"
+description: "Assign and remove department managers in a corporate school"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+    A department manager is linked to an employee's **active employment**, not to the user.
+    The manager's employment can belong to any department of the school: for example, the head of a unit
+    can be listed in a higher-level department. A department can have several managers, but only
+    one of them is the primary manager (`isPrimary`).
+</Info>
+
+<Info>
+    The assignment follows the employee: on a [transfer or position change](/en/exode-api/school/staff/employment)
+    it automatically moves to the new employment record, and on termination of that employment it is
+    removed. You do not need to call `remove` on termination.
+</Info>
+
+<Tip>
+    The REST API has no list of managers, and `managerId` is returned only in the `set` response. So when assigning,
+    pass your own `extId`: you can use it to remove the manager via `ext/{extId}/remove` without storing
+    internal IDs. You can also set a department's primary manager with the `primaryManagerEmploymentExtId` field
+    when [creating or updating a department](/en/exode-api/school/staff/department).
+</Tip>
+
+<Warning>
+    All staff module endpoints are available **only** to schools in the `Corporate` segment. For other segments, the request
+    returns `401` with `cause: "Forbidden"` and the message `Allowed only for Corporate school`.
+</Warning>
+
+## Assign a manager
+
+```
+POST /saas/v2/staff/department-manager/set
+```
+
+Requires authentication and the [**"Staff Management"**](/en/exode-api/permissions) permission (`StaffManage`).
+
+The endpoint works as an upsert: if a manager is already assigned for the department + employment pair,
+the `isPrimary` flag and `extId` are updated; otherwise a new record is created. A department can have only one
+primary manager: with `isPrimary=true`, the department's previous primary manager is automatically
+demoted (their `isPrimary` flag is reset to `false`). The department and the employment must belong to
+the school, and the employment must be active and already started (a hire with a future `startAt` cannot be assigned as manager
+before that date); otherwise the `StaffDepartmentNotFound` / `StaffEmploymentNotFound` errors are returned.
+
+You can specify the department and the employment either by numeric ID or by external ID:
+in each of the pairs `departmentId`/`departmentExtId` and `employmentId`/`employmentExtId`, pass exactly one field.
+
+### Request parameters
+
+<ParamField body="departmentId" type="integer" required={false}>
+    Department ID. The department must belong to the school. Required if `departmentExtId` is not passed.
+</ParamField>
+
+<ParamField body="departmentExtId" type="string" required={false}>
+    External department ID (`extId`). An alternative to `departmentId`: pass exactly one field of the pair.
+</ParamField>
+
+<ParamField body="employmentId" type="integer" required={false}>
+    ID of the active employment of the employee being assigned as manager. Required if
+    `employmentExtId` is not passed.
+</ParamField>
+
+<ParamField body="employmentExtId" type="string" required={false}>
+    External employment ID (`extId`). An alternative to `employmentId`: pass exactly one field
+    of the pair.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+    External ID of the manager record from the client's system (CRM/1C). 1 to 50 characters; cannot contain
+    `/` or whitespace, since the value is used in `ext/{extId}` paths. Must be unique within the school
+    among non-deleted records; otherwise the `StaffDepartmentManagerExtIdIsNotUniq` error is returned.
+</ParamField>
+
+<ParamField body="isPrimary" type="boolean" required={false}>
+    Make the employee the department's primary manager. Defaults to `false`. With `true`, the previous primary
+    manager automatically stops being primary. The default also applies to an existing
+    record: a repeated `set` without `isPrimary` turns the primary manager into a regular one. For regular synchronization,
+    pass `isPrimary` explicitly.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/department-manager/set' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "departmentId": 4,
+    "employmentId": 9,
+    "extId": "dm-4b6a-9c2e",
+    "isPrimary": true
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const setManager = async () => {
+  const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/department-manager/set', {
+    departmentId: 4,
+    employmentId: 9,
+    extId: 'dm-4b6a-9c2e',
+    isPrimary: true,
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+setManager();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 2,
+    "createdAt": "2026-07-02T11:15:47.328Z",
+    "updatedAt": "2026-07-02T11:15:47.328Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "departmentId": 4,
+    "employmentId": 9,
+    "isPrimary": true,
+    "extId": "dm-4b6a-9c2e"
+  }
+}
+```
+
+```json Error - Manager Already Exists
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentManagerAlreadyExists",
+  "message": "Staff department manager already exists",
+  "error": "Staff department manager already exists"
+}
+```
+
+```json Error - ExtId Is Not Uniq
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentManagerExtIdIsNotUniq",
+  "message": "Staff department manager extId is not uniq",
+  "error": "Staff department manager extId is not uniq"
+}
+```
+
+```json Error - Department Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
+}
+```
+
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
+}
+```
+</ResponseExample>
+
+## Remove a manager
+
+```
+DELETE /saas/v2/staff/department-manager/{managerId}/remove
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Deletes the department manager record (soft delete). After the primary manager is removed, the department
+has no primary manager until a new one is assigned.
+
+### Request parameters
+
+<ParamField path="managerId" type="integer" required>
+    ID of the department manager record (the `id` field from the assignment response).
+</ParamField>
+
+### Response
+
+<ResponseField name="affected" type="integer" required>
+    Number of deleted records (`1` if the manager was removed successfully).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/department-manager/2/remove' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const removeManager = async () => {
+  const { data } = await axios.delete('https://api.exode.biz/saas/v2/staff/department-manager/2/remove', {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+removeManager();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
+}
+```
+</ResponseExample>
+
+## Remove a manager by extId
+
+```
+DELETE /saas/v2/staff/department-manager/ext/{extId}/remove
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Same as removal by `managerId`, but the manager record is looked up by external ID (`extId`) within the school.
+Deletes the department manager record (soft delete). If no record with the given `extId` is found among
+the school's non-deleted records, the `StaffDepartmentManagerNotFound` error is returned.
+
+### Request parameters
+
+<ParamField path="extId" type="string" required>
+    External ID of the department manager record (`extId`). The path value must be URL-encoded.
+</ParamField>
+
+### Response
+
+<ResponseField name="affected" type="integer" required>
+    Number of deleted records (`1` if the manager was removed successfully).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/department-manager/ext/dm-4b6a-9c2e/remove' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const removeManagerByExtId = async () => {
+  const extId = encodeURIComponent('dm-4b6a-9c2e');
+
+  const { data } = await axios.delete(`https://api.exode.biz/saas/v2/staff/department-manager/ext/${extId}/remove`, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+removeManagerByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+
+```json Error - Manager Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentManagerNotFound",
+  "message": "Staff department manager not found",
+  "error": "Staff department manager not found"
+}
+```
+
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+    The staff module is available only to schools in the `Corporate` segment. Assigning and removing department managers
+    requires the **"Staff Management"** permission (`StaffManage`).
+</Check>
+
+<Warning>
+    The service user must be authenticated with a token and have the appropriate access rights to the specified
+    school.
+</Warning>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

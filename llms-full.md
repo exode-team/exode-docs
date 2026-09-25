@@ -1,16 +1,16 @@
 # Exode SaaS API — consolidated reference (for LLMs)
 
 Machine-readable overview of the Exode SaaS API: conventions, all methods, parameters, response shapes, entities, and webhooks.
-Full documentation lives in the `ru/exode-api/` directory. Source of truth — server-side zod schemas (`shared/schemas`).
+Full documentation lives in the `en/exode-api/` directory. Source of truth — server-side zod schemas (`shared/schemas`).
 
 > There is an official npm SDK `@exode-team/sdk` (typed REST API client + mini-app bridge).
-> LLM reference: `ru/exode-sdk/llms.txt`. npm: https://www.npmjs.com/package/@exode-team/sdk
+> LLM reference: `en/exode-sdk/llms.txt`. npm: https://www.npmjs.com/package/@exode-team/sdk
 
 ## Base conventions
 
 - **Base URL:** `https://api.exode.biz`. All methods are prefixed with `/saas/v2`.
 - **Authentication:** header `Authorization: Bearer <TOKEN>` — token of a service user (API client).
-- **Required headers:** `Authorization`, `Seller-Id`, `School-Id`. Seller-Id and School-Id are numeric IDs shown in the admin panel on **Управление → Школа → Для разработчиков → API-ключи** («Данные для интеграции → Идентификаторы»). A seller has exactly one school; the API resolves the school from `Seller-Id` and checks `School-Id` against it (mismatch → `400 ForbiddenSchoolMismatch`). Method pages write them as Postman variables `{{ sellerId }}` / `{{ schoolId }}`.
+- **Required headers:** `Authorization`, `Seller-Id`, `School-Id`. Seller-Id and School-Id are numeric IDs shown in the admin panel on **Manage → School → For developers → API keys** ("Integration data → Identifiers"; RU UI: «Управление → Школа → Для разработчиков → API-ключи»). A seller has exactly one school; the API resolves the school from `Seller-Id` and checks `School-Id` against it (mismatch → `400 ForbiddenSchoolMismatch`). Method pages write them as Postman variables `{{ sellerId }}` / `{{ schoolId }}`.
 - **Response (success):** `{ "success": true, "code": <200..206>, "payload": <data> }`.
 - **Response (error):** `{ "success": false, "code": <4xx/5xx>, "cause": "<code>", "message": "<text>", "error": "<text>", "data": <opt.> }`.
   - Typical `cause` values: `validation` (400), `Unauthorized` (401, missing/invalid token), `Blocked` (401, user is banned), `Forbidden` (401 — missing/foreign `Seller-Id`, missing permission `Forbidden seller resource - permissions <Code>`, entity of another school `seller not entity owner`, `Allowed only for (Corporate) school`; 403 — token user is not an API client), `ForbiddenSchoolMismatch` (400), `Rate` (429). For `validation`, `message` is an array of strings.
@@ -19,7 +19,7 @@ Full documentation lives in the `ru/exode-api/` directory. Source of truth — s
   - Page body: `{ items[], page, count, pages, isFirst, isLast, next:{skip,take,page}, prev:{skip,take,page} }`.
 - **Arrays** in query — by repeating the key: `userIds=1&userIds=2`. **Ranges** — an object `{ from, to }`.
 - **RBAC:** when a method lists several permissions, any single one is enough (OR). The API-client flag on the token is required for all SaaS methods.
-  Permissions are enabled in the admin panel: **Управление → Школа → Для разработчиков → API-ключи → «Редактировать»**. The panel shows human labels, not codes; the API returns the code in the `401` error message (`cause: "Forbidden"`, `Forbidden seller resource - permissions FormManage`). Code → checkbox (corporate schools say «компании» instead of «школы» in the first two labels):
+  Permissions are enabled in the admin panel: **Manage → School → For developers → API keys → "Edit"** (RU UI: «Управление → Школа → Для разработчиков → API-ключи → Редактировать»). The panel shows human labels, not codes; the API returns the code in the `401` error message (`cause: "Forbidden"`, `Forbidden seller resource - permissions FormManage`). Code → checkbox (corporate schools say «компании» instead of «школы» in the first two labels):
 
   | Code | Checkbox (EN UI) | Checkbox (RU UI) | Section (EN / RU) |
   |---|---|---|---|
@@ -40,54 +40,54 @@ Full documentation lives in the `ru/exode-api/` directory. Source of truth — s
 
 | Method | Path | Purpose | Permission (RBAC) | Limit | Docs |
 |---|---|---|---|---|---|
-| POST | `/saas/v2/user/create` | Create a user | `SchoolManageUsers` | — | `ru/exode-api/school/user/create` |
-| PUT | `/saas/v2/user/:userId/update` | Update a user | `SchoolManageUsers` | — | `ru/exode-api/school/user/update` |
-| PUT | `/saas/v2/user/upsert` | Create or update (by login phone→email→domain, then tgId, then extId) | `SchoolManageUsers` | — | `ru/exode-api/school/user/upsert` |
-| GET | `/saas/v2/user/find` | Find a user (login \| tgId \| extId) | `SchoolManageUsers` | — | `ru/exode-api/school/user/find` |
-| POST | `/saas/v2/user/find-many` | Bulk find by lists of logins/tgIds/extIds | `SchoolManageUsers` | — | `ru/exode-api/school/user/find-many` |
-| GET | `/saas/v2/user/list` | Paginated list of school users | `SchoolManageUsers` | — | `ru/exode-api/school/user/list` |
-| DELETE | `/saas/v2/user/delete-many` | Bulk delete (userIds ≤250, reason) | `SchoolManageUsers` | — | `ru/exode-api/school/user/delete-many` |
-| PUT | `/saas/v2/user/:userId/state/set?key=` | Write state by key | `SchoolManageUsers` | — | `ru/exode-api/school/user/state` |
-| GET | `/saas/v2/user/:userId/state/get?key=` | Read state by key | `SchoolManageUsers` | — | `ru/exode-api/school/user/state` |
-| POST | `/saas/v2/user/session/auth-token` | Create/get a user session token | `SchoolManageUsers` | — | `ru/exode-api/school/user/session/auth-token` |
-| GET | `/saas/v2/staff/department/tree` | Flat array of all departments (hierarchy via `parentId`) | `StaffView` | — | `ru/exode-api/school/staff/department` |
-| GET | `/saas/v2/staff/department/list` | Paginated department list | `StaffView` | — | `ru/exode-api/school/staff/department` |
-| POST | `/saas/v2/staff/department/create` | Create a department | `StaffManage` | — | `ru/exode-api/school/staff/department` |
-| PUT | `/saas/v2/staff/department/:departmentId/update` (+ `ext/:extId/update`) | Update a department | `StaffManage` | — | `ru/exode-api/school/staff/department` |
-| DELETE | `/saas/v2/staff/department/:departmentId/delete` (+ `ext/:extId/delete`) | Delete a department | `StaffManage` | — | `ru/exode-api/school/staff/department` |
-| GET | `/saas/v2/staff/position/list` | Paginated position list | `StaffView` | — | `ru/exode-api/school/staff/position` |
-| POST | `/saas/v2/staff/position/create` | Create a position | `StaffManage` | — | `ru/exode-api/school/staff/position` |
-| PUT | `/saas/v2/staff/position/:positionId/update` (+ `ext/:extId/update`) | Update a position | `StaffManage` | — | `ru/exode-api/school/staff/position` |
-| DELETE | `/saas/v2/staff/position/:positionId/delete` (+ `ext/:extId/delete`) | Delete a position | `StaffManage` | — | `ru/exode-api/school/staff/position` |
-| GET | `/saas/v2/staff/employment/list` | Paginated employment list | `StaffView` | — | `ru/exode-api/school/staff/employment` |
-| POST | `/saas/v2/staff/employment/hire` | Hire an employee (new active employment) | `StaffManage` | — | `ru/exode-api/school/staff/employment` |
-| POST | `/saas/v2/staff/employment/transfer` (+ `ext/:extId/transfer`) | Transfer to another department | `StaffManage` | — | `ru/exode-api/school/staff/employment` |
-| POST | `/saas/v2/staff/employment/promote` (+ `ext/:extId/promote`) | Change/remove position | `StaffManage` | — | `ru/exode-api/school/staff/employment` |
-| POST | `/saas/v2/staff/employment/terminate` (+ `ext/:extId/terminate`) | Terminate an employment | `StaffManage` | — | `ru/exode-api/school/staff/employment` |
-| POST | `/saas/v2/staff/department-manager/set` | Assign a department manager (upsert) | `StaffManage` | — | `ru/exode-api/school/staff/department-manager` |
-| DELETE | `/saas/v2/staff/department-manager/:managerId/remove` (+ `ext/:extId/remove`) | Remove a department manager | `StaffManage` | — | `ru/exode-api/school/staff/department-manager` |
-| GET | `/saas/v2/staff/absence/list` | Paginated absence list | `StaffView` | — | `ru/exode-api/school/staff/absence` |
-| POST | `/saas/v2/staff/absence/create` | Create an absence | `StaffManage` | — | `ru/exode-api/school/staff/absence` |
-| PUT | `/saas/v2/staff/absence/:absenceId/update` (+ `ext/:extId/update`) | Update an absence | `StaffManage` | — | `ru/exode-api/school/staff/absence` |
-| DELETE | `/saas/v2/staff/absence/:absenceId/delete` (+ `ext/:extId/delete`) | Delete an absence | `StaffManage` | — | `ru/exode-api/school/staff/absence` |
-| GET | `/saas/v2/group/list/raw` | List groups | `SchoolManageUsers` | — | `ru/exode-api/school/group/list` |
-| GET | `/saas/v2/group/member/list/raw` | List group members | `SchoolManageUsers` | — | `ru/exode-api/school/group-member/list` |
-| POST | `/saas/v2/group/:groupId/member/create-many` | Add members (userIds ≤250) | `SchoolManageUsers` | — | `ru/exode-api/school/group-member/create-many` |
-| DELETE | `/saas/v2/group/:groupId/member/delete-many` | Remove members (userIds ≤250) | `SchoolManageUsers` | — | `ru/exode-api/school/group-member/delete-many` |
-| GET | `/saas/v2/course/list/raw` | List courses | `CourseCurator` \| `SchoolManageUsers` | — | `ru/exode-api/school/course/list` |
-| GET | `/saas/v2/course/:courseId/progresses` | Participant progress for a course | `CourseCurator` \| `SchoolManageUsers` | — | `ru/exode-api/school/course/progresses` |
-| GET | `/saas/v2/certificate/list/raw` | List certificates | `CourseManage` \| `CourseStudentManage` | — | `ru/exode-api/school/certificate/list` |
-| GET | `/saas/v2/invoice/list/raw` | List invoices | `SellerSales` | — | `ru/exode-api/school/invoice/list` |
-| GET | `/saas/v2/product-access/list/raw` | List product accesses | `SchoolManageUsers` \| `CourseStudentManage` | — | `ru/exode-api/school/product-access/list` |
-| GET | `/saas/v2/form/layout/list` | List form layouts | `FormManage` | — | `ru/exode-api/school/form-layout/list` |
-| POST | `/saas/v2/form/layout/create` | Create a form layout | `FormManage` | — | `ru/exode-api/school/form-layout/create` |
-| PUT | `/saas/v2/form/layout/:layoutId/update` | Update a form layout | `FormManage` | — | `ru/exode-api/school/form-layout/update` |
-| DELETE | `/saas/v2/form/layout/:layoutId/delete` | Delete a form layout | `FormManage` | — | `ru/exode-api/school/form-layout/delete` |
-| GET | `/saas/v2/form/custom-field/value/get` | Custom field values | `FormManage` | — | `ru/exode-api/school/custom-field/get` |
-| POST | `/saas/v2/form/custom-field/value/set` | Write field values (by fieldId) | `FormManage` | — | `ru/exode-api/school/custom-field/set` |
-| POST | `/saas/v2/form/custom-field/value/set-by-slug` | Write field values (by slug) | `FormManage` | — | `ru/exode-api/school/custom-field/set` |
-| POST | `/saas/v2/query-export/generate` | Create an asynchronous export | auth (API client) | 100/hour | `ru/exode-api/school/query-export/generate` |
-| GET | `/saas/v2/workflow-execution/:executionUuid/result` | Export result (polling) | auth (API client) | — | `ru/exode-api/school/query-export/result` |
+| POST | `/saas/v2/user/create` | Create a user | `SchoolManageUsers` | — | `en/exode-api/school/user/create` |
+| PUT | `/saas/v2/user/:userId/update` | Update a user | `SchoolManageUsers` | — | `en/exode-api/school/user/update` |
+| PUT | `/saas/v2/user/upsert` | Create or update (by login phone→email→domain, then tgId, then extId) | `SchoolManageUsers` | — | `en/exode-api/school/user/upsert` |
+| GET | `/saas/v2/user/find` | Find a user (login \| tgId \| extId) | `SchoolManageUsers` | — | `en/exode-api/school/user/find` |
+| POST | `/saas/v2/user/find-many` | Bulk find by lists of logins/tgIds/extIds | `SchoolManageUsers` | — | `en/exode-api/school/user/find-many` |
+| GET | `/saas/v2/user/list` | Paginated list of school users | `SchoolManageUsers` | — | `en/exode-api/school/user/list` |
+| DELETE | `/saas/v2/user/delete-many` | Bulk delete (userIds ≤250, reason) | `SchoolManageUsers` | — | `en/exode-api/school/user/delete-many` |
+| PUT | `/saas/v2/user/:userId/state/set?key=` | Write state by key | `SchoolManageUsers` | — | `en/exode-api/school/user/state` |
+| GET | `/saas/v2/user/:userId/state/get?key=` | Read state by key | `SchoolManageUsers` | — | `en/exode-api/school/user/state` |
+| POST | `/saas/v2/user/session/auth-token` | Create/get a user session token | `SchoolManageUsers` | — | `en/exode-api/school/user/session/auth-token` |
+| GET | `/saas/v2/staff/department/tree` | Flat array of all departments (hierarchy via `parentId`) | `StaffView` | — | `en/exode-api/school/staff/department` |
+| GET | `/saas/v2/staff/department/list` | Paginated department list | `StaffView` | — | `en/exode-api/school/staff/department` |
+| POST | `/saas/v2/staff/department/create` | Create a department | `StaffManage` | — | `en/exode-api/school/staff/department` |
+| PUT | `/saas/v2/staff/department/:departmentId/update` (+ `ext/:extId/update`) | Update a department | `StaffManage` | — | `en/exode-api/school/staff/department` |
+| DELETE | `/saas/v2/staff/department/:departmentId/delete` (+ `ext/:extId/delete`) | Delete a department | `StaffManage` | — | `en/exode-api/school/staff/department` |
+| GET | `/saas/v2/staff/position/list` | Paginated position list | `StaffView` | — | `en/exode-api/school/staff/position` |
+| POST | `/saas/v2/staff/position/create` | Create a position | `StaffManage` | — | `en/exode-api/school/staff/position` |
+| PUT | `/saas/v2/staff/position/:positionId/update` (+ `ext/:extId/update`) | Update a position | `StaffManage` | — | `en/exode-api/school/staff/position` |
+| DELETE | `/saas/v2/staff/position/:positionId/delete` (+ `ext/:extId/delete`) | Delete a position | `StaffManage` | — | `en/exode-api/school/staff/position` |
+| GET | `/saas/v2/staff/employment/list` | Paginated employment list | `StaffView` | — | `en/exode-api/school/staff/employment` |
+| POST | `/saas/v2/staff/employment/hire` | Hire an employee (new active employment) | `StaffManage` | — | `en/exode-api/school/staff/employment` |
+| POST | `/saas/v2/staff/employment/transfer` (+ `ext/:extId/transfer`) | Transfer to another department | `StaffManage` | — | `en/exode-api/school/staff/employment` |
+| POST | `/saas/v2/staff/employment/promote` (+ `ext/:extId/promote`) | Change/remove position | `StaffManage` | — | `en/exode-api/school/staff/employment` |
+| POST | `/saas/v2/staff/employment/terminate` (+ `ext/:extId/terminate`) | Terminate an employment | `StaffManage` | — | `en/exode-api/school/staff/employment` |
+| POST | `/saas/v2/staff/department-manager/set` | Assign a department manager (upsert) | `StaffManage` | — | `en/exode-api/school/staff/department-manager` |
+| DELETE | `/saas/v2/staff/department-manager/:managerId/remove` (+ `ext/:extId/remove`) | Remove a department manager | `StaffManage` | — | `en/exode-api/school/staff/department-manager` |
+| GET | `/saas/v2/staff/absence/list` | Paginated absence list | `StaffView` | — | `en/exode-api/school/staff/absence` |
+| POST | `/saas/v2/staff/absence/create` | Create an absence | `StaffManage` | — | `en/exode-api/school/staff/absence` |
+| PUT | `/saas/v2/staff/absence/:absenceId/update` (+ `ext/:extId/update`) | Update an absence | `StaffManage` | — | `en/exode-api/school/staff/absence` |
+| DELETE | `/saas/v2/staff/absence/:absenceId/delete` (+ `ext/:extId/delete`) | Delete an absence | `StaffManage` | — | `en/exode-api/school/staff/absence` |
+| GET | `/saas/v2/group/list/raw` | List groups | `SchoolManageUsers` | — | `en/exode-api/school/group/list` |
+| GET | `/saas/v2/group/member/list/raw` | List group members | `SchoolManageUsers` | — | `en/exode-api/school/group-member/list` |
+| POST | `/saas/v2/group/:groupId/member/create-many` | Add members (userIds ≤250) | `SchoolManageUsers` | — | `en/exode-api/school/group-member/create-many` |
+| DELETE | `/saas/v2/group/:groupId/member/delete-many` | Remove members (userIds ≤250) | `SchoolManageUsers` | — | `en/exode-api/school/group-member/delete-many` |
+| GET | `/saas/v2/course/list/raw` | List courses | `CourseCurator` \| `SchoolManageUsers` | — | `en/exode-api/school/course/list` |
+| GET | `/saas/v2/course/:courseId/progresses` | Participant progress for a course | `CourseCurator` \| `SchoolManageUsers` | — | `en/exode-api/school/course/progresses` |
+| GET | `/saas/v2/certificate/list/raw` | List certificates | `CourseManage` \| `CourseStudentManage` | — | `en/exode-api/school/certificate/list` |
+| GET | `/saas/v2/invoice/list/raw` | List invoices | `SellerSales` | — | `en/exode-api/school/invoice/list` |
+| GET | `/saas/v2/product-access/list/raw` | List product accesses | `SchoolManageUsers` \| `CourseStudentManage` | — | `en/exode-api/school/product-access/list` |
+| GET | `/saas/v2/form/layout/list` | List form layouts | `FormManage` | — | `en/exode-api/school/form-layout/list` |
+| POST | `/saas/v2/form/layout/create` | Create a form layout | `FormManage` | — | `en/exode-api/school/form-layout/create` |
+| PUT | `/saas/v2/form/layout/:layoutId/update` | Update a form layout | `FormManage` | — | `en/exode-api/school/form-layout/update` |
+| DELETE | `/saas/v2/form/layout/:layoutId/delete` | Delete a form layout | `FormManage` | — | `en/exode-api/school/form-layout/delete` |
+| GET | `/saas/v2/form/custom-field/value/get` | Custom field values | `FormManage` | — | `en/exode-api/school/custom-field/get` |
+| POST | `/saas/v2/form/custom-field/value/set` | Write field values (by fieldId) | `FormManage` | — | `en/exode-api/school/custom-field/set` |
+| POST | `/saas/v2/form/custom-field/value/set-by-slug` | Write field values (by slug) | `FormManage` | — | `en/exode-api/school/custom-field/set` |
+| POST | `/saas/v2/query-export/generate` | Create an asynchronous export | auth (API client) | 100/hour | `en/exode-api/school/query-export/generate` |
+| GET | `/saas/v2/workflow-execution/:executionUuid/result` | Export result (polling) | auth (API client) | — | `en/exode-api/school/query-export/result` |
 
 ## Parameters and responses per method
 
@@ -132,7 +132,7 @@ Full documentation lives in the `ru/exode-api/` directory. Source of truth — s
 ### Course
 - **list/raw** (query `FilterCourseInput`, all opt.): `courseIds[]`, `aliases[]`, `types[]`(Bundle|Webinar|TextCourse|Assessment|VideoCourse|PersonalLesson), `tags[]`, `search`(≤50), `subjectCategoryIds[]`, `contentCategoryIds[]`, `archived`, `access`(=FilterAccessProductInput), `product`(FilterProductInput) + pagination (`participation`/`manage`/`administrate` exist in the schema but are not applied by this method). Item: `{ courseId, productId, name, type, groupIds[] }`.
 - **:courseId/progresses** (query — pagination only; no user/lesson filters). Items: `courseProgress` (see entities); DB `status` values: NotStarted|OnTheory|OnPractice|OnReview|OnCorrection|Completed.
-- **Course enrollment:** there is no dedicated endpoint — enroll a user by adding them to a group tied to the course: find the group via `group/list/raw` with `courseIds`, then call `group/:groupId/member/create-many`. Access records are created automatically. Docs: `ru/exode-api/school/course/enroll`.
+- **Course enrollment:** there is no dedicated endpoint — enroll a user by adding them to a group tied to the course: find the group via `group/list/raw` with `courseIds`, then call `group/:groupId/member/create-many`. Access records are created automatically. Docs: `en/exode-api/school/course/enroll`.
 
 ### Certificate
 - **list/raw** (query `FilterCertificateInput`, all opt.): `certificateIds[]`, `courseIds[]`, `userIds[]`, `groupIds[]` (groups of the recipient, not of the certificate), `issuedAtDateRange{from,to}`, `archived` + pagination. Item: `{ certificateId, uuid, link, courseId, courseName?, issuedAt, expireAt?, user?(userWithProfile) }`. `link` is a public certificate URL (opens without authentication).
@@ -198,7 +198,7 @@ Common audit fields on most entities: `id, createdAt, updatedAt, deletedAt?, arc
 - **Delivery:** HTTP `POST`, `Content-Type: application/json`. Body: `{ event, timestamp(ISO), idempotencyKey, data }`.
 - **Signature:** header `signature` = `HMAC-SHA256(secretKey, raw_body)` (the entire body is signed). `secretKey` is used as a literal ASCII/UTF-8 string of 64 characters, without decoding from hex/base64. The result is 64 lowercase hex characters without a `sha256=` prefix. The secret is in the webhook settings in the admin panel.
 - **Test delivery:** a saved endpoint uses the same `secretKey` and algorithm as production events — no separate verification logic is needed. An unsaved endpoint has no permanent secret yet, so save the endpoint first for a verifiable test.
-- **Success:** `200|201|202`. **Timeout:** 15s. **Attempts:** up to 5 in total (first + 4 retries, delays ≈11/33/77/165 min). An endpoint with no successful delivery for 14 days in a row is auto-disabled (`active=false`) and the seller owner is notified. Endpoints are managed only in the admin panel (**Управление → Школа → Вебхуки**), not via the SaaS API. Order is not guaranteed; dedupe by `idempotencyKey`. Maximum 5 endpoints per seller.
+- **Success:** `200|201|202`. **Timeout:** 15s. **Attempts:** up to 5 in total (first + 4 retries, delays ≈11/33/77/165 min). An endpoint with no successful delivery for 14 days in a row is auto-disabled (`active=false`) and the seller owner is notified. Endpoints are managed only in the admin panel (**Manage → School → Webhooks**; RU UI: «Управление → Школа → Вебхуки»), not via the SaaS API. Order is not guaranteed; dedupe by `idempotencyKey`. Maximum 5 endpoints per seller.
 - **Events and `data`:**
   - `UserSignedUp` / `UserAcquainted`: `{ user, profile?, states?{utmSignupParams?} }`.
   - `UserTgConnected`: `{ user, profile?, prevTgId? }`.
@@ -214,7 +214,7 @@ Common audit fields on most entities: `id, createdAt, updatedAt, deletedAt?, arc
 
 ## Analytics target events (frontend, not REST API)
 
-The platform dispatches target events in the student's browser as DOM `CustomEvent`s and forwards them automatically to ad platforms whose snippet is pasted into the school **custom code** (For developers → Custom code, HTML tab) — Meta Pixel, Google Analytics (GA4), Yandex Metrika, VK Ads; no extra code needed. Any other platform can subscribe itself: `document.addEventListener('<event>', e => ...)`. Docs: `ru/analytics/`.
+The platform dispatches target events in the student's browser as DOM `CustomEvent`s and forwards them automatically to ad platforms whose snippet is pasted into the school **custom code** (For developers → Custom code, HTML tab) — Meta Pixel, Google Analytics (GA4), Yandex Metrika, VK Ads; no extra code needed. Any other platform can subscribe itself: `document.addEventListener('<event>', e => ...)`. Docs: `en/analytics/`.
 
 - `analytics:signup-completed` — new account via email/phone (not sent for social/OTP sign-in). `detail: { method: 'email'|'phone' }`.
 - `profile:personal-info-filled-success` — onboarding form completed (lead). No `detail`.
@@ -225,4 +225,4 @@ The platform dispatches target events in the student's browser as DOM `CustomEve
 - `analytics:purchase-completed` — successful invoice payment, sent **once per invoice** (deduped by invoice uuid for 90 days on the device; not sent if the page is opened later than 5 minutes after payment on another device). `detail: { value, currency(Rub|Uzs|Kzt|Usd|Eur|Exes|Free), invoiceUuid, productIds[] }`.
 - `analytics:course-completed` — course completed. `detail: { productId }`.
 
-Documentation (Mintlify): see `docs.json` and the `ru/exode-api/` directory.
+Documentation (Mintlify): see `docs.json` and the `en/exode-api/` directory.

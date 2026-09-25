@@ -1,0 +1,298 @@
+---
+title: "School users"
+description: "Export school users with profile, contacts, statuses and activity"
+---
+
+**type:** `QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY`
+
+Exports the list of school users with profile data, contacts, access statuses and activity.
+
+This is a report type for the [`query-export/generate`](/en/exode-api/school/query-export/generate) method: pass it
+in the `type` field, and the fields described below in `variables`.
+
+<Info>
+  The `variables` structure mirrors the filter and sorting of the school user search.
+  An unknown field or an invalid value is not ignored: the export finishes with
+  `status: Failed`.
+</Info>
+
+---
+
+### Variables (`variables`)
+
+<ParamField body="filter" type="object" required>
+  Filter parameters. Required: to export all records without filtering, pass an empty object `{}`.
+
+  <Expandable title="filter properties">
+    <ParamField body="userIds" type="integer[]">
+      Filter by user IDs.
+    </ParamField>
+
+    <ParamField body="extIds" type="string[]">
+      Filter by external identifiers (`extId`). Up to 250 values, each up to 50 characters.
+    </ParamField>
+
+    <ParamField body="search" type="string">
+      Text search (name, email, phone, domain), up to 50 characters.
+    </ParamField>
+
+    <ParamField body="activated" type="boolean">
+      Filter by the confirmed-login flag.
+    </ParamField>
+
+    <ParamField body="archived" type="boolean">
+      Include archived users.
+    </ParamField>
+
+    <ParamField body="statuses" type="string[]">
+      Filter by account statuses. An array of values: `Active`, `OnLeave`, `Banned`, `Blocked`,
+      `Terminated`, `Deleted`. The filter has no `active`/`banned` fields; use `statuses` instead
+      (for example, blocked users: `["Banned", "Blocked"]`). A request with `active` or `banned` finishes
+      with `status: Failed`.
+    </ParamField>
+
+    <ParamField body="createdAtDateRange" type="object">
+      Sign-up date range. The `from` and `to` properties are dates in ISO 8601 format.
+    </ParamField>
+
+    <ParamField body="lastOnlineAtDateRange" type="object">
+      Last activity date range. The `from` and `to` properties are dates in ISO 8601 format.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="sort" type="object">
+  Sorting parameters. Values: `ASC` (ascending) or `DESC` (descending).
+
+  <Expandable title="sort properties">
+    <ParamField body="id" type="string">Sort by ID. `ASC` | `DESC`.</ParamField>
+    <ParamField body="createdAt" type="string">Sort by sign-up date. `ASC` | `DESC`.</ParamField>
+    <ParamField body="updatedAt" type="string">Sort by update date. `ASC` | `DESC`.</ParamField>
+    <ParamField body="lastOnlineAt" type="string">Sort by last activity. `ASC` | `DESC`.</ParamField>
+    <ParamField body="starsBalance" type="string">Sort by stars balance. `ASC` | `DESC`.</ParamField>
+    <ParamField body="productAccessesCount" type="string">Sort by the number of product accesses. `ASC` | `DESC`.</ParamField>
+  </Expandable>
+</ParamField>
+
+### Report columns
+
+**SchoolUsers** sheet: User ID, First name, Last name, Login method, Phone number, Email, Telegram, Courses count,
+Registration date, Registration type, Created by, Date of birth, Last login date. With `filter.archived: true`,
+"Deleted at" and "Deleted by" are added.
+
+Column names are given as they appear without the `Ux-Language` header (in English); with `Ux-Language: ru` the columns
+are named in Russian (see [`generate`](/en/exode-api/school/query-export/generate) for details).
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/query-export/generate' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data '{
+    "type": "QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY",
+    "variables": {
+      "filter": {
+        "statuses": ["Active"]
+      },
+      "sort": {
+        "createdAt": "DESC"
+      }
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const exportSchoolUsers = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/query-export/generate', {
+      type: 'QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY',
+      variables: {
+        filter: {
+          statuses: ['Active']
+        },
+        sort: {
+          createdAt: 'DESC'
+        }
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    const { uuid } = response.data.payload;
+    console.log('Execution UUID:', uuid);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+exportSchoolUsers();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/query-export/generate';
+$data = [
+  'type' => 'QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY',
+  'variables' => [
+    'filter' => [
+      'statuses' => ['Active']
+    ],
+    'sort' => [
+      'createdAt' => 'DESC'
+    ]
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200 || $httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Execution UUID: " . $result['payload']['uuid'] . "\n";
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/query-export/generate'
+
+data = {
+  'type': 'QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY',
+  'variables': {
+    'filter': {
+      'statuses': ['Active']
+    },
+    'sort': {
+      'createdAt': 'DESC'
+    }
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print(f"Execution UUID: {result['payload']['uuid']}")
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+```
+
+```bsl 1С
+Статусы = Новый Массив;
+Статусы.Добавить("Active");
+
+Фильтр = Новый Структура;
+Фильтр.Вставить("statuses", Статусы);
+
+Сортировка = Новый Структура;
+Сортировка.Вставить("createdAt", "DESC");
+
+Переменные = Новый Структура;
+Переменные.Вставить("filter", Фильтр);
+Переменные.Вставить("sort", Сортировка);
+
+Данные = Новый Структура;
+Данные.Вставить("type", "QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY");
+Данные.Вставить("variables", Переменные);
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/query-export/generate");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
+
+Если Ответ.КодСостояния = 200 ИЛИ Ответ.КодСостояния = 201 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Export started");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "uuid": "ac4140c9-12d3-4c1f-a7aa-d12f16c7bbdd",
+    "flow": "QueryExport",
+    "status": "Processing",
+    "isCompleted": false,
+    "userId": 5562,
+    "createdAt": "2025-01-18T12:44:55.812Z",
+    "updatedAt": "2025-01-18T12:44:55.812Z"
+  }
+}
+```
+</ResponseExample>
+
+The method returns a generation task with a `uuid`. Get the file via
+[getting the result](/en/exode-api/school/query-export/result).
+
+## Permission requirements
+
+<Check>
+  Token authentication and the [**"School User Management"**](/en/exode-api/permissions) permission (`SchoolManageUsers`) are required. Without the permission,
+  the generation request succeeds, but the export finishes with `status: Failed`.
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

@@ -1,0 +1,192 @@
+---
+title: "Delete a form layout"
+description: "Soft-delete a form layout by its ID"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+DELETE /saas/v2/form/layout/:layoutId/delete
+```
+
+Requires authentication and the [**"Forms management"**](/en/exode-api/permissions) permission (`FormManage`).
+
+## Path parameters
+
+<ParamField path="layoutId" type="integer" required={true}>
+  ID of the form layout to delete. The layout must belong to the current school.
+</ParamField>
+
+<Info>
+  The deletion is a **soft delete** — the layout is marked as deleted but is not physically removed from the database. Related fields and values remain unchanged.
+  After deletion, the layout's `slug` is released and can be used for a new layout (the same applies to the
+  single layouts of the `Signup` / `Welcome` modes). A deleted layout cannot be restored via the API. Calling the
+  method again for an already deleted layout returns `401` with the message `seller not entity owner`.
+</Info>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/form/layout/5/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const deleteLayout = async () => {
+  const layoutId = 5;
+
+  try {
+    const response = await axios.delete(`https://api.exode.biz/saas/v2/form/layout/${layoutId}/delete`, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Layout deleted:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+deleteLayout();
+```
+
+```php PHP
+<?php
+
+$layoutId = 5;
+$url = "https://api.exode.biz/saas/v2/form/layout/{$layoutId}/delete";
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  echo "Layout deleted successfully\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+layout_id = 5
+url = f'https://api.exode.biz/saas/v2/form/layout/{layout_id}/delete'
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.delete(url, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Layout deleted successfully:')
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/form/layout/5/delete");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("DELETE", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Form deleted");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+```json Error - Layout Not Found / Not Owned
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - permissions FormManage",
+  "error": "Forbidden seller resource - permissions FormManage"
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+  Deleting a form layout requires the service user to have the **"Forms management"** permission (`FormManage`).
+</Check>
+
+<Check>
+  The layout must belong to the current school (checked automatically).
+</Check>
+
+<Warning>
+  The service user must be authenticated with a token and have the appropriate access permissions for the specified
+  school.
+</Warning>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

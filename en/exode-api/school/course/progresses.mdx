@@ -1,0 +1,233 @@
+---
+title: "Course progress"
+description: "Get participants' progress on course lessons with pagination"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+import CourseAccessModeNote from '/snippets/en/exode-api/course-access-mode-note.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/course/:courseId/progresses
+```
+
+<CourseAccessModeNote/>
+
+<Info>
+    Returns lesson progress records of the selected course for all participants. Each record corresponds to
+    a "user + lesson" pair. Records are created as the course is taken, so there may be no record for lessons
+    the participant has not reached yet. The method has no filters by user or lesson:
+    filter by `userId` / `lessonId` on your side.
+</Info>
+
+<Tip>
+    To receive progress changes without periodically polling this method, subscribe to the
+    `CourseProgressChanged` and `CourseCompleted` webhooks — see [Webhooks](/en/exode-api/webhooks/about).
+</Tip>
+
+## Path parameters
+
+<ParamField path="courseId" type="integer" required>
+    ID of the course to get progress for — the `courseId` field from the
+    [course list](/en/exode-api/school/course/list).
+</ParamField>
+
+## Request parameters
+
+### Pagination
+
+<ParamField query="skip" type="integer" required={false}>
+    Number of records to skip. Defaults to `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Page number (an alternative to `skip`). Starts at `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Number of records per page. From `1` to `1000`. Defaults to `100`.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="payload" type="object">
+    A paginated list of progress records. The full record structure is `courseProgress` in the
+    [`course`](/en/exode-api/objects/entities/course) reference.
+
+    <Expandable title="payload properties">
+        <ResponseField name="items" type="object[]">
+            An array of progress records.
+
+            <Expandable title="Item properties">
+                <ResponseField name="id" type="integer">Progress record ID.</ResponseField>
+                <ResponseField name="courseId" type="integer | null">Course ID.</ResponseField>
+                <ResponseField name="userId" type="integer">User ID.</ResponseField>
+                <ResponseField name="lessonId" type="integer">Lesson ID.</ResponseField>
+                <ResponseField name="status" type="enum | null">
+                    Lesson progress status:
+                    - `NotStarted` — access granted, but the lesson has not been opened yet;
+                    - `OnTheory` — the participant is studying the lesson theory;
+                    - `OnPractice` — the participant has opened the practical part;
+                    - `OnReview` — the homework is awaiting review by a curator;
+                    - `OnCorrection` — the curator has returned the assignment for revision;
+                    - `Completed` — the lesson is fully completed.
+                </ResponseField>
+                <ResponseField name="scheduleStartAt" type="string | null">Scheduled start date (ISO 8601).</ResponseField>
+                <ResponseField name="scheduleFinishAt" type="string | null">Scheduled end date (ISO 8601).</ResponseField>
+                <ResponseField name="practiceDeadlineAt" type="string | null">Deadline for the practical part (ISO 8601).</ResponseField>
+                <ResponseField name="isCompleted" type="boolean | null">Whether the lesson is completed.</ResponseField>
+                <ResponseField name="isOnReview" type="boolean | null">Whether the lesson is under review.</ResponseField>
+                <ResponseField name="completedAt" type="string | null">Completion date (ISO 8601).</ResponseField>
+                <ResponseField name="onReviewAt" type="string | null">Date submitted for review (ISO 8601).</ResponseField>
+                <ResponseField name="statusHistoryLogs" type="object[] | null">
+                    Status change history: an array of `{ timestamp, status }` objects.
+                </ResponseField>
+                <ResponseField name="createdAt" type="string">Record creation date (ISO 8601).</ResponseField>
+                <ResponseField name="updatedAt" type="string">Record update date (ISO 8601).</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Current page.</ResponseField>
+        <ResponseField name="count" type="integer">Total number of records.</ResponseField>
+        <ResponseField name="pages" type="integer">Total number of pages.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Whether this is the first page.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Whether this is the last page.</ResponseField>
+        <ResponseField name="next" type="object">Next page parameters (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Previous page parameters (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/course/10/progresses?take=50' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const getProgresses = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/course/10/progresses', {
+    params: { take: 50 },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+getProgresses();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/course/10/progresses?take=50';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/course/10/progresses'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'take': 50 }, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/course/10/progresses?take=50");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Progress retrieved");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "id": 9001,
+        "courseId": 10,
+        "userId": 123,
+        "lessonId": 55,
+        "status": "Completed",
+        "isCompleted": true,
+        "completedAt": "2025-01-15T10:30:00Z",
+        "createdAt": "2025-01-10T09:00:00Z",
+        "updatedAt": "2025-01-15T10:30:00Z"
+      }
+    ],
+    "next": {
+      "skip": 20,
+      "take": 20,
+      "page": 2
+    },
+    "prev": {
+      "skip": 0,
+      "take": 20,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+    Requires token authentication and one of the permissions: [**"Course Curator"**](/en/exode-api/permissions) (`CourseCurator`) or **"School User Management"** (`SchoolManageUsers`).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

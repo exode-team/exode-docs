@@ -1,0 +1,303 @@
+---
+title: "List group members"
+description: "Get a list of school group members filtered by group, user and date added"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/group/member/list/raw
+```
+
+<Info>
+    All filter parameters are optional. If you pass no filters, all members
+    of all school groups are returned, subject to pagination.
+</Info>
+
+<Info>
+    Pass array parameters by repeating the parameter in the query string: `groupIds=1&groupIds=2&groupIds=3`.
+</Info>
+
+## Request parameters
+
+### Pagination
+
+<ParamField query="skip" type="integer" required={false}>
+    Number of records to skip. Default: `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Page number (an alternative to `skip`). Starts at `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Number of records per page. From `1` to `1000`. Default: `100`.
+</ParamField>
+
+### Filtering
+
+<ParamField query="groupIds" type="integer[]" required={false}>
+    Filter by group IDs.
+</ParamField>
+
+<ParamField query="userIds" type="integer[]" required={false}>
+    Filter by member user IDs.
+</ParamField>
+
+<ParamField query="memberIds" type="integer[]" required={false}>
+    Filter by member record IDs.
+</ParamField>
+
+<ParamField query="inviterUserIds" type="integer[]" required={false}>
+    Filter by IDs of inviting users.
+</ParamField>
+
+<ParamField query="productIds" type="integer[]" required={false}>
+    Filter by IDs of the products the groups are linked to.
+</ParamField>
+
+<ParamField query="active" type="boolean" required={false}>
+    Filter by whether the member is active in the group.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+    Search by the member's login (email, phone) and name. Maximum 50 characters.
+</ParamField>
+
+<ParamField query="createdAtDateRange" type="object" required={false}>
+    Date range of being added to the group.
+
+    <Expandable title="createdAtDateRange properties">
+        <ParamField query="from" type="string">Range start (ISO 8601), exclusive.</ParamField>
+        <ParamField query="to" type="string">Range end (ISO 8601), inclusive.</ParamField>
+    </Expandable>
+</ParamField>
+
+## Response fields
+
+<ResponseField name="payload" type="object">
+    Paginated list of group members. For the base member structure, see the
+    [`groupMember`](/en/exode-api/objects/entities/group-member) reference; for the user, see
+    the [`user`](/en/exode-api/objects/entities/user) reference.
+
+    <Expandable title="payload properties">
+        <ResponseField name="items" type="object[]">
+            Array of members.
+
+            <Expandable title="Item properties">
+                <ResponseField name="id" type="integer">Member record ID.</ResponseField>
+                <ResponseField name="groupId" type="integer">Group ID.</ResponseField>
+                <ResponseField name="groupName" type="string">Group name.</ResponseField>
+                <ResponseField name="userId" type="integer">Member user ID.</ResponseField>
+                <ResponseField name="inviterId" type="integer | null">Inviting user ID.</ResponseField>
+                <ResponseField name="active" type="boolean">Whether the member is active in the group.</ResponseField>
+                <ResponseField name="blockedUntil" type="string | null">
+                    Block end date (ISO 8601) or `null`.
+                </ResponseField>
+                <ResponseField name="enrollmentSource" type="string">
+                    How the member joined the group: `Manual`: added manually by an administrator,
+                    `System`: added by the platform (access granted, course enrollment),
+                    `Automatic`: added by an auto-enrollment policy.
+                </ResponseField>
+                <ResponseField name="user" type="object | null">
+                    Member user with profile: a [`user`](/en/exode-api/objects/entities/user) object.
+                </ResponseField>
+                <ResponseField name="inviter" type="object | null">
+                    Inviting user with profile, or `null` if the member was added by the platform.
+                </ResponseField>
+                <ResponseField name="tgChannelMeta" type="object | null">
+                    Metadata of being added to a Telegram channel (for example, `chatInviteLink`).
+                </ResponseField>
+                <ResponseField name="tgGroupChatMeta" type="object | null">
+                    Metadata of being added to a Telegram group chat (for example, `chatInviteLink`).
+                </ResponseField>
+                <ResponseField name="createdAt" type="string">Date added to the group (ISO 8601).</ResponseField>
+                <ResponseField name="updatedAt" type="string">Record update date (ISO 8601).</ResponseField>
+                <ResponseField name="archivedAt" type="string | null">Archive date or `null`.</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Current page.</ResponseField>
+        <ResponseField name="count" type="integer">Total number of records.</ResponseField>
+        <ResponseField name="pages" type="integer">Total number of pages.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Whether this is the first page.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Whether this is the last page.</ResponseField>
+        <ResponseField name="next" type="object">Next page parameters (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Previous page parameters (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/group/member/list/raw?take=20&groupIds=501' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listGroupMembers = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/group/member/list/raw', {
+    params: { take: 20, groupIds: [501] },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listGroupMembers();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/group/member/list/raw?take=20&groupIds=501';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/group/member/list/raw'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'take': 20, 'groupIds': [501] }, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/group/member/list/raw?take=20&groupIds=501");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Member list received");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "id": 1227,
+        "createdAt": "2026-07-19T15:45:51.212Z",
+        "updatedAt": "2026-07-19T15:45:51.212Z",
+        "archivedAt": null,
+        "groupId": 501,
+        "groupName": "Cohort #1",
+        "userId": 1683,
+        "inviterId": null,
+        "active": true,
+        "blockedUntil": null,
+        "enrollmentSource": "System",
+        "tgChannelMeta": {},
+        "tgGroupChatMeta": {},
+        "user": {
+          "id": 1683,
+          "createdAt": "2026-07-02T11:15:46.896Z",
+          "updatedAt": "2026-07-02T11:15:46.940Z",
+          "archivedAt": null,
+          "uuid": "e-cjTT0CWMCB",
+          "active": true,
+          "activated": true,
+          "banned": false,
+          "status": "Active",
+          "alive": true,
+          "domain": "id1683",
+          "email": "user@example.com",
+          "phone": null,
+          "tgId": null,
+          "vkId": null,
+          "appleId": null,
+          "extId": "crm_12345",
+          "schoolId": 198,
+          "language": null,
+          "timezone": null,
+          "lastOnlineAt": null,
+          "starsBalance": 0,
+          "profile": {
+            "id": 1665,
+            "userId": 1683,
+            "official": false,
+            "firstName": "Firstname",
+            "lastName": "Lastname",
+            "fullName": "Firstname Lastname",
+            "sex": "Ufo",
+            "role": "Student"
+          }
+        },
+        "inviter": null
+      }
+    ],
+    "next": {
+      "skip": 20,
+      "take": 20,
+      "page": 2
+    },
+    "prev": {
+      "skip": 0,
+      "take": 20,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+    Requires token authentication and the [**"School User Management"**](/en/exode-api/permissions) permission (`SchoolManageUsers`).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

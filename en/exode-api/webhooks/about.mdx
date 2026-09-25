@@ -1,0 +1,628 @@
+---
+title: "Webhooks"
+description: "Receive Exode user, course, access and payment events in your own services in real time"
+---
+
+Exode webhooks are **outgoing** HTTP notifications: when an event occurs on the platform (sign-up, payment, course progress, etc.), Exode sends a `POST` request with the event data to your URL.
+
+<Info>
+    Delivery is near real-time through a queue with retries. Your receiver must be
+    **idempotent** and respond quickly with `200`, `201` or `202` (response timeout: **15 seconds**).
+</Info>
+
+## How it works
+
+<Steps>
+<Step title="The event is recorded">
+    The Exode core generates a domain event (for example, `PaymentCompleted`) with a timestamp and the initiator parameters.
+</Step>
+
+<Step title="Active endpoints are looked up">
+    Exode finds your seller's active endpoints subscribed to this event.
+    You can create **no more than 5 endpoints** per seller.
+</Step>
+
+<Step title="The payload is assembled">
+    The related entities (user, payment, access, etc.) are collected for the event, and `data`,
+    a single `idempotencyKey` and `timestamp` are built. Extra fields are stripped according to a strict schema (allow-list).
+</Step>
+
+<Step title="Signed delivery and retries">
+    The body is sent as a `POST` request with a `signature` header (HMAC-SHA256). If the receiver does not respond with
+    `200/201/202`, delivery is retried with an increasing delay, up to **5 attempts** in total.
+
+    <Check>
+        To stop delivery, set the endpoint to `active = false` or delete it.
+    </Check>
+</Step>
+</Steps>
+
+## Message format
+
+The request body is a JSON object with the following structure:
+
+<ResponseField name="event" type="string" required>
+    Event name. One of the values listed in [Supported events](#supported-events).
+</ResponseField>
+
+<ResponseField name="timestamp" type="string" required>
+    The moment the event occurred, in ISO 8601 format (UTC).
+</ResponseField>
+
+<ResponseField name="idempotencyKey" type="string" required>
+    A single event key. The same key is used for all endpoints and **is preserved across
+    retries**. Use it for deduplication.
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+    Payload with domain entities. Its contents depend on the event; see below.
+</ResponseField>
+
+```json Body structure
+{
+  "event": "PaymentCompleted",
+  "timestamp": "2025-01-18T12:44:55.812Z",
+  "idempotencyKey": "7qqQL3bE0o8R8d3X",
+  "data": { /* depends on the event */ }
+}
+```
+
+<Warning>
+    The signature header is literally named `signature` (lowercase), not `X-Signature`.
+    The signature is computed over the **entire request body**, including `event`, `timestamp` and `idempotencyKey`.
+</Warning>
+
+## Signature verification
+
+Every request carries a `signature` header: an `HMAC-SHA256` (hex) of the **raw request body**,
+signed with your endpoint's secret key.
+
+<Info>
+    `secretKey` is passed to HMAC **as is**, as a 64-character ASCII/UTF-8 string. Despite its
+    appearance, you do not need to decode it from hex or base64. The resulting signature is a 64-character
+    lowercase hex string with no `sha256=` prefix.
+</Info>
+
+<CodeGroup>
+```javascript Node.js (Express)
+import crypto from 'crypto';
+import express from 'express';
+
+const app = express();
+
+// Important: use the raw body, not a re-serialized object
+app.post('/webhooks/exode', express.raw({ type: 'application/json' }), (req, res) => {
+  const rawBody = req.body.toString('utf8');
+  const received = req.header('signature') || '';
+
+  const expected = crypto
+    .createHmac('sha256', process.env.EXODE_WEBHOOK_SECRET)
+    .update(rawBody)
+    .digest('hex');
+
+  const valid =
+    received.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
+
+  if (!valid) {
+    return res.status(401).send('invalid signature');
+  }
+
+  const payload = JSON.parse(rawBody);
+  // TODO: deduplicate by payload.idempotencyKey and handle payload.data
+
+  res.sendStatus(200);
+});
+```
+
+```php PHP
+<?php
+$rawBody  = file_get_contents('php://input');
+$received = $_SERVER['HTTP_SIGNATURE'] ?? '';
+$secret   = getenv('EXODE_WEBHOOK_SECRET');
+
+$expected = hash_hmac('sha256', $rawBody, $secret);
+
+if (!hash_equals($expected, $received)) {
+  http_response_code(401);
+  exit('invalid signature');
+}
+
+$payload = json_decode($rawBody, true);
+// TODO: deduplicate by $payload['idempotencyKey'] and handle $payload['data']
+
+http_response_code(200);
+```
+
+```python Python (Flask)
+import hmac, hashlib, os
+from flask import Flask, request, abort
+
+app = Flask(__name__)
+
+@app.post('/webhooks/exode')
+def exode_webhook():
+    raw_body = request.get_data()  # bytes, raw body
+    received = request.headers.get('signature', '')
+    secret = os.environ['EXODE_WEBHOOK_SECRET'].encode()
+
+    expected = hmac.new(secret, raw_body, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, received):
+        abort(401)
+
+    payload = request.get_json()
+    # TODO: deduplicate by payload['idempotencyKey'] and handle payload['data']
+    return '', 200
+```
+</CodeGroup>
+
+<Warning>
+    Compute the HMAC over the **raw request body**. Re-serializing the JSON (with a different field order,
+    whitespace or Unicode escaping) produces a different signature.
+</Warning>
+
+## Delivery and retries
+
+| Parameter | Value |
+|---|---|
+| HTTP method | `POST` |
+| Content-Type | `application/json` |
+| Signature header | `signature` (HMAC-SHA256, hex) |
+| Response timeout | 15 seconds |
+| Success codes | `200`, `201`, `202` |
+| Number of attempts | up to 5 (initial delivery + up to 4 retries) |
+| Delays between attempts | ≈ 11 → 33 → 77 → 165 minutes (the last attempt comes roughly 4 h 45 min after the first) |
+| Delivery order | not guaranteed |
+| Deduplication | by `idempotencyKey` on your side |
+
+<Info>
+    Any response other than `200/201/202`, as well as a timeout or network error, counts as a failure and triggers
+    a retry. After 5 failed attempts the event is marked as failed and is no longer sent.
+</Info>
+
+<Warning>
+    **Endpoint auto-disable.** If an endpoint does not accept events for **14 consecutive days** (no
+    successful delivery during that time and it was not re-enabled manually), Exode sets it to `active = false` and notifies
+    the seller's owner. No new events are sent to such an endpoint until it is re-enabled in the account.
+</Warning>
+
+## Managing endpoints
+
+Webhook endpoints are configured in the account: **Manage → School → Webhooks** (`/manage/school/webhooks`).
+You need the **School Settings Management** permission (`SchoolManageSettings`). Endpoints cannot be managed through the SaaS API.
+For each endpoint you set:
+
+- `url` — the receiver address (up to 255 characters); use HTTPS;
+- `events` — the list of events it is subscribed to;
+- `active` — the activity flag (`true` by default);
+- `note` — a free-form note (up to 255 characters);
+- `secretKey` — the secret for signature verification, **generated automatically** when the endpoint is created.
+
+<Info>
+    **Where to get the secret for signature verification:** `secretKey` is created together with the endpoint. In the account
+    you copy it with the **"Copy signature"** command, available in the endpoint row menu or next to the URL field in its form
+    (despite the name, it copies the secret itself, not a ready-made signature). Store it in your service's environment
+    variables (`EXODE_WEBHOOK_SECRET` in the examples above). If the secret is not displayed, request it from
+    [support](https://t.me/exode_support_biz).
+</Info>
+
+<Tip>
+    Use separate endpoints for independent systems: this isolates failures and lets you manage
+    different sets of events. Each seller can have at most 5 endpoints.
+</Tip>
+
+### Test delivery
+
+A test delivery from the form of a **saved** endpoint is signed with that endpoint's own `secretKey`. The body format,
+algorithm and header are exactly the same as for production events, so your receiver does not need a separate
+verification branch for test webhooks.
+
+<Warning>
+    A new endpoint that has not been saved yet does not have a permanent `secretKey`. Its test delivery
+    is signed with a temporary key, so you cannot verify that signature with the key that appears after creation.
+    To test the full verification cycle, save the endpoint first, then send a test from its
+    form.
+</Warning>
+
+## Supported events
+
+Below are the events that are actually delivered, along with the structure of their `data` field. Nested entities
+(`user`, `profile`, `course`, `payment`, etc.) are described in the [object reference](/en/exode-api/objects/entities/index).
+
+<AccordionGroup>
+<Accordion title="UserSignedUp — user sign-up">
+    Trigger: the user completed sign-up on their own.
+
+    `data`:
+    - `user` — the [user](/en/exode-api/objects/entities/user) object.
+    - `profile` — the profile card (`null` if not filled in).
+    - `states.utmSignupParams` — an object with the UTM tags of the first visit (optional).
+</Accordion>
+
+<Accordion title="UserAcquainted — onboarding completed">
+    Trigger: the user completed onboarding. The `data` structure is identical to `UserSignedUp`
+    (`user`, `profile`, `states.utmSignupParams`).
+</Accordion>
+
+<Accordion title="UserTgConnected — Telegram linked">
+    Trigger: the user linked a Telegram account.
+
+    `data`:
+    - `user` — the user object (with the current `tgId`).
+    - `profile` — the profile card (optional).
+    - `prevTgId` — the previous `tgId`, for tracking re-linking (`number | null`).
+</Accordion>
+
+<Accordion title="CourseProgressChanged — lesson progress changed">
+    Trigger: the status of a lesson changed for the user.
+
+    `data`:
+    - `user` — the [user](/en/exode-api/objects/entities/user) with profile.
+    - `course` — the [course](/en/exode-api/objects/entities/course) object.
+    - `product` — the course [product](/en/exode-api/objects/entities/product) (optional).
+    - `access` — the user's [access](/en/exode-api/objects/entities/product#productaccess) to the course product (optional).
+    - `states.utmEnrollParams`, `states.utmSignupParams` — enrollment and sign-up UTM tags; see [UTM attribution](#utm-attribution).
+    - `groups` — an array of the user's [groups](/en/exode-api/objects/entities/group) in the course (optional).
+    - `status` — the new lesson status from the progress record (optional): `NotStarted`, `OnTheory`, `OnPractice`,
+      `OnReview`, `OnCorrection` or `Completed`; see [`courseProgress`](/en/exode-api/objects/entities/course#courseprogress) for details.
+    - `lessonId` — the lesson ID (optional).
+</Accordion>
+
+<Accordion title="CourseCompleted — course completed">
+    Trigger: the user completed the course.
+
+    `data`:
+    - `user` — the user with profile.
+    - `course` — the course object.
+    - `product` — the course product (optional).
+    - `access` — the user's [access](/en/exode-api/objects/entities/product#productaccess) (optional).
+    - `states.utmEnrollParams`, `states.utmSignupParams` — enrollment and sign-up UTM tags; see [UTM attribution](#utm-attribution).
+    - `groups` — an array of groups (optional).
+</Accordion>
+
+<Accordion title="CourseLessonPracticeCompleted — practice completed">
+    Trigger: the user completed a lesson's practical assignment.
+
+    `data`:
+    - `user` — the user with profile.
+    - `course` — the course (optional).
+    - `lesson` — the lesson (optional).
+    - `practice` — the practice parameters (optional).
+    - `attempt` — the attempt, with score and status (optional).
+    - `variantId` — the variant ID (optional).
+</Accordion>
+
+<Accordion title="PaymentCompleted — payment succeeded">
+    Trigger: a payment completed successfully.
+
+    `data.payment` — the [payment](/en/exode-api/objects/entities/payment) object with the full tree: `invoice`
+    (the invoice), `invoice.user` (the buyer with profile and school), `invoice.products` (line items with product/course,
+    price and discount), `acquiring` (the acquiring and its provider, without secrets). Monetary fields are numbers.
+
+    The event is sent only when **money is actually charged**: initializing a recurring payment (card binding,
+    a zero payment with the `BindingCompleted` status) does not trigger the webhook.
+</Accordion>
+
+<Accordion title="ProductEnrolledToFree — free access granted">
+    Trigger: the user was granted free access to a product.
+
+    `data`:
+    - `user` — the [user](/en/exode-api/objects/entities/user).
+    - `profile` — the profile card (optional).
+    - `access` — the [access](/en/exode-api/objects/entities/product#productaccess) object (optional).
+    - `states.utmEnrollParams`, `states.utmSignupParams` — enrollment and sign-up UTM tags; see [UTM attribution](#utm-attribution).
+    - `product` — the [product](/en/exode-api/objects/entities/product) (optional).
+    - `course` — the [course](/en/exode-api/objects/entities/course) (optional).
+</Accordion>
+
+<Accordion title="ProductEnrolledViaLms — access granted manually (LMS)">
+    Trigger: product access was granted by an administrator/manager through the LMS or the API.
+    The `data` structure is identical to `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`, `states`).
+</Accordion>
+
+<Accordion title="ProductEnrolledViaPayment — access granted after payment">
+    Trigger: product access was granted after a successful payment.
+    The `data` structure is identical to `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`, `states`).
+</Accordion>
+
+<Accordion title="ProductEnrolledByInviteLink — enrollment via invite link">
+    Trigger: the user enrolled in a course on their own via an invite link.
+
+    `data`: the same fields as `ProductEnrolledToFree` (`user`, `profile`, `access`, `product`, `course`, `states`),
+    plus:
+    - `inviteLinkId` — the ID of the link the user came through (duplicated in `access.meta.inviteLinkId`).
+
+    <Warning>
+        Enrollment via a link sends **two** events: `ProductEnrolledToFree` and
+        `ProductEnrolledByInviteLink`. The link grants access for free, so the general free-enrollment
+        flow fires as well; keep this in mind when counting enrollments. You can tell an invite-link enrollment
+        apart by the presence of `inviteLinkId`.
+    </Warning>
+</Accordion>
+
+<Accordion title="CertificateIssued — certificate issued">
+    Trigger: the user was issued a certificate for completing a course. The event is sent once per
+    "user + course" pair: completing the course again does not create a new certificate.
+
+    `data`:
+    - `user` — the [user](/en/exode-api/objects/entities/user) with profile.
+    - `course` — the [course](/en/exode-api/objects/entities/course) object.
+    - `product` — the course [product](/en/exode-api/objects/entities/product) (optional).
+    - `certificate` — the [certificate](/en/exode-api/objects/entities/certificate) object with a public
+      `link` (opens without authorization), a validity period and a snapshot of the data at the time of issue.
+</Accordion>
+</AccordionGroup>
+
+<Note>
+    You can subscribe to `UserSignedIn`, `UserLoggedOut`, `UserJoinedByReferral`, `UserCreatedViaLms`,
+    `CourseLessonPracticeDetailedSent`, `CourseLessonPracticeAutoVerifySent`, `ProductRefundCompleted`,
+    `ProductAccessSubscriptionEnding7Days` and `ProductAccessSubscriptionEnding1Day`, but
+    the formal `data` contract for them is not fixed yet, so the payload contents are not guaranteed.
+    Check with [support](https://t.me/exode_support_biz) before using them.
+</Note>
+
+### UTM attribution
+
+UTM tags arrive in three places, depending on the event:
+
+| Event | Where to find UTM |
+|---|---|
+| `UserSignedUp`, `UserAcquainted` | `states.utmSignupParams` — tags of the visit from which the user signed up |
+| `ProductEnrolledToFree`, `ProductEnrolledViaLms`, `ProductEnrolledViaPayment`, `ProductEnrolledByInviteLink`, `CourseProgressChanged`, `CourseCompleted` | `states.utmEnrollParams` — tags of the visit from which the user enrolled in the product (duplicated in `access.meta.utmParams`); next to it, `states.utmSignupParams` — the sign-up tags |
+| `PaymentCompleted` | `payment.invoice.meta.utmParams` — tags of the visit from which the invoice was created |
+
+UTM object keys: `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, `gclid`, `fbclid`, `yclid`,
+`referrer`, `aff_id`, `sub_id`, `track_id` (only the ones that were passed are present). If the user arrived without tags, the object
+is absent or empty.
+
+<Warning>
+    The `access.metaHistoryLogs[0].meta.utmParams` path used by early integrations is no longer returned in the
+    contract. Switch your scenarios to `states.utmEnrollParams` or `access.meta.utmParams`.
+</Warning>
+
+### Example: PaymentCompleted
+
+The body below is a real test-delivery example (synthetic values, exact field set):
+
+```json
+{
+  "event": "PaymentCompleted",
+  "timestamp": "2026-07-02T11:16:25.172Z",
+  "idempotencyKey": "g9lFWzmF-4BkJaxvFvIEX",
+  "data": {
+    "payment": {
+      "id": 13001,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "archivedAt": null,
+      "uuid": "samplePaymentUuid",
+      "type": "OneTime",
+      "status": "Completed",
+      "checkoutPaymentId": "sampleCheckoutPaymentId",
+      "checkoutUrl": null,
+      "released": true,
+      "paidAt": "2026-01-01T00:00:00.000Z",
+      "expireAt": null,
+      "isCompleted": true,
+      "isCanceled": false,
+      "meta": {},
+      "webhookLogs": [],
+      "chargeLogs": [],
+      "statusHistoryLogs": [],
+      "invoice": {
+        "id": 12001,
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "updatedAt": "2026-01-01T00:00:00.000Z",
+        "archivedAt": null,
+        "uuid": "sampleInvoiceUuid",
+        "humanId": 1001,
+        "type": "Regular",
+        "status": "Active",
+        "totalAmount": 100,
+        "discountAmount": 0,
+        "currency": "Usd",
+        "expireAt": null,
+        "isActive": true,
+        "user": {
+          "id": 1001,
+          "createdAt": "2026-01-01T00:00:00.000Z",
+          "updatedAt": "2026-01-01T00:00:00.000Z",
+          "archivedAt": null,
+          "uuid": "sampleUserUuid",
+          "status": "Active",
+          "active": true,
+          "activated": true,
+          "banned": false,
+          "alive": true,
+          "domain": "id1001",
+          "email": "user@example.com",
+          "phone": null,
+          "tgId": null,
+          "vkId": null,
+          "appleId": null,
+          "extId": null,
+          "schoolId": 1,
+          "language": "En",
+          "timezone": 0,
+          "lastOnlineAt": "2026-01-01T00:00:00.000Z",
+          "starsBalance": 0,
+          "currentTime": "2026-01-01T00:00:00.000Z",
+          "isSleepingNow": false,
+          "profile": {
+            "id": 1001,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "updatedAt": "2026-01-01T00:00:00.000Z",
+            "archivedAt": null,
+            "userId": 1001,
+            "official": false,
+            "firstName": "John",
+            "lastName": "Doe",
+            "fullName": "John Doe",
+            "fullNameShort": "John D.",
+            "bdate": null,
+            "sex": "Ufo",
+            "country": null,
+            "city": null,
+            "role": "Student",
+            "status": null,
+            "title": null,
+            "emojiTitle": null,
+            "avatar": {
+              "id": 1001,
+              "small": "https://storage.example.exode.biz/production/user/1001/sampleAvatar/small/avatar.png",
+              "medium": "https://storage.example.exode.biz/production/user/1001/sampleAvatar/medium/avatar.png",
+              "maximum": "https://storage.example.exode.biz/production/user/1001/sampleAvatar/avatar.png"
+            },
+            "titleState": {
+              "manualTitle": null,
+              "manualEmojiTitle": null,
+              "manualNextTitle": null,
+              "manualNextEmojiTitle": null,
+              "manualExpiredAt": null,
+              "locationTitle": null,
+              "locationEmojiTitle": null,
+              "achievementTitle": null,
+              "achievementEmojiTitle": null
+            }
+          },
+          "school": {
+            "id": 1,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "updatedAt": "2026-01-01T00:00:00.000Z",
+            "archivedAt": null,
+            "segment": "Commerce",
+            "baseDomain": "school",
+            "customDomain": null,
+            "accessType": "Public",
+            "domainType": "Base",
+            "name": "Sample School",
+            "description": null,
+            "iconUrl": null,
+            "active": true,
+            "domain": "school",
+            "fqdn": "example.exode.biz",
+            "publicUrl": "https://example.exode.biz",
+            "baseFqdn": "example.exode.biz",
+            "isPublic": true,
+            "isPrivate": false
+          }
+        },
+        "products": [
+          {
+            "id": 11001,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "updatedAt": "2026-01-01T00:00:00.000Z",
+            "archivedAt": null,
+            "originalPrice": 100,
+            "totalPrice": 100,
+            "discountAmount": 0,
+            "discount": null,
+            "price": {
+              "id": 10001,
+              "createdAt": "2026-01-01T00:00:00.000Z",
+              "updatedAt": "2026-01-01T00:00:00.000Z",
+              "archivedAt": null,
+              "mode": "SelfDefinition",
+              "type": "OneTime",
+              "title": "Sample Price",
+              "description": null,
+              "amount": 100,
+              "previousAmount": null,
+              "accessDays": null,
+              "infinityAccess": true,
+              "active": true,
+              "hidden": false,
+              "activeFrom": null,
+              "activeTo": null,
+              "installmentConfig": null,
+              "subscriptionConfig": null,
+              "isDemo": false,
+              "isRecurrent": false,
+              "isInstallment": false,
+              "isSubscription": false,
+              "meta": {}
+            },
+            "product": {
+              "id": 7001,
+              "createdAt": "2026-01-01T00:00:00.000Z",
+              "updatedAt": "2026-01-01T00:00:00.000Z",
+              "archivedAt": null,
+              "sellerId": 1,
+              "type": "Course",
+              "status": "Published",
+              "showInCatalog": true,
+              "currency": "Usd",
+              "publishedAt": "2026-01-01T00:00:00.000Z",
+              "saleStartAt": null,
+              "saleFinishAt": null,
+              "isFree": false,
+              "isPublished": true,
+              "approves": [],
+              "domains": [],
+              "course": {
+                "id": 2001,
+                "createdAt": "2026-01-01T00:00:00.000Z",
+                "updatedAt": "2026-01-01T00:00:00.000Z",
+                "archivedAt": null,
+                "type": "VideoCourse",
+                "name": "Sample Course",
+                "description": "Sample course description",
+                "alias": null,
+                "promoVideo": null,
+                "order": 0,
+                "isBundle": false,
+                "tags": [
+                  "sample"
+                ],
+                "seoTags": [],
+                "image": {
+                  "main": ""
+                },
+                "settings": {}
+              }
+            }
+          }
+        ]
+      },
+      "acquiring": {
+        "id": 1,
+        "active": true,
+        "uuid": "sampleAcquiringUuid",
+        "name": "Sample Acquiring",
+        "description": null,
+        "hasProviderCommission": false,
+        "provider": {
+          "id": 1,
+          "type": "Card",
+          "active": true
+        }
+      }
+    }
+  }
+}
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+<Accordion title="Retries">
+    Every attempt uses the same payload and `idempotencyKey`. Delays are counted from the previous
+    failed attempt (≈ 11 / 33 / 77 / 165 minutes). Return a success code to stop the retries.
+</Accordion>
+
+<Accordion title="Temporary disabling">
+    Set `active = false` to pause delivery without losing the configuration and the secret key.
+    Retries of events that were queued before disabling stop after the next failed attempt.
+</Accordion>
+
+<Accordion title="Logging">
+    Log `event`, `timestamp`, `idempotencyKey` and the signature verification result: this speeds up reconciliation with
+    our side when investigating incidents.
+</Accordion>
+</AccordionGroup>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

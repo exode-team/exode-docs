@@ -1,0 +1,88 @@
+---
+title: 'Custom pages'
+description: "Your school's own pages with mini apps at your own URL"
+---
+
+A school can create its own pages: each page gets its own address
+(`https://your-school.exode.biz/your-slug`) and embeds a **mini app** in an iframe: a website or
+web application hosted anywhere (Vercel, your own server, etc.).
+
+The mini app receives signed user data from the platform ([Init Data](/en/exode-sdk/miniapp/init-data)),
+can verify it on its backend and build any logic, from a landing page to a full-fledged
+service with its own database.
+
+## Creating a page
+
+1. Open **Control Panel** → **School** → **Customization** → **Apps & pages**.
+2. Click **Create app** and fill in:
+   - **Title**: shown in the header and the menu (in the school's languages);
+   - **App address (slug)**: lowercase Latin letters, digits and hyphens, 2–64 characters.
+     The page opens at `/<slug>`. The platform's system addresses are reserved;
+   - **App URL (iframe)**: the https address of your mini app (it opens in an iframe);
+   - **Window type**: how the app is shown to the user (see below);
+   - **Layout**: only for the **Page** type: **Full width** or **Island** (a card with margins);
+   - **Available without login**: whether to show the page to unauthenticated visitors. Such a visitor also
+     receives signed Init Data, but without user data (`user` = `null`).
+3. After creating the page, open the page menu "⋯" → **Show secret**. Your
+   server needs this secret to [verify Init Data](/en/exode-sdk/miniapp/init-data). Keep it on the server only.
+   The same menu has **Regenerate secret**: the old secret stops working immediately.
+
+<Info>
+  Pages can be created and edited by a manager with the **"Apps & Pages Management"** permission (`SchoolManagePages`).
+</Info>
+
+<Note>
+  The mini app's website must allow embedding in an iframe: do not send the `X-Frame-Options` header, and if
+  you use `Content-Security-Policy: frame-ancestors`, include the school's domain in it.
+</Note>
+
+<Tip>
+  Add a menu item for the new page in **Settings** → **Left site menu** with the link `/<slug>`:
+  navigation will be internal, without a reload. You can also open the app with a button
+  from lesson content.
+</Tip>
+
+## Window type
+
+| Type | What it looks like | When it fits |
+|-----|--------------|----------------|
+| **Page** | A regular platform page at `/<slug>` | A landing page, a reference, a full-fledged section |
+| **Floating window** | A window on top of the interface that minimizes into a stack | A chat, a calculator, an assistant: things used without interrupting learning |
+| **Side panel** | A side panel next to the content | Notes, hints, tools next to a lesson |
+
+At most one window can be expanded at a time: opening a second one minimizes the first.
+Minimized windows collect in a tray and expand with a single click.
+
+## School home page
+
+In the page list, you can set a **main** page: the selected page (system or custom)
+opens at `/`. A custom page set as the main page cannot be deleted or
+turned off; set another main page first.
+
+## iframe lifecycle
+
+An open app page is not unloaded when navigating around the platform: the iframe loads
+once and stays in memory, so reopening it is instant. The same goes for a minimized window:
+minimizing does not reload the app, and its state is preserved.
+
+Two commands are available from the mini app itself ([MiniApp SDK](/en/exode-sdk/miniapp/client)):
+
+- `app.ui.minimize()`: minimize the window (does nothing for the **Page** type, since there is nothing to minimize);
+- `app.ui.close()`: close the app and unload the iframe.
+
+<Note>
+  The platform keeps a limited number of apps in memory and unloads the oldest
+  inactive ones. Do not rely on state surviving a close; save important data
+  on your server.
+</Note>
+
+## What's next
+
+- [Introduction to MiniApp SDK](/en/exode-sdk/miniapp/introduction): the bridge, context, commands and events;
+- [Init Data](/en/exode-sdk/miniapp/init-data): verifying signed data on your server.
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

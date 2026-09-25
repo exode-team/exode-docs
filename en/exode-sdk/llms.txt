@@ -31,7 +31,7 @@ No root export — always import from a specific subpath.
 
 Credentials for `ExodeAPI` (token, Seller-Id, School-Id) come from the school admin panel, API keys page
 (`/manage/school/api-keys`); every REST method requires a specific permission on the token — see
-https://docs.exode.biz/ru/exode-api/setup.
+https://docs.exode.biz/en/exode-api/setup.
 
 ---
 
@@ -189,7 +189,7 @@ exodeApi.school.staff.employment.list(params?) / .hire(input) / .transfer(input)
   / .promote(input) / .promoteByExtId(extId, input) / .terminate(input) / .terminateByExtId(extId, input?)
 exodeApi.school.staff.departmentManager.set(input) / .remove(managerId) / .removeByExtId(extId)
 exodeApi.school.staff.absence.list(params?) / .create / .update / .updateByExtId / .delete / .deleteByExtId
-// Input fields: https://docs.exode.biz/ru/exode-api/school/staff/department (and sibling pages)
+// Input fields: https://docs.exode.biz/en/exode-api/school/staff/department (and sibling pages)
 ```
 
 ```ts
@@ -256,7 +256,7 @@ interface Session {
 ```
 
 Other returned entity shapes (`GroupMember`, `CourseProgress`, `FormLayout`, `FormFieldValue`, invoice/product
-items, etc.) match the REST docs at https://docs.exode.biz/ru/exode-api/objects/entities/index.
+items, etc.) match the REST docs at https://docs.exode.biz/en/exode-api/objects/entities/index.
 
 ### 2.11 Exports
 
@@ -416,7 +416,7 @@ Signature: `data_check_string` = all fields except `hash`, sorted by key, `key=v
 (values URL-decoded, `+` = space); `secret_key = HMAC_SHA256(key='ExodeMiniApp', msg=pageSecret)`;
 `hash = hex(HMAC_SHA256(key=secret_key, msg=data_check_string))`. Fields: `page_id`, `school_id`, `auth_date`,
 plus `user` (JSON) and `session_uuid` for logged-in users; more may be added. Page secret: admin panel
-«Приложения и страницы» → page menu → «Показать секрет».
+"Apps & pages" → page menu → "Show secret".
 
 ---
 
@@ -481,6 +481,6 @@ address fragment and needs no provider. `user` is `null` until handshake (only v
 ## 7. Links
 
 - Docs: https://docs.exode.biz
-- REST API: https://docs.exode.biz/ru/exode-api/setup
-- Objects/entities: https://docs.exode.biz/ru/exode-api/objects/entities/index
+- REST API: https://docs.exode.biz/en/exode-api/setup
+- Objects/entities: https://docs.exode.biz/en/exode-api/objects/entities/index
 - Support: https://t.me/exode_support_biz

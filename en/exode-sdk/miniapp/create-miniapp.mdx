@@ -1,0 +1,44 @@
+---
+title: 'Create with AI'
+description: 'A ready-made skill for an AI agent: an Exode mini app with initData verification, from an empty folder to production'
+---
+
+We have prepared a **ready-made skill for an AI agent** (Claude Code, Cursor, ChatGPT, etc.):
+the agent installs the tools, creates the app, verifies the
+`exodeInitData` signature on the server, deploys to Vercel or Cloudflare and connects
+the app to your school on its own.
+
+<Tip>
+  **No programming skills are required**: the agent performs all technical steps itself.
+</Tip>
+
+## How to use it
+
+Give the agent the link to the skill and ask it to follow it:
+
+```
+https://docs.exode.biz/skills/create-miniapp.md
+```
+
+For example, write to the agent: "Download https://docs.exode.biz/skills/create-miniapp.md
+and do everything according to these instructions. I want an app that …".
+
+You only need to provide three things:
+
+1. A hosting account (the agent will tell you where to sign up: Vercel or Cloudflare).
+2. The page secret from the school admin panel (**School → Customization → Apps & pages → ⋯ → Show secret**).
+3. Paste the app's final https link into the admin panel (this requires the **"Apps & Pages Management"** permission (`SchoolManagePages`)).
+
+<Info>
+  The skill is written in English, since agents work most accurately that way. You can talk to the agent
+  in your own language: its instructions explicitly tell it to reply in the user's language.
+</Info>
+
+The same skill is automatically available to agents via Agent Skills Discovery:
+`https://exode.biz/.well-known/agent-skills/exode-create-miniapp/SKILL.md`.
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

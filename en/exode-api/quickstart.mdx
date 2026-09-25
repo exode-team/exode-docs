@@ -1,0 +1,157 @@
+---
+title: 'Quickstart'
+description: 'Your first Exode API request in a few minutes'
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+In five steps, you'll make your first request: get a token, set up the headers, find or create
+a user, and parse the response.
+
+<Steps>
+<Step title="Get credentials">
+    The school owner can create an API key on their own: go to **Manage → School → For developers → API keys**
+    (`/manage/school/api-keys`) — this is where a service user (API client) is created and a token is issued.
+    If you prefer, contact [support](https://t.me/exode_support_biz) — we'll help with the setup.
+
+    You'll need three values for requests:
+
+    - `Authorization` — the API token (used as `Bearer <TOKEN>`; shown in full only at the moment of
+      creation or rotation — save it right away);
+    - `Seller-Id` — the numeric ID of the seller (the account the school belongs to);
+    - `School-Id` — the numeric ID of the school.
+
+    Both IDs are on the same **API keys** page, in the **Integration data → Identifiers** card — clicking it
+    copies a string like `Seller-Id: 123; School-Id: 456`.
+
+    Save the values to environment variables — the examples below use them:
+
+    ```bash
+    export EXODE_TOKEN='...'   # API token
+    export SELLER_ID=123       # Seller-Id
+    export SCHOOL_ID=456       # School-Id
+    ```
+
+    <Warning>Store the token in environment variables, not in code or in the repository.</Warning>
+</Step>
+
+<Step title="Set up the headers">
+    All requests are made with three required headers:
+
+    <HeaderParamFields/>
+</Step>
+
+<Step title="Make your first request — find a user">
+    Check access with a safe read method — [`user/find`](/en/exode-api/school/user/find):
+
+    <CodeGroup>
+    ```bash cURL
+    curl --location 'https://api.exode.biz/saas/v2/user/find?extId=crm_12345' \
+      --header "Authorization: Bearer $EXODE_TOKEN" \
+      --header "Seller-Id: $SELLER_ID" \
+      --header "School-Id: $SCHOOL_ID"
+    ```
+
+    ```javascript Node.js
+    const axios = require('axios');
+
+    const client = axios.create({
+      baseURL: 'https://api.exode.biz/saas/v2',
+      headers: {
+        Authorization: `Bearer ${process.env.EXODE_TOKEN}`,
+        'Seller-Id': process.env.SELLER_ID,
+        'School-Id': process.env.SCHOOL_ID,
+      },
+    });
+
+    const { data } = await client.get('/user/find', { params: { extId: 'crm_12345' } });
+    console.log(data.payload.user);
+    ```
+
+    ```python Python
+    import os, requests
+
+    session = requests.Session()
+    session.headers.update({
+      'Authorization': f"Bearer {os.environ['EXODE_TOKEN']}",
+      'Seller-Id': os.environ['SELLER_ID'],
+      'School-Id': os.environ['SCHOOL_ID'],
+    })
+
+    r = session.get('https://api.exode.biz/saas/v2/user/find', params={'extId': 'crm_12345'})
+    print(r.json()['payload']['user'])
+    ```
+    </CodeGroup>
+
+    `extId` is your own user identifier (for example, an ID from your CRM): a string of up to 50 characters without `/` or
+    spaces, unique within the school. If the user is not found, the method returns `200` and `payload.user: null` —
+    this is not an error.
+
+    <Tip>
+        On method pages, the cURL examples write the headers as `{{ sellerId }}` and `{{ schoolId }}` — these are
+        Postman collection variables. In a terminal, replace them with the numeric IDs or `$SELLER_ID` and `$SCHOOL_ID`.
+    </Tip>
+</Step>
+
+<Step title="Create a user">
+    If the user doesn't exist yet, create them with the [`user/create`](/en/exode-api/school/user/create) method.
+    The login and password are sent to the user automatically if there is a delivery channel: `email`, `phone` (with
+    an SMS provider connected) or `tgId` — see the method page for details.
+
+    ```bash cURL
+    curl --location 'https://api.exode.biz/saas/v2/user/create' \
+      --header "Authorization: Bearer $EXODE_TOKEN" \
+      --header "Seller-Id: $SELLER_ID" \
+      --header "School-Id: $SCHOOL_ID" \
+      --header 'Content-Type: application/json' \
+      --data-raw '{
+        "email": "user@example.com",
+        "extId": "crm_12345",
+        "profile": { "firstName": "John", "lastName": "Doe" }
+      }'
+    ```
+</Step>
+
+<Step title="Parse the response">
+    Every response is wrapped in `{ success, code, payload }`. Check `success`/`code`, and on error —
+    the `cause` field:
+
+    ```json Success
+    { "success": true, "code": 200, "payload": { "user": { "id": 123, "extId": "crm_12345" } } }
+    ```
+
+    ```json Error
+    { "success": false, "code": 400, "cause": "EmailIsBusy", "message": "Email is busy", "error": "Email is busy" }
+    ```
+
+    Here, `EmailIsBusy` means the email is already taken by another user of the school. In this case, you usually look up
+    the existing user through `user/find?login=<email>` or use
+    [`user/upsert`](/en/exode-api/school/user/upsert), which creates or updates a user in a single call.
+
+    For details on headers, the response format, errors, rate limits and pagination, see
+    ["Working with the API"](/en/exode-api/setup).
+</Step>
+</Steps>
+
+## What's next
+
+<CardGroup cols={2}>
+    <Card title="Key concepts" icon="diagram-project" href="/en/exode-api/concepts">
+        How the seller, school, courses, products and accesses are related.
+    </Card>
+    <Card title="Working with the API" icon="gear" href="/en/exode-api/setup">
+        Headers, response and error format, rate limits, pagination.
+    </Card>
+    <Card title="Webhooks" icon="bell" href="/en/exode-api/webhooks/about">
+        Receive platform events in your services.
+    </Card>
+    <Card title="API objects" icon="cube" href="/en/exode-api/objects/entities/index">
+        Complete entity structures based on zod schemas.
+    </Card>
+</CardGroup>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

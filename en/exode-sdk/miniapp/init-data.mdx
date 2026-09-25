@@ -1,0 +1,129 @@
+---
+title: 'Init Data'
+description: 'Signed user data: retrieving it in the iframe and verifying it on your server'
+---
+
+When a mini app opens on a custom school page, Exode passes it **initData** — a string with user and school
+data signed with HMAC-SHA256 (similar to `initData` in Telegram Mini Apps).
+Once you verify the signature **on your server**, you can trust this data and authorize the user
+without your own registration.
+
+<Warning>
+  Data from the `postMessage` context (`ctx.user`) is not signed and is suitable for display only.
+  Any authorization on your backend must rely exclusively on verified initData.
+</Warning>
+
+## How it works
+
+1. Exode opens your page in an iframe at `https://your-domain/…#exodeInitData=<string>`.
+2. The mini app reads the string from the fragment (`retrieveInitData`) and sends it to its backend.
+3. The backend verifies the signature with the page secret (`verifyInitData`) and gets the user data.
+
+The page secret is issued in the school admin panel (**School** → **Customization** → **Apps & pages**,
+page menu **⋯** → **Show secret**) and is stored **only on your server**. Each page has its own secret.
+
+<Info>
+  `retrieveInitData`, `useExodeInitData` and `verifyInitData` are available in `@exode-team/sdk` starting from version `0.3.1`.
+</Info>
+
+## In the mini app (browser)
+
+```ts
+import { retrieveInitData } from '@exode-team/sdk/miniapp'
+
+const initData = retrieveInitData()
+// a string like "page_id=…&school_id=…&auth_date=…&user=…&session_uuid=…&hash=…"
+// null if the page was not opened from Exode (no exodeInitData in the fragment)
+
+await fetch('/api/session', {
+  method: 'POST',
+  headers: { 'X-Exode-Init-Data': initData ?? '' },
+})
+```
+
+`retrieveInitData` reads the fragment once, removes it from the address bar
+(so that the signed data does not leak when the link is copied) and caches the value.
+In React, use the [`useExodeInitData`](/en/exode-sdk/miniapp/react#useexodeinitdata) hook — it works the same way and does not require a provider.
+
+The `user` and `session_uuid` fields are present only for an authorized user. The set of fields may grow — when
+verifying the signature, include all fields except `hash`.
+
+## On your server (Node.js)
+
+```ts
+import { verifyInitData } from '@exode-team/sdk/miniapp/server'
+
+// initData is the string sent by the browser (in the example above, the X-Exode-Init-Data header)
+const payload = verifyInitData(initData, {
+  secret: process.env.EXODE_PAGE_SECRET!,
+  maxAgeSec: 86_400, // auth_date validity window, 24 hours by default
+})
+
+payload.pageId    // page id
+payload.schoolId  // school id
+payload.authDate  // issue time, unix seconds
+payload.user      // { id, firstName, lastName, avatar, language } | null for a guest; avatar is a URL or null
+```
+
+If the signature is invalid, the secret belongs to another page, or `auth_date` has expired, the function throws an exception (`Error`) —
+catch it and respond with `401`.
+
+## Signature format
+
+If you do not use Node.js, you can verify the signature manually in any language:
+
+```
+data_check_string = key-sorted "key=value" pairs of all fields
+                    except hash, joined with "\n" (URL-decoded values)
+secret_key = HMAC_SHA256(key = "ExodeMiniApp", message = page_secret)
+hash       = hex( HMAC_SHA256(key = secret_key, message = data_check_string) )
+```
+
+The initData string is encoded as `application/x-www-form-urlencoded`: when decoding, `+` means a space.
+Use your language's standard query string parser rather than a manual `split`. The page secret is used
+as is — it is a string, and you do not need to decode it (hex/base64). After verifying the signature, compare `auth_date`
+(unix time in seconds) with the current time to discard stale data.
+
+Node.js example without the SDK:
+
+```js
+const crypto = require('crypto')
+
+function verify(initData, secret, maxAgeSec = 86400) {
+  const params = new URLSearchParams(initData)
+  const hash = params.get('hash') ?? ''
+
+  params.delete('hash')
+
+  const dcs = [...params.keys()].sort()
+    .map((k) => `${k}=${params.get(k)}`)
+    .join('\n')
+
+  const secretKey = crypto.createHmac('sha256', 'ExodeMiniApp').update(secret).digest()
+  const check = crypto.createHmac('sha256', secretKey).update(dcs).digest('hex')
+
+  const valid = hash.length === check.length
+    && crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(check))
+
+  const age = Math.floor(Date.now() / 1000) - Number(params.get('auth_date'))
+
+  return valid && age <= maxAgeSec
+}
+```
+
+## Security recommendations
+
+- Limit the `auth_date` window (`maxAgeSec`) to 24 hours or less.
+- Serve the mini app pages with the header
+  `Content-Security-Policy: frame-ancestors https://<your-school-domain>` —
+  this ensures the app is embedded specifically in Exode.
+- Pass `targetOrigin` to the `ExodeMiniApp` constructor — the origin of the school page.
+- Never verify the signature in the browser: the secret must not leave your server.
+- If the secret is compromised, regenerate it in the admin panel (page menu **⋯** → **Regenerate secret**) — old
+  initData will stop passing verification. Remember to update the secret on your server.
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

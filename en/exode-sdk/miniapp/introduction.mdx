@@ -1,0 +1,98 @@
+---
+title: 'Introduction to MiniApp'
+description: 'Concept and architecture of embedded mini apps in Exode'
+---
+
+A MiniApp is an external web application that opens in an `iframe` inside the main Exode app. A school connects
+it through a [custom page](/en/customization/custom-pages). The SDK provides two-way communication between the
+mini app and the host via `postMessage` and helps you verify the signature of user data on your server.
+
+## Architecture
+
+```
+Exode App (host)          ◄── postMessage ──►      MiniApp (iframe)
+• sends context                                         • receives user, school, theme
+• listens for commands                                  • sends commands (navigate, snackbar)
+• pushes updates                                        • subscribes to events
+```
+
+<Info>
+  The host side of the bridge is implemented inside the main Exode app. The guest side (what the MiniApp developer includes) is `@exode-team/sdk/miniapp`.
+</Info>
+
+## Lifecycle
+
+<Steps>
+  <Step title="Loading the iframe">
+    The main app opens the MiniApp by URL in an `iframe` and appends signed user data to the address —
+    `#exodeInitData=...` (see [Init Data](/en/exode-sdk/miniapp/init-data)).
+  </Step>
+
+  <Step title="Handshake">
+    The MiniApp calls `app.init()` and sends its `appId` to the host. The host checks the message origin (for custom
+    pages, the origin of the address from "App URL (iframe)"; `appId` can be anything in this case) and returns the context
+    (user, school, theme, config).
+  </Step>
+
+  <Step title="Operation">
+    The MiniApp sends commands (`navigate`, `showSnackbar`, ...). The host pushes events (`theme:changed`, `user:updated`, ...).
+  </Step>
+
+  <Step title="Shutdown">
+    On unmount, the MiniApp calls `app.destroy()` — the bridge closes its listeners and releases resources.
+  </Step>
+</Steps>
+
+## What is available to a MiniApp
+
+<AccordionGroup>
+  <Accordion title="Host context" icon="database">
+    - User profile (name, avatar, email, role, language)
+    - School object
+    - Current theme (`light` / `dark`)
+    - Platform (`web` / `native`) and device (`isDesktop` / `isMobile`)
+  </Accordion>
+
+  <Accordion title="Commands to the host" icon="paper-plane">
+    - Navigation within the main app
+    - Showing snackbar notifications
+    - Controlling tabbar / header visibility
+    - Closing the mini app
+  </Accordion>
+
+  <Accordion title="Reactive events" icon="bolt">
+    - Theme, user, school and config changes
+    - Host route changes
+    - iframe visibility changes
+  </Accordion>
+</AccordionGroup>
+
+## What's next
+
+<CardGroup cols={2}>
+  <Card title="ExodeMiniApp client" icon="plug" href="/en/exode-sdk/miniapp/client">
+    Vanilla JS client: init, route, ui, events.
+  </Card>
+
+  <Card title="Context and types" icon="code" href="/en/exode-sdk/miniapp/context">
+    MiniAppContext structure, event and command types.
+  </Card>
+
+  <Card title="React hooks" icon="react" href="/en/exode-sdk/miniapp/react">
+    Provider and reactive hooks for React apps.
+  </Card>
+
+  <Card title="Init Data" icon="shield-check" href="/en/exode-sdk/miniapp/init-data">
+    Signed user data and how to verify it on your server.
+  </Card>
+
+  <Card title="Telegram Mini App" icon="telegram" href="/en/customization/tg-mini-app">
+    Auto sign-in via the `___uat` parameter.
+  </Card>
+</CardGroup>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

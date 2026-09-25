@@ -1,0 +1,62 @@
+---
+title: 'Introduction'
+description: 'Exode API documentation for integrating with the platform'
+---
+
+Exode is an EdTech SaaS platform for online schools and production centers. The Exode API lets you manage
+users, groups, courses, accesses, forms and exports, and receive platform events through
+webhooks.
+
+## Getting started
+
+<CardGroup cols={2}>
+    <Card title="Quickstart" icon="rocket" href="/en/exode-api/quickstart">
+        Your first request in a few minutes: token, headers, finding and creating a user.
+    </Card>
+    <Card title="Key concepts" icon="diagram-project" href="/en/exode-api/concepts">
+        The data model: seller, school, users, courses, products, accesses and payments.
+    </Card>
+    <Card title="Working with the API" icon="gear" href="/en/exode-api/setup">
+        Base URL, authentication, response and error format, rate limits, pagination.
+    </Card>
+    <Card title="Webhooks" icon="bell" href="/en/exode-api/webhooks/about">
+        React to sign-ups, payments, progress and access grants in real time.
+    </Card>
+</CardGroup>
+
+## Official SDK
+
+<Card title="@exode-team/sdk" icon="npm" href="/en/exode-sdk/overview">
+    The official npm package: a typed server client for `/saas/v2/*` and a bridge for embedded
+    mini apps (with React hooks). Installation: `npm install @exode-team/sdk`.
+    Also available on [npm](https://www.npmjs.com/package/@exode-team/sdk).
+</Card>
+
+## Postman collection
+
+<Card title="Exode API in Postman" icon="paper-plane" href="https://www.postman.com/exode-team/exode-biz/collection/18268987-c847eaab-7143-41fd-86d0-80f1f222a784">
+    A ready-made collection with all `/saas/v2/*` endpoints and sample responses. Fork it into your
+    workspace and fill in the `apiToken`, `sellerId` and `schoolId` variables — all three values are in the admin panel
+    on the **API keys** page (see "Working with the API" for details).
+</Card>
+
+## API capabilities
+
+- 👥 Managing school users and groups
+- 📚 Courses, student progress and export of practice attempts
+- 🛒 Product accesses, invoices and payments
+- 📝 Forms and user custom fields
+- 📊 Asynchronous reports and exports (XLSX/CSV/JSON)
+- 🔔 Webhooks for key platform events
+
+## Support
+
+<Card title="Technical support" icon="telegram" href="https://t.me/exode_support_biz">
+    We'll help with integration and setup.
+</Card>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

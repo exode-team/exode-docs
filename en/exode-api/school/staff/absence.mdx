@@ -1,0 +1,738 @@
+---
+title: "Absences"
+description: "Track vacations, sick leave and business trips of corporate school employees"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+    An absence (`absence`) records a period when an employee is not working: an absence with no specified reason
+    (`Absent`), a vacation (`Vacation`), a day off (`DayOff`), a business trip (`BusinessTrip`), sick leave (`SickLeave`),
+    parental leave (`ParentalLeave`) or study leave (`StudyLeave`). An absence is linked to the employee's
+    employment, not to the user: if the employee has several jobs, specify the one the absence
+    applies to (this does not affect the user's status — absences across all of their
+    employments are taken into account).
+</Info>
+
+<Info>
+    `startAt` and `finishAt` are points in time (ISO 8601, UTC), not calendar days. An absence is considered current
+    while `startAt` ≤ now ≤ `finishAt`. Pass a vacation "from August 1 to August 14 inclusive" as
+    `startAt: "2026-08-01T00:00:00Z"`, `finishAt: "2026-08-14T23:59:59Z"` (adjusted for the company's time zone):
+    the value `2026-08-14T00:00:00Z` would end the absence at the start of the 14th. Without `finishAt`, the absence lasts
+    indefinitely until you set an end date.
+</Info>
+
+<Info>
+    Creating, updating and deleting an absence automatically syncs the user status `Active` ↔
+    `OnLeave`: if the user has a current (in effect right now) absence, the status becomes
+    `OnLeave`; once no current absences remain, it returns to `Active`. `OnLeave` is an informational status:
+    it does **not** block sign-in or access to the platform. These transitions do not affect users in other statuses
+    (`Banned`, `Blocked`, `Terminated`). In addition to recalculating on API calls, the platform automatically
+    reconciles statuses with the calendar once an hour: an absence with a future start date moves the employee to `OnLeave` when
+    that date arrives, and an expired one returns them to `Active`, with no calls required on your side.
+</Info>
+
+<Warning>
+    All staff module endpoints are available **only** to `Corporate`-segment schools. For other segments, the request
+    returns `401` with `cause: "Forbidden"` and the message `Allowed only for Corporate school`.
+</Warning>
+
+## List absences
+
+```
+GET /saas/v2/staff/absence/list
+```
+
+Requires authentication and the [**"Staff browsing"**](/en/exode-api/permissions) permission (`StaffView`).
+
+### Request parameters
+
+<Info>
+    Pass array parameters by repeating the parameter in the query string: `employmentIds=1&employmentIds=2`.
+</Info>
+
+#### Pagination
+
+<ParamField query="skip" type="integer" required={false}>
+    Number of records to skip. Defaults to `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Page number (an alternative to `skip`). Starts at `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Number of records per page. Defaults to `100`, maximum `1000`.
+</ParamField>
+
+#### Filtering
+
+<ParamField query="extIds" type="string[]" required={false}>
+    Filter by absence external IDs (`extId`). Up to 250 values, each up to 50 characters.
+</ParamField>
+
+<ParamField query="employmentIds" type="integer[]" required={false}>
+    Filter by employment IDs. Up to 250 values. On a transfer or position change, absences stay on the closed
+    employment record, so to get an employee's full history, pass the IDs of all of their records — you can get them
+    via [`employment/list?userIds=...`](/en/exode-api/school/staff/employment#list-employments).
+</ParamField>
+
+<ParamField query="positionIds" type="integer[]" required={false}>
+    Filter by position IDs (the position is taken from the employment the absence is linked to). Up to 250
+    values.
+</ParamField>
+
+<ParamField query="types" type="enum[]" required={false}>
+    Filter by absence types. Possible values: `Absent`, `Vacation`, `DayOff`, `BusinessTrip`, `SickLeave`,
+    `ParentalLeave`, `StudyLeave`. Up to 250 values.
+</ParamField>
+
+<ParamField query="currentOnly" type="boolean" required={false}>
+    If `true`, return only current absences: `startAt` has already passed, and `finishAt` is not set or has not
+    passed yet.
+</ParamField>
+
+### Response fields
+
+<ResponseField name="payload" type="object">
+    Paginated list of absences.
+
+    <Expandable title="payload properties">
+        <ResponseField name="items" type="object[]">
+            Array of absences.
+
+            <Expandable title="Item properties">
+                <ResponseField name="id" type="integer">Absence ID.</ResponseField>
+                <ResponseField name="schoolId" type="integer">School ID.</ResponseField>
+                <ResponseField name="employmentId" type="integer">Employee's employment ID.</ResponseField>
+                <ResponseField name="extId" type="string | null">External ID from the client's system. Unique within the school among non-deleted records.</ResponseField>
+                <ResponseField name="type" type="enum">Absence type: `Absent`, `Vacation`, `DayOff`, `BusinessTrip`, `SickLeave`, `ParentalLeave` or `StudyLeave`.</ResponseField>
+                <ResponseField name="startAt" type="string">Absence start date (ISO 8601).</ResponseField>
+                <ResponseField name="finishAt" type="string | null">Absence end date (ISO 8601) or `null`.</ResponseField>
+                <ResponseField name="note" type="string | null">Note on the absence.</ResponseField>
+                <ResponseField name="createdAt" type="string">Record creation date.</ResponseField>
+                <ResponseField name="updatedAt" type="string">Last update date.</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Current page.</ResponseField>
+        <ResponseField name="count" type="integer">Total number of records.</ResponseField>
+        <ResponseField name="pages" type="integer">Total number of pages.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Whether this is the first page.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Whether this is the last page.</ResponseField>
+        <ResponseField name="next" type="object">Next page parameters (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Previous page parameters (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/absence/list?take=10&types=Vacation' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listAbsences = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/staff/absence/list', {
+    params: { take: 10, types: ['Vacation'] },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listAbsences();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "id": 2,
+        "createdAt": "2026-07-02T11:15:47.341Z",
+        "updatedAt": "2026-07-02T11:15:47.354Z",
+        "archivedAt": null,
+        "schoolId": 198,
+        "employmentId": 9,
+        "extId": "1c-absence-2024-001",
+        "type": "Vacation",
+        "startAt": "2026-07-06T00:00:00.000Z",
+        "finishAt": "2026-07-20T00:00:00.000Z",
+        "note": "Summer vacation (updated)"
+      }
+    ],
+    "next": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    },
+    "prev": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    }
+  }
+}
+```
+
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffView",
+  "message": "Forbidden seller resource - permissions StaffView"
+}
+```
+</ResponseExample>
+
+## Create an absence
+
+```
+POST /saas/v2/staff/absence/create
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+### Request parameters
+
+<Info>
+    Specify the employment with **exactly one** of two fields: `employmentId` or `employmentExtId`.
+</Info>
+
+<ParamField body="extId" type="string" required={false}>
+    External ID of the absence from the client's system. 1 to 50 characters, no `/` or whitespace. Must be
+    unique within the school among non-deleted records — otherwise the `StaffAbsenceExtIdIsNotUniq` error is returned.
+</ParamField>
+
+<ParamField body="employmentId" type="integer" required={false}>
+    ID of the employee's employment the absence applies to. Required if `employmentExtId` is not passed.
+    You can also specify an already closed record — for example, when migrating absence history.
+</ParamField>
+
+<ParamField body="employmentExtId" type="string" required={false}>
+    External ID (`extId`) of the employment — the one you passed when hiring. An alternative to `employmentId`;
+    required if `employmentId` is not passed. Looked up only among the school's open (not terminated) employments;
+    if none is found, the `StaffEmploymentNotFound` error is returned.
+</ParamField>
+
+<ParamField body="type" type="enum" required>
+    Absence type. Possible values: `Absent` (absent), `Vacation` (vacation), `DayOff` (day off),
+    `BusinessTrip` (business trip), `SickLeave` (sick leave), `ParentalLeave` (parental leave),
+    `StudyLeave` (study leave).
+</ParamField>
+
+<ParamField body="startAt" type="string" required>
+    Absence start date in ISO 8601 format. Must not be later than `finishAt`.
+</ParamField>
+
+<ParamField body="finishAt" type="string" required={false}>
+    Absence end date in ISO 8601 format. Must not be earlier than `startAt`, otherwise the request is rejected.
+    Omit it if the end date is not yet known.
+</ParamField>
+
+<ParamField body="note" type="string" required={false}>
+    Note on the absence. Maximum 500 characters. Leading and trailing whitespace is trimmed automatically.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/absence/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "extId": "1c-absence-2024-001",
+    "employmentId": 9,
+    "type": "Vacation",
+    "startAt": "2026-07-06T00:00:00.000Z",
+    "finishAt": "2026-07-20T00:00:00.000Z",
+    "note": "Summer vacation"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const createAbsence = async () => {
+  const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/absence/create', {
+    extId: '1c-absence-2024-001',
+    employmentId: 9,
+    type: 'Vacation',
+    startAt: '2026-07-06T00:00:00.000Z',
+    finishAt: '2026-07-20T00:00:00.000Z',
+    note: 'Summer vacation',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+createAbsence();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 2,
+    "createdAt": "2026-07-02T11:15:47.341Z",
+    "updatedAt": "2026-07-02T11:15:47.341Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "employmentId": 9,
+    "extId": "1c-absence-2024-001",
+    "type": "Vacation",
+    "startAt": "2026-07-06T00:00:00.000Z",
+    "finishAt": "2026-07-20T00:00:00.000Z",
+    "note": "Summer vacation"
+  }
+}
+```
+
+```json Error - Invalid Interval
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffAbsenceInvalidInterval",
+  "message": "Staff absence interval is invalid",
+  "error": "Staff absence interval is invalid"
+}
+```
+
+```json Error - ExtId Is Not Uniq
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffAbsenceExtIdIsNotUniq",
+  "message": "Staff absence extId is not uniq",
+  "error": "Staff absence extId is not uniq"
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff employment not found",
+  "error": "Staff employment not found"
+}
+```
+</ResponseExample>
+
+## Update an absence
+
+```
+PUT /saas/v2/staff/absence/{absenceId}/update
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Updates absence fields. All body fields are optional — pass only the ones you want to change.
+The employment link (`employmentId`) cannot be changed.
+
+### Request parameters
+
+<ParamField path="absenceId" type="integer" required>
+    ID of the absence to update.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+    External ID of the absence from the client's system. 1 to 50 characters, no `/` or whitespace. Must be
+    unique within the school among non-deleted records — otherwise the `StaffAbsenceExtIdIsNotUniq` error is returned.
+</ParamField>
+
+<ParamField body="type" type="enum" required={false}>
+    Absence type. Possible values: `Absent`, `Vacation`, `DayOff`, `BusinessTrip`, `SickLeave`,
+    `ParentalLeave`, `StudyLeave`.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Absence start date in ISO 8601 format. Must not be later than `finishAt`.
+</ParamField>
+
+<ParamField body="finishAt" type="string | null" required={false}>
+    Absence end date in ISO 8601 format. Must not be earlier than `startAt` (taking into account the already stored
+    value if `startAt` is not passed), otherwise `StaffAbsenceInvalidInterval` is returned. `null` clears the end
+    date — the absence becomes open-ended.
+</ParamField>
+
+<ParamField body="note" type="string" required={false}>
+    Note on the absence. Maximum 500 characters.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/absence/2/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "note": "Summer vacation (updated)"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateAbsence = async () => {
+  const { data } = await axios.put('https://api.exode.biz/saas/v2/staff/absence/2/update', {
+    note: 'Summer vacation (updated)',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+updateAbsence();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 2,
+    "createdAt": "2026-07-02T11:15:47.341Z",
+    "updatedAt": "2026-07-02T11:15:47.354Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "employmentId": 9,
+    "extId": "1c-absence-2024-001",
+    "type": "Vacation",
+    "startAt": "2026-07-06T00:00:00.000Z",
+    "finishAt": "2026-07-20T00:00:00.000Z",
+    "note": "Summer vacation (updated)"
+  }
+}
+```
+
+```json Error - Invalid Interval
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffAbsenceInvalidInterval",
+  "message": "Staff absence interval is invalid",
+  "error": "Staff absence interval is invalid"
+}
+```
+
+```json Error - ExtId Is Not Uniq
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffAbsenceExtIdIsNotUniq",
+  "message": "Staff absence extId is not uniq",
+  "error": "Staff absence extId is not uniq"
+}
+```
+</ResponseExample>
+
+## Update an absence by extId
+
+```
+PUT /saas/v2/staff/absence/ext/{extId}/update
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Same as updating by `absenceId`, but the absence is identified by its external ID (`extId`) within the
+school. The request body is the same as for `PUT /saas/v2/staff/absence/{absenceId}/update`.
+
+### Request parameters
+
+<ParamField path="extId" type="string" required>
+    External ID of the absence to update. Pass it URL-encoded.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+    New external ID of the absence. 1 to 50 characters, no `/` or whitespace. Must be unique
+    within the school among non-deleted records.
+</ParamField>
+
+<ParamField body="type" type="enum" required={false}>
+    Absence type. Possible values: `Absent`, `Vacation`, `DayOff`, `BusinessTrip`, `SickLeave`,
+    `ParentalLeave`, `StudyLeave`.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Absence start date in ISO 8601 format. Must not be later than `finishAt`.
+</ParamField>
+
+<ParamField body="finishAt" type="string | null" required={false}>
+    Absence end date in ISO 8601 format. Must not be earlier than `startAt` (taking into account the already stored
+    value if `startAt` is not passed), otherwise `StaffAbsenceInvalidInterval` is returned. `null` clears the end
+    date — the absence becomes open-ended.
+</ParamField>
+
+<ParamField body="note" type="string" required={false}>
+    Note on the absence. Maximum 500 characters.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/absence/ext/1c-absence-2024-001/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "note": "Summer vacation (updated)"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateAbsenceByExtId = async () => {
+  const extId = encodeURIComponent('1c-absence-2024-001');
+
+  const { data } = await axios.put(`https://api.exode.biz/saas/v2/staff/absence/ext/${extId}/update`, {
+    note: 'Summer vacation (updated)',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+updateAbsenceByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 2,
+    "createdAt": "2026-07-02T11:15:47.341Z",
+    "updatedAt": "2026-07-02T11:15:47.354Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "employmentId": 9,
+    "extId": "1c-absence-2024-001",
+    "type": "Vacation",
+    "startAt": "2026-07-06T00:00:00.000Z",
+    "finishAt": "2026-07-20T00:00:00.000Z",
+    "note": "Summer vacation (updated)"
+  }
+}
+```
+
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffAbsenceNotFound",
+  "message": "Staff absence not found",
+  "error": "Staff absence not found"
+}
+```
+</ResponseExample>
+
+## Delete an absence
+
+```
+DELETE /saas/v2/staff/absence/{absenceId}/delete
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+### Request parameters
+
+<ParamField path="absenceId" type="integer" required>
+    ID of the absence to delete.
+</ParamField>
+
+### Response
+
+<ResponseField name="affected" type="integer" required>
+    Number of deleted records (`1` on successful deletion).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/absence/2/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const deleteAbsence = async () => {
+  const { data } = await axios.delete('https://api.exode.biz/saas/v2/staff/absence/2/delete', {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+deleteAbsence();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
+}
+```
+</ResponseExample>
+
+## Delete an absence by extId
+
+```
+DELETE /saas/v2/staff/absence/ext/{extId}/delete
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Same as deleting by `absenceId`, but the absence is identified by its external ID (`extId`) within the school.
+
+### Request parameters
+
+<ParamField path="extId" type="string" required>
+    External ID of the absence to delete. Pass it URL-encoded.
+</ParamField>
+
+### Response
+
+<ResponseField name="affected" type="integer" required>
+    Number of deleted records (`1` on successful deletion).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/absence/ext/1c-absence-2024-001/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const deleteAbsenceByExtId = async () => {
+  const extId = encodeURIComponent('1c-absence-2024-001');
+
+  const { data } = await axios.delete(`https://api.exode.biz/saas/v2/staff/absence/ext/${extId}/delete`, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+deleteAbsenceByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffAbsenceNotFound",
+  "message": "Staff absence not found",
+  "error": "Staff absence not found"
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+    The staff module is available only to `Corporate`-segment schools. Reading the list requires the **"Staff browsing"** permission (`StaffView`);
+    creating, updating and deleting absences requires the **"Staff Management"** permission (`StaffManage`).
+</Check>
+
+<Warning>
+    The service user must be authenticated with a token and have the appropriate access permissions for the specified
+    school.
+</Warning>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

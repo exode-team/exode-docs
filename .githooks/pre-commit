@@ -1,11 +1,11 @@
 #!/bin/sh
 # Re-stamp every staged docs page with the current UTC-0 time, so the
-# "Обновлено: … UTC" footer always reflects the moment of the commit.
+# "Обновлено / Updated: … UTC" footer always reflects the moment of the commit.
 #
 # Enable once per clone:  git config core.hooksPath .githooks
 set -eu
 
-staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^ru/.*\.mdx$' || true)
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^(ru|en)/.*\.mdx$' || true)
 [ -n "$staged" ] || exit 0
 
 # shellcheck disable=SC2086

@@ -1,0 +1,62 @@
+---
+title: "Custom JS code"
+description: "Configure platform behavior with custom code in the school admin panel"
+---
+
+<Info>
+  In the school admin panel, open **"For developers"** → **"Custom code"**, the **HTML** tab (the
+  **"Custom HTML"** field). Code from this field is added to the `<head>` of every school page before the app loads,
+  so `<script>` tags placed here run before the platform interface and can control its behavior.
+  Changes take effect after the page is reloaded.
+</Info>
+
+<Note>
+  Custom code can be edited by a manager with the **"School Settings Management"** permission (`SchoolManageSettings`).
+  The code in the field is limited to 3000 characters.
+</Note>
+
+## Hiding the "Download the app" banner
+
+By default, the platform shows a system banner suggesting that users download the mobile app.
+To hide it, add the following to **"Custom HTML"**:
+
+```html
+<script>
+    (((window.exode ||= {}).common ||= {}).content ||= {}).banners ||= {};
+    (window.exode.common.content.banners.system ||= {}).hideDownloadAppBanner = true;
+</script>
+```
+
+## Hiding interface elements
+
+The `excludeElements` parameter lets you hide individual platform interface elements for your school.
+Pass an array of element keys:
+
+```html
+<script>
+    (window.exodeJsConfig ||= {}).excludeElements = [ 'videoWatchProgress' ];
+</script>
+```
+
+### Available keys
+
+<ParamField body="videoWatchProgress" type="string">
+    Video watch progress: the bar of watched segments under the video player in a lesson and the video watch
+    progress in the student card (student management section)
+</ParamField>
+
+## All parameters
+
+<ParamField body="window.exode.common.content.banners.system.hideDownloadAppBanner" type="boolean" default="false">
+    Hides the app download banner
+</ParamField>
+
+<ParamField body="window.exodeJsConfig.excludeElements" type="string[]" default="[]">
+    Array of keys of interface elements to hide (e.g. `videoWatchProgress`)
+</ParamField>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

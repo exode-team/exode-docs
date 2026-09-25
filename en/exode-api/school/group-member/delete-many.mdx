@@ -1,0 +1,296 @@
+---
+title: "Remove members"
+description: "Remove multiple users from a school group"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<Tip>
+  This operation removes multiple users from a group at once.
+</Tip>
+
+<Warning>
+    When members are removed from a group, the system automatically checks their product accesses:
+
+    -> If the user remains a member of other groups with the same product, the access is kept.
+
+    -> If the user is no longer a member of any group with this product, the access is fully deactivated.
+</Warning>
+
+<HeaderParamFields/>
+
+```
+DELETE /saas/v2/group/:groupId/member/delete-many
+```
+
+Requires authentication and the [**"School User Management"**](/en/exode-api/permissions) permission (`SchoolManageUsers`).
+
+## Request parameters
+
+<Tip>
+  The maximum number of users you can remove in one request is 250. To remove more
+  users, use several requests.
+</Tip>
+
+<ParamField path="groupId" type="integer" required>
+  Group ID: the `groupId` field from the [group list](/en/exode-api/school/group/list).
+</ParamField>
+
+<ParamField body="userIds" type="integer[]" required>
+  Array of numeric Exode user IDs (not the member record IDs `id` from the
+  [member list](/en/exode-api/school/group-member/list), but their `userId`). Up to 250 users per
+  request.
+</ParamField>
+
+<Info>
+  If a user is not a member of the group, they are ignored. The response contains the number of
+  members actually removed.
+</Info>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/group/{{ groupId }}/member/delete-many' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "userIds": [8, 15, 23]
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const removeMembersFromGroup = async () => {
+  try {
+    const response = await axios.delete(
+      'https://api.exode.biz/saas/v2/group/{{ groupId }}/member/delete-many',
+      {
+        data: {
+          userIds: [8, 15, 23]
+        },
+        headers: {
+          'Seller-Id': '{{ sellerId }}',
+          'School-Id': '{{ schoolId }}',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer YOUR_TOKEN'
+        }
+      }
+    );
+
+    console.log('Members removed:', response.data.payload.affected);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+removeMembersFromGroup();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/group/{{ groupId }}/member/delete-many';
+$data = [
+  'userIds' => [8, 15, 23]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  echo "Members removed successfully\n";
+  echo "Affected: " . $result['payload']['affected'] . "\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/group/{{ groupId }}/member/delete-many'
+
+data = {
+  'userIds': [8, 15, 23]
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.delete(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Members removed successfully:')
+  print(f"Affected: {result['payload']['affected']}")
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+
+```bsl 1С
+ИдентификаторыПользователей = Новый Массив;
+ИдентификаторыПользователей.Добавить(8);
+ИдентификаторыПользователей.Добавить(15);
+ИдентификаторыПользователей.Добавить(23);
+
+Данные = Новый Структура;
+Данные.Вставить("userIds", ИдентификаторыПользователей);
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/group/{{ groupId }}/member/delete-many");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("DELETE", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Members removed");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+```json Success - No Members Found
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 0
+  }
+}
+```
+```json Error - Group Not Found / Not Owned
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
+}
+```
+```json Error - Insufficient Permissions
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - permissions SchoolManageUsers",
+  "error": "Forbidden seller resource - permissions SchoolManageUsers"
+}
+```
+```json Error - Too Many Users
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": "Max length is 250 elements",
+  "error": "Bad Request"
+}
+```
+```json Error - userIds Is Not An Array
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": "ids must be an array",
+  "error": "Bad Request"
+}
+```
+</ResponseExample>
+
+## Response parameters
+
+<ResponseField name="affected" type="integer" required>
+  Number of group members actually removed. Users who were not members of the group are not counted in
+  this number.
+</ResponseField>
+
+## Interaction with automatic assignment
+
+<Warning>
+  Removal via the API is considered **manual** and blocks subsequent automatic assignment: for each removed
+  user, an exclusion is created with the reason "removed from the group manually". Assignment rules based on the org structure will no longer
+  add the user back to this group.
+
+  Exclusions are created only for corporate groups that have automatic assignment configured. To lift
+  the block, add the user back via
+  [adding members](/en/exode-api/school/group-member/create-many); this clears the exclusion.
+</Warning>
+
+<Note>
+  If you synchronize group membership from an external system (for example, from 1C), keep this in mind for regular exports:
+  removing a member in one synchronization iteration permanently excludes them from automatic assignment until they
+  are added back via the API.
+</Note>
+
+## Permission requirements
+
+<Check>
+  Removing members from a group requires the **"School User Management"** permission (`SchoolManageUsers`).
+</Check>
+
+<Warning>
+  The service user must be authenticated with a token and have the appropriate access rights to the specified
+  school.
+</Warning>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

@@ -1,0 +1,475 @@
+---
+title: "Add members"
+description: "Add multiple users to a school group"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<Tip>
+    This operation adds multiple users to a group at once. If a user is already
+    a member of the group, they are not added again.
+</Tip>
+
+<Info>
+    When users are added to a group, the related member and access records are created automatically. If a user is already
+    a member of the group, they are not added again.
+</Info>
+
+<HeaderParamFields/>
+
+```
+POST /saas/v2/group/:groupId/member/create-many
+```
+
+Requires authentication and the [**"School User Management"**](/en/exode-api/permissions) permission (`SchoolManageUsers`).
+
+## Request parameters
+
+<Tip>
+    The maximum number of users you can add in a single request is 250. To add more
+    users, use several requests.
+</Tip>
+
+<ParamField path="groupId" type="integer" required>
+    Group ID — the `groupId` field from the [group list](/en/exode-api/school/group/list). To enroll a user in a
+    course, find that course's group with the `courseIds` filter (see [Course enrollment](/en/exode-api/school/course/enroll)).
+    The group must be bound to a product, otherwise the `GroupNotBoundToProduct` error is returned.
+</ParamField>
+
+<ParamField body="userIds" type="integer[]" required>
+    An array of numeric user IDs in Exode (the `id` field from [`user/find`](/en/exode-api/school/user/find) or
+    [`user/list`](/en/exode-api/school/user/list)). Up to 250 users per request.
+</ParamField>
+
+<Info>
+    If a user is already a member of the group, they are not added again. The response shows which
+    users already exist in the group and which were added. IDs not found in the school from the `School-Id` header
+    are silently skipped and appear in neither `exist` nor `created` — reconcile the response with the request. Repeating
+    the call with the same `userIds` is safe.
+</Info>
+
+<Info>
+    For each **new** member, access to the group's product is granted (or reactivated if it was disabled),
+    and the [`ProductEnrolledViaLms`](/en/exode-api/webhooks/about) webhook is sent. For users in `exist`,
+    access and webhooks are not affected.
+</Info>
+
+<RequestExample>
+```bash cURL
+curl --location --request POST 'https://api.exode.biz/saas/v2/group/{{ groupId }}/member/create-many' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "userIds": [8, 15, 23]
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const addMembersToGroup = async () => {
+  try {
+    const response = await axios.post(
+      'https://api.exode.biz/saas/v2/group/{{ groupId }}/member/create-many',
+      {
+        userIds: [8, 15, 23]
+      },
+      {
+        headers: {
+          'Seller-Id': '{{ sellerId }}',
+          'School-Id': '{{ schoolId }}',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer YOUR_TOKEN'
+        }
+      }
+    );
+
+    console.log('Members added:', response.data.payload.created);
+    console.log('Existing members:', response.data.payload.exist);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+addMembersToGroup();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/group/{{ groupId }}/member/create-many';
+$data = [
+  'userIds' => [8, 15, 23]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Members added successfully\n";
+  echo "Created: " . count($result['payload']['created']) . "\n";
+  echo "Existing: " . count($result['payload']['exist']) . "\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/group/{{ groupId }}/member/create-many'
+
+data = {
+  'userIds': [8, 15, 23]
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Members added successfully:')
+  print(f"Created: {len(result['payload']['created'])}")
+  print(f"Existing: {len(result['payload']['exist'])}")
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+
+```bsl 1С
+ИдентификаторыПользователей = Новый Массив;
+ИдентификаторыПользователей.Добавить(8);
+ИдентификаторыПользователей.Добавить(15);
+ИдентификаторыПользователей.Добавить(23);
+
+Данные = Новый Структура;
+Данные.Вставить("userIds", ИдентификаторыПользователей);
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/group/{{ groupId }}/member/create-many");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
+
+Если Ответ.КодСостояния = 201 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Members added");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success - New Members Added
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "exist": [],
+    "created": [
+      {
+        "id": 1227,
+        "createdAt": "2025-07-19T15:45:51.212Z",
+        "updatedAt": "2025-07-19T15:45:51.212Z",
+        "groupId": 501,
+        "userId": 15,
+        "inviterId": 42,
+        "active": true,
+        "blockedUntil": null,
+        "isAddedToTg": false,
+        "user": {
+          "id": 15,
+          "uuid": "YRnh3REH1Wbd",
+          "status": "Active",
+          "active": true,
+          "activated": true,
+          "banned": false,
+          "domain": "id15",
+          "email": "user@example.com",
+          "phone": "+987654321",
+          "extId": "crm_12345",
+          "language": "Ru",
+          "timezone": 5,
+          "lastOnlineAt": "2025-07-20T19:14:03.972Z",
+          "starsBalance": 0
+        }
+      }
+    ],
+    "excluded": []
+  }
+}
+```
+```json Success - Some Members Already Exist
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "exist": [
+      {
+        "id": 1226,
+        "createdAt": "2025-07-19T15:45:51.212Z",
+        "updatedAt": "2025-07-19T15:45:51.212Z",
+        "groupId": 501,
+        "userId": 8,
+        "inviterId": 42,
+        "active": true,
+        "blockedUntil": null,
+        "isAddedToTg": false,
+        "user": {
+          "id": 8,
+          "uuid": "YRnh3REH1Wbd",
+          "status": "Active",
+          "active": true,
+          "activated": true,
+          "banned": false,
+          "domain": "id8",
+          "email": "test+school+omar@exode.ru",
+          "phone": null,
+          "extId": "crm_54321",
+          "language": "Ru",
+          "timezone": 5,
+          "lastOnlineAt": "2025-07-20T19:14:03.972Z",
+          "starsBalance": 12
+        }
+      }
+    ],
+    "created": [],
+    "excluded": []
+  }
+}
+```
+```json Error - Group Not Found / Not Owned
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
+}
+```
+```json Error - Insufficient Permissions
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - permissions SchoolManageUsers",
+  "error": "Forbidden seller resource - permissions SchoolManageUsers"
+}
+```
+```json Error - Too Many Users
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": "Max length is 250 elements",
+  "error": "Bad Request"
+}
+```
+```json Error - userIds Is Not An Array
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": "ids must be an array",
+  "error": "Bad Request"
+}
+```
+```json Error - Group Not Tied To Product
+{
+  "code": 400,
+  "success": false,
+  "cause": "GroupNotBoundToProduct",
+  "message": "Group not tied to product",
+  "error": "Group not tied to product"
+}
+```
+</ResponseExample>
+
+## Response parameters
+
+<ResponseField name="exist" type="array">
+    An array of users who are already members of the group.
+
+    <Expandable title="Member properties">
+        <ResponseField name="id" type="integer" required>
+            Unique identifier of the group member.
+        </ResponseField>
+
+        <ResponseField name="createdAt" type="timestamp" required>
+            Date and time the member record was created.
+        </ResponseField>
+
+        <ResponseField name="updatedAt" type="timestamp" required>
+            Date and time the member record was last updated.
+        </ResponseField>
+
+        <ResponseField name="groupId" type="integer | null">
+            Group ID.
+        </ResponseField>
+
+        <ResponseField name="userId" type="integer | null">
+            User ID.
+        </ResponseField>
+
+        <ResponseField name="inviterId" type="integer | null">
+            ID of the user who added the member.
+        </ResponseField>
+
+        <ResponseField name="active" type="boolean" required>
+            Whether the member is active in the group.
+        </ResponseField>
+
+        <ResponseField name="blockedUntil" type="timestamp | null">
+            Date until which the member is blocked (if applicable).
+        </ResponseField>
+
+        <ResponseField name="isAddedToTg" type="boolean | null">
+            Whether the member has been added to the group's Telegram chat/channel.
+        </ResponseField>
+
+        <ResponseField name="user" type="object">
+            User object.
+
+            <Expandable title="User properties">
+                <ResponseField name="id" type="integer" required>
+                    Unique identifier of the user.
+                </ResponseField>
+
+                <ResponseField name="uuid" type="string" required>
+                    User UUID.
+                </ResponseField>
+
+                <ResponseField name="status" type="enum">
+                    User status: `Active`, `OnLeave`, `Banned`, `Blocked`, `Terminated`, `Deleted`.
+                </ResponseField>
+
+                <ResponseField name="active" type="boolean">
+                    Not deleted (derived from `status`).
+                </ResponseField>
+
+                <ResponseField name="activated" type="boolean">
+                    Whether the user has confirmed sign-in.
+                </ResponseField>
+
+                <ResponseField name="banned" type="boolean">
+                    Banned or deleted (derived from `status`).
+                </ResponseField>
+
+                <ResponseField name="domain" type="string">
+                    The user's registration domain.
+                </ResponseField>
+
+                <ResponseField name="email" type="string | null">
+                    The user's email address.
+                </ResponseField>
+
+                <ResponseField name="phone" type="string | null">
+                    The user's phone number.
+                </ResponseField>
+
+                <ResponseField name="extId" type="string | null">
+                    The user's external identifier.
+                </ResponseField>
+
+                <ResponseField name="language" type="enum | null">
+                    The user's interface language.
+                </ResponseField>
+
+                <ResponseField name="timezone" type="integer | null">
+                    The user's time zone (offset).
+                </ResponseField>
+
+                <ResponseField name="lastOnlineAt" type="timestamp | null">
+                    Date and time of last activity.
+                </ResponseField>
+
+                <ResponseField name="starsBalance" type="integer">
+                    The user's stars balance.
+                </ResponseField>
+            </Expandable>
+        </ResponseField>
+    </Expandable>
+</ResponseField>
+
+<ResponseField name="created" type="array">
+    An array of users who were added to the group. Each item has the same structure as the items of the
+    `exist` array.
+</ResponseField>
+
+<ResponseField name="excluded" type="array">
+    An array of users skipped because they are excluded from automatic assignment. Items are user
+    objects (the same structure as the nested `user` in `exist` items).
+
+    For this method the array is **always empty**: exclusions only limit automatic assignment by
+    org structure rules, and adding via the API counts as manual. The field is always present in the response — take
+    it into account if you validate the schema strictly.
+</ResponseField>
+
+<Note>
+    Manual addition **removes** a previously set exclusion: if the user was earlier removed from the group
+    manually, after adding them via the API the automatic assignment rules can assign them again.
+</Note>
+
+## Permission requirements
+
+<Check>
+    Adding members to a group requires the **"School User Management"** permission (`SchoolManageUsers`).
+</Check>
+
+<Warning>
+    The service user must be authenticated with a token and have the appropriate access permissions for the specified
+    school.
+</Warning>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

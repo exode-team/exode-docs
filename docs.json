@@ -13,188 +13,408 @@
     "dark": "/logo/exode-tech-dark.svg"
   },
   "navigation": {
-    "tabs": [
+    "languages": [
       {
-        "tab": "Exode API",
-        "groups": [
+        "language": "en",
+        "navbar": {
+          "links": [
+            {
+              "label": "78-113-95-70",
+              "href": "tel:781139570",
+              "icon": "phone"
+            }
+          ],
+          "primary": {
+            "type": "button",
+            "label": "Support",
+            "href": "https://t.me/exode_support_biz"
+          }
+        },
+        "tabs": [
           {
-            "group": "Работа с API",
-            "pages": [
-              "ru/welcome",
-              "ru/exode-api/quickstart",
-              "ru/exode-api/concepts",
-              "ru/exode-api/setup",
-              "ru/exode-api/permissions",
-              "ru/exode-api/webhooks/about",
-              "ru/exode-api/objects/entities/index"
-            ]
-          },
-          {
-            "group": "Пользователи",
-            "pages": [
-              "ru/exode-api/school/user/create",
-              "ru/exode-api/school/user/update",
-              "ru/exode-api/school/user/upsert",
-              "ru/exode-api/school/user/list",
+            "tab": "Exode API",
+            "groups": [
               {
-                "group": "Поиск пользователей",
+                "group": "Working with the API",
                 "pages": [
-                  "ru/exode-api/school/user/find",
-                  "ru/exode-api/school/user/find-many"
+                  "en/welcome",
+                  "en/exode-api/quickstart",
+                  "en/exode-api/concepts",
+                  "en/exode-api/setup",
+                  "en/exode-api/permissions",
+                  "en/exode-api/webhooks/about",
+                  "en/exode-api/objects/entities/index"
                 ]
               },
-              "ru/exode-api/school/user/state",
-              "ru/exode-api/school/user/delete-many",
-              "ru/exode-api/school/user/session/auth-token"
+              {
+                "group": "Users",
+                "pages": [
+                  "en/exode-api/school/user/create",
+                  "en/exode-api/school/user/update",
+                  "en/exode-api/school/user/upsert",
+                  "en/exode-api/school/user/list",
+                  {
+                    "group": "Find users",
+                    "pages": [
+                      "en/exode-api/school/user/find",
+                      "en/exode-api/school/user/find-many"
+                    ]
+                  },
+                  "en/exode-api/school/user/state",
+                  "en/exode-api/school/user/delete-many",
+                  "en/exode-api/school/user/session/auth-token"
+                ]
+              },
+              {
+                "group": "Staff (HR)",
+                "pages": [
+                  "en/exode-api/school/staff/sync-guide",
+                  "en/exode-api/school/staff/department",
+                  "en/exode-api/school/staff/position",
+                  "en/exode-api/school/staff/employment",
+                  "en/exode-api/school/staff/department-manager",
+                  "en/exode-api/school/staff/absence",
+                  "en/exode-api/school/integrations/examples/1c-staff-sync"
+                ]
+              },
+              {
+                "group": "Groups",
+                "pages": [
+                  "en/exode-api/school/group/list",
+                  "en/exode-api/school/group-member/list",
+                  "en/exode-api/school/group-member/create-many",
+                  "en/exode-api/school/group-member/delete-many"
+                ]
+              },
+              {
+                "group": "Courses",
+                "pages": [
+                  "en/exode-api/school/course/list",
+                  "en/exode-api/school/course/enroll",
+                  "en/exode-api/school/course/progresses",
+                  "en/exode-api/school/certificate/list"
+                ]
+              },
+              {
+                "group": "Access and sales",
+                "pages": [
+                  "en/exode-api/school/product-access/list",
+                  "en/exode-api/school/invoice/list"
+                ]
+              },
+              {
+                "group": "Reports and exports",
+                "pages": [
+                  "en/exode-api/school/query-export/generate",
+                  "en/exode-api/school/query-export/result",
+                  "en/exode-api/school/query-export/school-user-find-many",
+                  "en/exode-api/school/query-export/school-student-find-many",
+                  "en/exode-api/school/query-export/group-member-find-many",
+                  "en/exode-api/school/query-export/practice-attempt-find-many",
+                  "en/exode-api/school/query-export/invoice-manage-find-many",
+                  "en/exode-api/school/query-export/product-billing-access-find-many"
+                ]
+              },
+              {
+                "group": "Custom fields",
+                "pages": [
+                  "en/exode-api/school/custom-field/get",
+                  "en/exode-api/school/custom-field/set"
+                ]
+              },
+              {
+                "group": "Forms",
+                "pages": [
+                  "en/exode-api/school/form-layout/list",
+                  "en/exode-api/school/form-layout/create",
+                  "en/exode-api/school/form-layout/update",
+                  "en/exode-api/school/form-layout/delete"
+                ]
+              },
+              {
+                "group": "Missing a method?",
+                "pages": [
+                  "en/exode-api/common/request-new-method"
+                ]
+              },
+              {
+                "group": "All objects",
+                "pages": [
+                  "en/exode-api/objects/entities/user",
+                  "en/exode-api/objects/entities/session",
+                  "en/exode-api/objects/entities/group",
+                  "en/exode-api/objects/entities/group-member",
+                  "en/exode-api/objects/entities/course",
+                  "en/exode-api/objects/entities/product",
+                  "en/exode-api/objects/entities/payment",
+                  "en/exode-api/objects/entities/school",
+                  "en/exode-api/objects/entities/certificate",
+                  "en/exode-api/objects/entities/form"
+                ]
+              }
             ]
           },
           {
-            "group": "Сотрудники (HR)",
-            "pages": [
-              "ru/exode-api/school/staff/sync-guide",
-              "ru/exode-api/school/staff/department",
-              "ru/exode-api/school/staff/position",
-              "ru/exode-api/school/staff/employment",
-              "ru/exode-api/school/staff/department-manager",
-              "ru/exode-api/school/staff/absence",
-              "ru/exode-api/school/integrations/examples/1c-staff-sync"
+            "tab": "Exode SDK",
+            "groups": [
+              {
+                "group": "Getting started",
+                "pages": [
+                  "en/exode-sdk/overview",
+                  "en/exode-sdk/installation"
+                ]
+              },
+              {
+                "group": "API Client",
+                "pages": [
+                  "en/exode-sdk/api-client"
+                ]
+              },
+              {
+                "group": "MiniApp",
+                "pages": [
+                  "en/exode-sdk/miniapp/introduction",
+                  "en/exode-sdk/miniapp/client",
+                  "en/exode-sdk/miniapp/context",
+                  "en/exode-sdk/miniapp/init-data",
+                  "en/exode-sdk/miniapp/react",
+                  "en/exode-sdk/miniapp/create-miniapp"
+                ]
+              }
             ]
           },
           {
-            "group": "Группы",
-            "pages": [
-              "ru/exode-api/school/group/list",
-              "ru/exode-api/school/group-member/list",
-              "ru/exode-api/school/group-member/create-many",
-              "ru/exode-api/school/group-member/delete-many"
+            "tab": "Integrations",
+            "groups": [
+              {
+                "group": "Customization",
+                "pages": [
+                  "en/customization/custom-pages",
+                  "en/customization/tg-mini-app",
+                  "en/customization/mobile-app",
+                  "en/customization/js-config"
+                ]
+              },
+              {
+                "group": "Analytics",
+                "pages": [
+                  "en/analytics/events",
+                  "en/analytics/meta-pixel",
+                  "en/analytics/google-analytics",
+                  "en/analytics/yandex-metrika",
+                  "en/analytics/vk-ads",
+                  "en/analytics/custom"
+                ]
+              }
             ]
           },
           {
-            "group": "Курсы",
-            "pages": [
-              "ru/exode-api/school/course/list",
-              "ru/exode-api/school/course/enroll",
-              "ru/exode-api/school/course/progresses",
-              "ru/exode-api/school/certificate/list"
-            ]
-          },
-          {
-            "group": "Доступы и продажи",
-            "pages": [
-              "ru/exode-api/school/product-access/list",
-              "ru/exode-api/school/invoice/list"
-            ]
-          },
-          {
-            "group": "Отчеты и выгрузки",
-            "pages": [
-              "ru/exode-api/school/query-export/generate",
-              "ru/exode-api/school/query-export/result",
-              "ru/exode-api/school/query-export/school-user-find-many",
-              "ru/exode-api/school/query-export/school-student-find-many",
-              "ru/exode-api/school/query-export/group-member-find-many",
-              "ru/exode-api/school/query-export/practice-attempt-find-many",
-              "ru/exode-api/school/query-export/invoice-manage-find-many",
-              "ru/exode-api/school/query-export/product-billing-access-find-many"
-            ]
-          },
-          {
-            "group": "Кастомные поля",
-            "pages": [
-              "ru/exode-api/school/custom-field/get",
-              "ru/exode-api/school/custom-field/set"
-            ]
-          },
-          {
-            "group": "Формы",
-            "pages": [
-              "ru/exode-api/school/form-layout/list",
-              "ru/exode-api/school/form-layout/create",
-              "ru/exode-api/school/form-layout/update",
-              "ru/exode-api/school/form-layout/delete"
-            ]
-          },
-          {
-            "group": "Нет нужного метода?",
-            "pages": [
-              "ru/exode-api/common/request-new-method"
-            ]
-          },
-          {
-            "group": "Все объекты",
-            "pages": [
-              "ru/exode-api/objects/entities/user",
-              "ru/exode-api/objects/entities/session",
-              "ru/exode-api/objects/entities/group",
-              "ru/exode-api/objects/entities/group-member",
-              "ru/exode-api/objects/entities/course",
-              "ru/exode-api/objects/entities/product",
-              "ru/exode-api/objects/entities/payment",
-              "ru/exode-api/objects/entities/school",
-              "ru/exode-api/objects/entities/certificate",
-              "ru/exode-api/objects/entities/form"
-            ]
+            "tab": "Status",
+            "icon": "activity",
+            "href": "https://exode.instatus.com/"
           }
         ]
       },
       {
-        "tab": "Exode SDK",
-        "groups": [
+        "language": "ru",
+        "navbar": {
+          "links": [
+            {
+              "label": "78-113-95-70",
+              "href": "tel:781139570",
+              "icon": "phone"
+            }
+          ],
+          "primary": {
+            "type": "button",
+            "label": "Поддержка",
+            "href": "https://t.me/exode_support_biz"
+          }
+        },
+        "tabs": [
           {
-            "group": "Начало работы",
-            "pages": [
-              "ru/exode-sdk/overview",
-              "ru/exode-sdk/installation"
+            "tab": "Exode API",
+            "groups": [
+              {
+                "group": "Работа с API",
+                "pages": [
+                  "ru/welcome",
+                  "ru/exode-api/quickstart",
+                  "ru/exode-api/concepts",
+                  "ru/exode-api/setup",
+                  "ru/exode-api/permissions",
+                  "ru/exode-api/webhooks/about",
+                  "ru/exode-api/objects/entities/index"
+                ]
+              },
+              {
+                "group": "Пользователи",
+                "pages": [
+                  "ru/exode-api/school/user/create",
+                  "ru/exode-api/school/user/update",
+                  "ru/exode-api/school/user/upsert",
+                  "ru/exode-api/school/user/list",
+                  {
+                    "group": "Поиск пользователей",
+                    "pages": [
+                      "ru/exode-api/school/user/find",
+                      "ru/exode-api/school/user/find-many"
+                    ]
+                  },
+                  "ru/exode-api/school/user/state",
+                  "ru/exode-api/school/user/delete-many",
+                  "ru/exode-api/school/user/session/auth-token"
+                ]
+              },
+              {
+                "group": "Сотрудники (HR)",
+                "pages": [
+                  "ru/exode-api/school/staff/sync-guide",
+                  "ru/exode-api/school/staff/department",
+                  "ru/exode-api/school/staff/position",
+                  "ru/exode-api/school/staff/employment",
+                  "ru/exode-api/school/staff/department-manager",
+                  "ru/exode-api/school/staff/absence",
+                  "ru/exode-api/school/integrations/examples/1c-staff-sync"
+                ]
+              },
+              {
+                "group": "Группы",
+                "pages": [
+                  "ru/exode-api/school/group/list",
+                  "ru/exode-api/school/group-member/list",
+                  "ru/exode-api/school/group-member/create-many",
+                  "ru/exode-api/school/group-member/delete-many"
+                ]
+              },
+              {
+                "group": "Курсы",
+                "pages": [
+                  "ru/exode-api/school/course/list",
+                  "ru/exode-api/school/course/enroll",
+                  "ru/exode-api/school/course/progresses",
+                  "ru/exode-api/school/certificate/list"
+                ]
+              },
+              {
+                "group": "Доступы и продажи",
+                "pages": [
+                  "ru/exode-api/school/product-access/list",
+                  "ru/exode-api/school/invoice/list"
+                ]
+              },
+              {
+                "group": "Отчеты и выгрузки",
+                "pages": [
+                  "ru/exode-api/school/query-export/generate",
+                  "ru/exode-api/school/query-export/result",
+                  "ru/exode-api/school/query-export/school-user-find-many",
+                  "ru/exode-api/school/query-export/school-student-find-many",
+                  "ru/exode-api/school/query-export/group-member-find-many",
+                  "ru/exode-api/school/query-export/practice-attempt-find-many",
+                  "ru/exode-api/school/query-export/invoice-manage-find-many",
+                  "ru/exode-api/school/query-export/product-billing-access-find-many"
+                ]
+              },
+              {
+                "group": "Кастомные поля",
+                "pages": [
+                  "ru/exode-api/school/custom-field/get",
+                  "ru/exode-api/school/custom-field/set"
+                ]
+              },
+              {
+                "group": "Формы",
+                "pages": [
+                  "ru/exode-api/school/form-layout/list",
+                  "ru/exode-api/school/form-layout/create",
+                  "ru/exode-api/school/form-layout/update",
+                  "ru/exode-api/school/form-layout/delete"
+                ]
+              },
+              {
+                "group": "Нет нужного метода?",
+                "pages": [
+                  "ru/exode-api/common/request-new-method"
+                ]
+              },
+              {
+                "group": "Все объекты",
+                "pages": [
+                  "ru/exode-api/objects/entities/user",
+                  "ru/exode-api/objects/entities/session",
+                  "ru/exode-api/objects/entities/group",
+                  "ru/exode-api/objects/entities/group-member",
+                  "ru/exode-api/objects/entities/course",
+                  "ru/exode-api/objects/entities/product",
+                  "ru/exode-api/objects/entities/payment",
+                  "ru/exode-api/objects/entities/school",
+                  "ru/exode-api/objects/entities/certificate",
+                  "ru/exode-api/objects/entities/form"
+                ]
+              }
             ]
           },
           {
-            "group": "API Client",
-            "pages": [
-              "ru/exode-sdk/api-client"
+            "tab": "Exode SDK",
+            "groups": [
+              {
+                "group": "Начало работы",
+                "pages": [
+                  "ru/exode-sdk/overview",
+                  "ru/exode-sdk/installation"
+                ]
+              },
+              {
+                "group": "API Client",
+                "pages": [
+                  "ru/exode-sdk/api-client"
+                ]
+              },
+              {
+                "group": "MiniApp",
+                "pages": [
+                  "ru/exode-sdk/miniapp/introduction",
+                  "ru/exode-sdk/miniapp/client",
+                  "ru/exode-sdk/miniapp/context",
+                  "ru/exode-sdk/miniapp/init-data",
+                  "ru/exode-sdk/miniapp/react",
+                  "ru/exode-sdk/miniapp/create-miniapp"
+                ]
+              }
             ]
           },
           {
-            "group": "MiniApp",
-            "pages": [
-              "ru/exode-sdk/miniapp/introduction",
-              "ru/exode-sdk/miniapp/client",
-              "ru/exode-sdk/miniapp/context",
-              "ru/exode-sdk/miniapp/init-data",
-              "ru/exode-sdk/miniapp/react",
-              "ru/exode-sdk/miniapp/create-miniapp"
+            "tab": "Интеграции",
+            "groups": [
+              {
+                "group": "Кастомизация",
+                "pages": [
+                  "ru/customization/custom-pages",
+                  "ru/customization/tg-mini-app",
+                  "ru/customization/mobile-app",
+                  "ru/customization/js-config"
+                ]
+              },
+              {
+                "group": "Аналитика",
+                "pages": [
+                  "ru/analytics/events",
+                  "ru/analytics/meta-pixel",
+                  "ru/analytics/google-analytics",
+                  "ru/analytics/yandex-metrika",
+                  "ru/analytics/vk-ads",
+                  "ru/analytics/custom"
+                ]
+              }
             ]
+          },
+          {
+            "tab": "Status",
+            "icon": "activity",
+            "href": "https://exode.instatus.com/"
           }
         ]
-      },
-      {
-        "tab": "Интеграции",
-        "groups": [
-          {
-            "group": "Кастомизация",
-            "pages": [
-              "ru/customization/custom-pages",
-              "ru/customization/tg-mini-app",
-              "ru/customization/mobile-app",
-              "ru/customization/js-config"
-            ]
-          },
-          {
-            "group": "Аналитика",
-            "pages": [
-              "ru/analytics/events",
-              "ru/analytics/meta-pixel",
-              "ru/analytics/google-analytics",
-              "ru/analytics/yandex-metrika",
-              "ru/analytics/vk-ads",
-              "ru/analytics/custom"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "Status",
-        "icon": "activity",
-        "href": "https://exode.instatus.com/"
       }
     ]
   },
@@ -208,7 +428,7 @@
     ],
     "primary": {
       "type": "button",
-      "label": "Поддержка",
+      "label": "Support",
       "href": "https://t.me/exode_support_biz"
     }
   },
@@ -234,6 +454,26 @@
     {
       "source": "/ru/exode-api/school/custom-code/js-config",
       "destination": "/ru/customization/js-config"
+    },
+    {
+      "source": "/en/exode-api/school/custom-code/analytics-events",
+      "destination": "/en/analytics/events"
+    },
+    {
+      "source": "/en/exode-api/school/iframe/tg-mini-app",
+      "destination": "/en/customization/tg-mini-app"
+    },
+    {
+      "source": "/en/exode-api/school/deep-link/mobile-app",
+      "destination": "/en/customization/mobile-app"
+    },
+    {
+      "source": "/en/exode-api/school/custom-code/js-config",
+      "destination": "/en/customization/js-config"
+    },
+    {
+      "source": "/ru/exode-sdk/llms.txt",
+      "destination": "/en/exode-sdk/llms.txt"
     }
   ]
 }

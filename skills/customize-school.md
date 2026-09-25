@@ -113,7 +113,7 @@ login screens.
    or domain); pass `tgId` to link the account to Telegram; profile fields optional.
    Save `user.id` from the response — it is needed to issue the token.
 2. **Issue a session token** for that `user.id`: `POST /saas/v2/user/session/auth-token`
-   with `{ "userId": <id> }` (docs: `/ru/exode-api/school/user/session/auth-token`); take
+   with `{ "userId": <id> }` (docs: `/en/exode-api/school/user/session/auth-token`); take
    `payload.session.token` from the response. Tokens are not issued for users holding any
    admin-panel permission (admins/managers) — the method is for students.
 3. **Build the URL** and hand it to Telegram:
@@ -156,7 +156,7 @@ exodebizapp://?data=<url-encoded "action=open-page&domain=...&pageId=...&params=
 Rules that actually bite:
 - **Double encoding:** build the inner query first (values URL-encoded), then URL-encode
   the whole string into `data`. Never assemble by hand — use `URLSearchParams` /
-  `Uri.Builder` / `URLComponents` (ready-made builders are in `/ru/customization/mobile-app`).
+  `Uri.Builder` / `URLComponents` (ready-made builders are in `/en/customization/mobile-app`).
 - **base64url**, not plain base64 (`-`/`_`, no `=` padding), for `extra`.
 - The link fires **only if the app is installed** — catch the failure
   (`ActivityNotFoundException` / `success == false`) and show a store or website fallback.

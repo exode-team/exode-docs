@@ -1,0 +1,38 @@
+---
+title: "Session"
+description: "Structure of the session object returned when an authorization token is issued"
+---
+
+The `session` object describes a user session. It is returned by the
+[`user/session/auth-token`](/en/exode-api/school/user/session/auth-token) method.
+
+<Info>
+    Private fields (IP, geolocation, user agent, FCM token) are not returned in the public schema.
+</Info>
+
+## `session` fields
+
+<ResponseField name="id" type="integer" required>Session ID.</ResponseField>
+<ResponseField name="uuid" type="string" required>Session UUID.</ResponseField>
+<ResponseField name="userId" type="integer | null">ID of the session's user.</ResponseField>
+<ResponseField name="deviceUuid" type="string" required>Device UUID.</ResponseField>
+<ResponseField name="token" type="string" required>Session token used to authorize the user.</ResponseField>
+<ResponseField name="alive" type="boolean" required>The session is active (not ended).</ResponseField>
+<ResponseField name="isOnline" type="boolean" required>The user is currently online in this session.</ResponseField>
+<ResponseField name="launcher" type="string" required>Session launch source.</ResponseField>
+<ResponseField name="appLocation" type="string | null">Current location in the app.</ResponseField>
+<ResponseField name="appLocationParams" type="object">Location parameters (arbitrary object).</ResponseField>
+<ResponseField name="appVersion" type="string | null">App version.</ResponseField>
+<ResponseField name="language" type="enum | null">Language: `Ru`, `Uz`, `En`, `Qa`.</ResponseField>
+<ResponseField name="timezone" type="integer | null">Time zone (offset from UTC in hours).</ResponseField>
+<ResponseField name="lastActivityAt" type="string | null">Last activity (ISO 8601).</ResponseField>
+<ResponseField name="expireAt" type="string | null">Session expiration date (ISO 8601).</ResponseField>
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Archiving date or `null`.</ResponseField>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

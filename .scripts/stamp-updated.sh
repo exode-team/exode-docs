@@ -1,5 +1,6 @@
 #!/bin/sh
-# Stamp each docs page with its "last updated" time in UTC-0.
+# Stamp each docs page with its "last updated" time in UTC-0
+# ("Обновлено" on ru/ pages, "Updated" on en/ pages).
 #
 # Default (seeding): timestamp = git last-commit time for the file
 #   (fallback: filesystem mtime for untracked files).
@@ -7,7 +8,7 @@
 #   edited pages get the moment of the commit.
 #
 # Usage:
-#   .scripts/stamp-updated.sh                 # (re)stamp every ru/**/*.mdx from git history
+#   .scripts/stamp-updated.sh                 # (re)stamp every {ru,en}/**/*.mdx from git history
 #   STAMP_NOW=1 .scripts/stamp-updated.sh f1  # stamp given files with the current UTC time
 set -eu
 
@@ -37,11 +38,12 @@ stamp_file() {
         }
     ' "$f" > "$tmp" && mv "$tmp" "$f"
 
-    printf '\n%s\n\n---\n\n_Обновлено: %s UTC_\n' "$SENTINEL" "$ts" >> "$f"
+    case "$f" in en/*) label='Updated' ;; *) label='Обновлено' ;; esac
+    printf '\n%s\n\n---\n\n_%s: %s UTC_\n' "$SENTINEL" "$label" "$ts" >> "$f"
 }
 
 if [ "$#" -gt 0 ]; then
     for f in "$@"; do stamp_file "$f"; done
 else
-    find ru -name '*.mdx' | while IFS= read -r f; do stamp_file "$f"; done
+    find ru en -name '*.mdx' | while IFS= read -r f; do stamp_file "$f"; done
 fi

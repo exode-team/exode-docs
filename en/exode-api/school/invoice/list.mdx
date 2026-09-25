@@ -1,0 +1,299 @@
+---
+title: "List invoices"
+description: "Get a list of the school's invoices with filtering and pagination"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/invoice/list/raw
+```
+
+<Info>
+    All filter parameters are optional. Array parameters are passed by repeating the parameter in the query string:
+    `userIds=1&userIds=2`. Ranges (`*Range`) are passed as nested parameters, for example
+    `createdAtDateRange[from]` and `createdAtDateRange[to]`.
+</Info>
+
+## Request parameters
+
+### Pagination
+
+<ParamField query="skip" type="integer" required={false}>
+    Number of records to skip. Defaults to `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Page number (an alternative to `skip`). Starts at `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Number of records per page. From `1` to `1000`. Defaults to `100`.
+</ParamField>
+
+### Filtering
+
+<ParamField query="invoiceIds" type="integer[]" required={false}>
+    Filter by invoice IDs.
+</ParamField>
+
+<ParamField query="userIds" type="integer[]" required={false}>
+    Filter by user IDs.
+</ParamField>
+
+<ParamField query="productIds" type="integer[]" required={false}>
+    Filter by product IDs.
+</ParamField>
+
+<ParamField query="types" type="enum[]" required={false}>
+    Filter by invoice type:
+    - `Regular`: one-time payment;
+    - `InstallmentInit` / `SubscriptionInit`: setting up an installment plan / subscription (first payment and card binding);
+    - `InstallmentPay` / `SubscriptionPay`: recurring automatic charges for an installment plan / subscription.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+    Search (by user/identifiers). Up to 50 characters; leading and trailing spaces are trimmed.
+</ParamField>
+
+<ParamField query="createdAtDateRange" type="object" required={false}>
+    Invoice creation date range.
+
+    <Expandable title="createdAtDateRange properties">
+        <ParamField query="from" type="string">Start of the range (ISO 8601). Must be ≤ `to`.</ParamField>
+        <ParamField query="to" type="string">End of the range (ISO 8601). Must be ≥ `from`.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField query="totalAmountRange" type="object" required={false}>
+    Range of the invoice total amount. At least one of the fields must be set.
+
+    <Expandable title="totalAmountRange properties">
+        <ParamField query="from" type="number">Minimum amount.</ParamField>
+        <ParamField query="to" type="number">Maximum amount.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField query="utmParams" type="object" required={false}>
+    Filter by the invoice's UTM tags.
+
+    <Expandable title="utmParams properties">
+        <ParamField query="value" type="object[]">
+            Array of key-value pairs. Each item: `{ "key": "utm_source", "value": "google" }`
+            (`key` and `value` are non-empty strings).
+        </ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField query="payment" type="object" required={false}>
+    Filter by the related payment.
+
+    <Expandable title="payment properties">
+        <ParamField query="paymentIds" type="integer[]">Payment IDs.</ParamField>
+        <ParamField query="acquiringIds" type="integer[]">Acquiring IDs.</ParamField>
+        <ParamField query="statuses" type="enum[]">
+            Payment statuses: `Created`, `WaitingPay`, `WaitingForBinding`, `Processing`, `Completed`,
+            `BindingCompleted`, `Canceled`. An invoice is included if **at least one** of its payments
+            (payment attempts) has the specified status.
+        </ParamField>
+        <ParamField query="actualStatuses" type="enum[]">
+            Status of the invoice's **latest** payment; same values as `statuses`. Use it to
+            get the current payment state: for example, `payment[actualStatuses]=Completed` returns paid invoices.
+        </ParamField>
+    </Expandable>
+</ParamField>
+
+## Response fields
+
+<ResponseField name="payload" type="object">
+    Paginated list of invoices (compact projection). For the full structure, see `invoice` in the
+    [`payment`](/en/exode-api/objects/entities/payment) reference.
+
+    <Expandable title="payload properties">
+        <ResponseField name="items" type="object[]">
+            Array of invoices.
+
+            <Expandable title="Item properties">
+                <ResponseField name="invoiceId" type="integer">Invoice ID.</ResponseField>
+                <ResponseField name="invoiceUuid" type="string">Invoice UUID.</ResponseField>
+                <ResponseField name="type" type="enum">Invoice type (see the `types` filter).</ResponseField>
+                <ResponseField name="status" type="enum">
+                    Invoice status: `Active` or `Canceled`. This is the status of the invoice itself, not of the payment: `Active` does not
+                    mean the invoice is paid. Check payment with the `payment[actualStatuses]` filter or the
+                    `PaymentCompleted` webhook.
+                </ResponseField>
+                <ResponseField name="totalAmount" type="number">Invoice total amount.</ResponseField>
+                <ResponseField name="discountAmount" type="number">Discount amount.</ResponseField>
+                <ResponseField name="currency" type="enum">Currency: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ResponseField>
+                <ResponseField name="createdAt" type="string">Creation date (ISO 8601).</ResponseField>
+                <ResponseField name="expireAt" type="string | null">Expiration date (ISO 8601).</ResponseField>
+                <ResponseField name="user" type="object">
+                    Buyer: `id`, `tgId`, `login`, `email`, `phone`, `fullName`.
+                </ResponseField>
+                <ResponseField name="products" type="object[]">
+                    Invoice line items: an array of `{ productId, courseId, totalPrice, discountAmount }` objects.
+                </ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Current page.</ResponseField>
+        <ResponseField name="count" type="integer">Total number of records.</ResponseField>
+        <ResponseField name="pages" type="integer">Total number of pages.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Whether this is the first page.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Whether this is the last page.</ResponseField>
+        <ResponseField name="next" type="object">Parameters of the next page (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Parameters of the previous page (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/invoice/list/raw?take=20&types=Regular' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listInvoices = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/invoice/list/raw', {
+    params: { take: 20, types: ['Regular'] },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listInvoices();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/invoice/list/raw?take=20&types=Regular';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/invoice/list/raw'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'take': 20, 'types': ['Regular'] }, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/invoice/list/raw?take=20&types=Regular");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Invoice list received");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "invoiceId": 7001,
+        "invoiceUuid": "b1f2c3d4-...",
+        "type": "Regular",
+        "status": "Active",
+        "totalAmount": 1990,
+        "discountAmount": 0,
+        "currency": "Rub",
+        "createdAt": "2025-01-15T10:30:00Z",
+        "expireAt": null,
+        "user": {
+          "id": 123,
+          "tgId": null,
+          "login": "user@example.com",
+          "email": "user@example.com",
+          "phone": "+9876543210",
+          "fullName": "John Doe"
+        },
+        "products": [
+          {
+            "productId": 200,
+            "courseId": 10,
+            "totalPrice": 1990,
+            "discountAmount": 0
+          }
+        ]
+      }
+    ],
+    "next": {
+      "skip": 20,
+      "take": 20,
+      "page": 2
+    },
+    "prev": {
+      "skip": 0,
+      "take": 20,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+    Requires token authentication and the [**"School Sales"**](/en/exode-api/permissions) permission (`SellerSales`).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

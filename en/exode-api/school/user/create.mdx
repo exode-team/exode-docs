@@ -1,0 +1,655 @@
+---
+title: "Create a user"
+description: "Create a new user in the school with profile data"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+POST /saas/v2/user/create
+```
+
+Requires authentication and the [**"School User Management"**](/en/exode-api/permissions) permission (`SchoolManageUsers`).
+
+## Request parameters
+
+### Sign-in fields (login)
+
+The fields **`email`, `phone` and `domain`** serve as the login for signing in to the school. To have the sign-in
+credentials sent automatically, pass at least one of them.
+
+<Warning>
+  `extId` and `tgId` **are not logins** — you cannot sign in with them. They are used only as
+  identifiers: `extId` links the user to your CRM/LMS, `tgId` links the account to Telegram.
+</Warning>
+
+<Info>
+  The login and password are sent to the user **automatically** (a few seconds after creation): by SMS if `phone` is
+  passed and an SMS provider is connected in the school for that phone's country, otherwise to `email`; additionally
+  to Telegram if `tgId` is passed. If no channel is available (for example, only `domain` is passed, or a phone
+  without a connected SMS provider), get the password from the user's settings in the account and deliver it yourself.
+</Info>
+
+<Info>
+  If you pass the `password` field, the user gets the specified password instead of a generated one.
+  The sign-in credentials are **still sent** through the channels above — with your password.
+</Info>
+
+<Info>
+  To receive the login and password in Telegram, the user must allow the bot to message them or have an active chat
+  with that bot.
+</Info>
+
+<Tip>
+  **`create` or `upsert`?** `create` always creates a new user and returns an error (`EmailIsBusy`,
+  `PhoneIsBusy`, `ExtIdIsBusy`, etc.) if the login or identifier is already taken. If, when syncing from your
+  system, you don't know whether the user already exists in the school, use [`user/upsert`](/en/exode-api/school/user/upsert) —
+  it finds the existing user and updates it.
+</Tip>
+
+<ParamField body="email" type="string" required={false}>
+  The user's email address. Must be a valid email. An empty string is converted to
+  `null`.
+</ParamField>
+
+<ParamField body="phone" type="string" required={false}>
+  The user's phone number. Must be in international format (for example, +9876543210). An empty string is converted to `null`.
+</ParamField>
+
+<ParamField body="domain" type="string" required={false}>
+  The user's domain login. Up to 65 characters: Latin letters, digits, `_` and dots — a dot cannot be first/last and
+  dots cannot be consecutive (automatically converted to lower
+  case). Must be unique within the school. Purely numeric values and values like `id12345`
+  are reserved by the system and cannot be set manually (`DomainIsBusy` is returned). If not passed, it is generated
+  automatically in the `id12345` format. Useful when logins are generated on your side and the user has no email
+  or phone.
+</ParamField>
+
+### Integration identifiers
+
+<ParamField body="extId" type="string" required={false}>
+  The user's external identifier from your system (for example, a GUID from your CRM/1C). A string of up to 50
+  characters without `/` or spaces (it is used in the `user/ext/{extId}/update` path), or `null`. An empty string is
+  converted to `null`. Used to link and look up the user (`user/find`, `user/upsert`);
+  **not used for signing in**.
+</ParamField>
+
+<ParamField body="tgId" type="integer" required={false}>
+  The user's Telegram ID. An integer or `null`.
+</ParamField>
+
+### Additional parameters
+
+<ParamField body="status" type="enum" required={false}>
+  Account status: `Active`, `OnLeave`, `Banned`, `Blocked` or `Terminated`. Defaults to `Active`.
+  - `Active` — regular access;
+  - `OnLeave` — "absent" (vacation, sick leave, etc.): an informational status that **does not block** sign-in or
+    access. Managed automatically by the [absences](/en/exode-api/school/staff/absence) module;
+  - `Banned` — banned: sign-in is denied and active sessions are terminated. When the ban is lifted, the effective
+    status is recalculated automatically (based on employments and absences);
+  - `Blocked` — blocked by an administrator: sign-in is denied, active sessions are terminated, and product
+    enrollments are blocked. The user remains visible in reports; switching back to `Active` restores access;
+  - `Terminated` — dismissed: access is closed the same way as for `Blocked`. Set automatically on termination of the
+    last active employment; rehiring returns `Active`.
+
+  The `Deleted` status is reserved by the system (account deletion) and cannot be passed.
+</ParamField>
+
+<Info>
+  The boolean `banned` field has been **removed** from the request — blocking is managed only through `status`
+  (`Banned` / `Blocked`). The `banned` and `active` fields are still present in the response, derived from `status`.
+</Info>
+
+<ParamField body="password" type="string" required={false}>
+  The user's password. From 6 to 100 characters. If passed, it is set as the sign-in password instead of a
+  generated one (the credentials are still sent to the user, see above). An empty string is converted to `null`.
+  Available only on creation (the field is not supported in `update` and `upsert`).
+</ParamField>
+
+### Profile parameters
+
+<ParamField body="profile" type="object" required={false}>
+  An object with the user's profile data.
+
+  <Expandable title="Profile properties">
+    <ParamField body="firstName" type="string" required={false}>
+      The user's first name. Up to 15 characters: letters (Latin and Cyrillic, including ў/ғ/қ/ҳ), spaces and apostrophes
+      (for example, `O'Brien`). Leading and trailing spaces are trimmed automatically.
+    </ParamField>
+
+    <ParamField body="lastName" type="string" required={false}>
+      The user's last name. Up to 15 characters: letters (Latin and Cyrillic, including ў/ғ/қ/ҳ), spaces and apostrophes
+      (for example, `O'Brien`). Leading and trailing spaces are trimmed automatically.
+    </ParamField>
+
+    <ParamField body="bdate" type="string" required={false}>
+      Date of birth in YYYY-MM-DD format.
+    </ParamField>
+
+    <ParamField body="sex" type="enum" required={false}>
+      The user's sex. Possible values: `Ufo`, `Women`, `Men`.
+    </ParamField>
+
+    <ParamField body="role" type="enum" required={false}>
+      The user's role. Possible values: `Student`, `Tutor`, `Parent`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<Info>
+  When a user is created, a linked profile with the specified data is created automatically. If no profile is passed,
+  an empty profile is created, and the user fills in `firstName` and `lastName` on first sign-in.
+</Info>
+
+### Additional aggregates (`extra`)
+
+<ParamField body="extra" type="object" required={false}>
+  A container for related data applied together with user creation. It currently contains the `staff` block
+  (employments); other aggregates will be added in the future.
+
+  <Expandable title="extra properties">
+    <ParamField body="staff" type="object" required={false}>
+      Employment data for the employee being created. Available **only for corporate schools**, where the block is
+      **required** — an employee cannot exist without an employment.
+
+      <Expandable title="staff properties">
+        <ParamField body="employments" type="array" required>
+          An array of employments (from 1 to 10). Multiple items mean concurrent employment: for example, a main job
+          plus an internal secondary job in another department.
+
+          A department is **required** in each item and is specified via `departmentId` **or**
+          `departmentExtId`. A position is **optional**: you can set it via `positionId` **or**
+          `positionExtId`, or omit it entirely — then the employee is hired without a position (external
+          identifiers come from your system, see
+          [Positions](/en/exode-api/school/staff/position) and [Departments](/en/exode-api/school/staff/department)).
+
+          <Expandable title="employments item properties">
+            <ParamField body="extId" type="string" required={false}>
+              The employment's external identifier from your system. From 1 to 50 characters, without `/` or spaces.
+              Unique within the school among open employments.
+            </ParamField>
+
+            <ParamField body="positionId" type="integer" required={false}>
+              The position ID in Exode. Optional. Specify it via `positionId` **or** `positionExtId` (not both at
+              once), or omit it entirely — then the employee is hired without a position.
+            </ParamField>
+
+            <ParamField body="positionExtId" type="string" required={false}>
+              The position's external identifier from your system. From 1 to 50 characters. Optional — an alternative
+              to `positionId` (pass at most one field of the pair).
+            </ParamField>
+
+            <ParamField body="departmentId" type="integer" required={false}>
+              The department ID in Exode. Required if `departmentExtId` is not passed.
+            </ParamField>
+
+            <ParamField body="departmentExtId" type="string" required={false}>
+              The department's external identifier from your system. From 1 to 50 characters. Required if
+              `departmentId` is not passed.
+            </ParamField>
+
+            <ParamField body="kind" type="enum" required={false}>
+              Employment kind: `Main` (main job), `InternalSecondary` (internal secondary job),
+              `ExternalSecondary` (external secondary job). Defaults to `Main`.
+            </ParamField>
+
+            <ParamField body="type" type="enum" required={false}>
+              Employment type: `FullTime` or `PartTime`. Defaults to `FullTime`.
+            </ParamField>
+
+            <ParamField body="startAt" type="string" required={false}>
+              Employment start date in ISO 8601 format. Defaults to the current moment.
+            </ParamField>
+
+            <ParamField body="rate" type="number" required={false}>
+              Rate — a fraction of a full-time rate, from `0.01` to `1`. Defaults to `1`.
+            </ParamField>
+          </Expandable>
+        </ParamField>
+      </Expandable>
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<Info>
+  Data not covered by this schema (city, a custom status from your CRM, etc.) is passed via
+  [custom fields](/en/exode-api/school/custom-field/set). Departments, positions and
+  employments are managed after creation in the [Staff (HR)](/en/exode-api/school/staff/employment) section.
+</Info>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/user/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "email": "user@example.com",
+    "phone": "+9876543210",
+    "domain": "i_ivanov",
+    "extId": "crm_12345",
+    "tgId": null,
+    "password": "SecurePass123",
+    "profile": {
+      "firstName": "Firstname",
+      "lastName": "Lastname",
+      "bdate": "1990-01-01",
+      "sex": "Men",
+      "role": "Student"
+    }
+  }'
+```
+
+```bash cURL (Corporate + staff)
+curl --location 'https://api.exode.biz/saas/v2/user/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "email": "user@example.com",
+    "domain": "i_ivanov",
+    "extId": "guid-1c-4f2a",
+    "status": "Active",
+    "profile": {
+      "firstName": "Firstname",
+      "lastName": "Lastname"
+    },
+    "extra": {
+      "staff": {
+        "employments": [
+          {
+            "extId": "emp-1c-0042",
+            "positionExtId": "pos_manager",
+            "departmentExtId": "dep_sales",
+            "kind": "Main",
+            "type": "FullTime",
+            "startAt": "2026-07-01T00:00:00Z",
+            "rate": 1
+          }
+        ]
+      }
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const createUser = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/user/create', {
+      email: 'user@example.com',
+      phone: '+9876543210',
+      domain: 'i_ivanov',
+      extId: 'crm_12345',
+      tgId: null,
+      password: 'SecurePass123',
+      profile: {
+        firstName: 'Firstname',
+        lastName: 'Lastname',
+        bdate: '1990-01-01',
+        sex: 'Men',
+        role: 'Student'
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('User created:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+createUser();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/user/create';
+$data = [
+  'email' => 'user@example.com',
+  'phone' => '+9876543210',
+  'domain' => 'i_ivanov',
+  'extId' => 'crm_12345',
+  'tgId' => null,
+  'password' => 'SecurePass123',
+  'profile' => [
+    'firstName' => 'Firstname',
+    'lastName' => 'Lastname',
+    'bdate' => '1990-01-01',
+    'sex' => 'Men',
+    'role' => 'Student'
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "User created successfully\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/user/create'
+
+data = {
+  'email': 'user@example.com',
+  'phone': '+9876543210',
+  'domain': 'i_ivanov',
+  'extId': 'crm_12345',
+  'tgId': None,
+  'password': 'SecurePass123',
+  'profile': {
+    'firstName': 'Firstname',
+    'lastName': 'Lastname',
+    'bdate': '1990-01-01',
+    'sex': 'Men',
+    'role': 'Student'
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('User created successfully:')
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+
+```bsl 1С
+Профиль = Новый Структура;
+Профиль.Вставить("firstName", "Firstname");
+Профиль.Вставить("lastName", "Lastname");
+Профиль.Вставить("bdate", "1990-01-01");
+Профиль.Вставить("sex", "Men");
+Профиль.Вставить("role", "Student");
+
+Данные = Новый Структура;
+Данные.Вставить("email", "user@example.com");
+Данные.Вставить("phone", "+9876543210");
+Данные.Вставить("domain", "i_ivanov");
+Данные.Вставить("extId", "crm_12345");
+Данные.Вставить("tgId", Неопределено);
+Данные.Вставить("password", "SecurePass123");
+Данные.Вставить("profile", Профиль);
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/user/create");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
+
+Если Ответ.КодСостояния = 201 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("User created");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "user": {
+      "id": 1683,
+      "createdAt": "2026-07-02T11:15:46.896Z",
+      "updatedAt": "2026-07-02T11:15:46.940Z",
+      "archivedAt": null,
+      "uuid": "e-cjTT0CWMCB",
+      "active": true,
+      "activated": true,
+      "banned": false,
+      "status": "Active",
+      "alive": true,
+      "domain": "i_ivanov",
+      "email": "user@example.com",
+      "phone": "+9876543210",
+      "tgId": null,
+      "vkId": null,
+      "appleId": null,
+      "extId": "crm_12345",
+      "schoolId": 198,
+      "language": null,
+      "timezone": null,
+      "lastOnlineAt": null,
+      "starsBalance": 0,
+      "currentTime": "2026-07-02T11:15:46+00:00",
+      "isSleepingNow": false,
+      "profile": {
+        "id": 1665,
+        "createdAt": "2026-07-02T11:15:46.932Z",
+        "updatedAt": "2026-07-02T11:15:46.932Z",
+        "archivedAt": null,
+        "userId": 1683,
+        "official": false,
+        "firstName": "Firstname",
+        "lastName": "Lastname",
+        "fullName": "Firstname Lastname",
+        "fullNameShort": "Firstname L.",
+        "bdate": "1990-01-01",
+        "sex": "Men",
+        "country": null,
+        "city": null,
+        "role": "Student",
+        "status": null,
+        "title": "",
+        "emojiTitle": "",
+        "avatar": {
+          "id": 1665,
+          "small": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/small/avatar.png",
+          "medium": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/medium/avatar.png",
+          "maximum": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/avatar.png"
+        },
+        "titleState": {
+          "manualTitle": null,
+          "manualEmojiTitle": null,
+          "manualNextTitle": null,
+          "manualNextEmojiTitle": null,
+          "manualExpiredAt": null,
+          "locationTitle": null,
+          "locationEmojiTitle": null,
+          "achievementTitle": null,
+          "achievementEmojiTitle": null
+        }
+      }
+    }
+  }
+}
+```
+```json Error - Email Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "EmailIsBusy",
+  "message": "Email is busy",
+  "error": "Email is busy"
+}
+```
+```json Error - Phone Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "PhoneIsBusy",
+  "message": "Phone is busy",
+  "error": "Phone is busy"
+}
+```
+```json Error - Telegram ID Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "TgIdIsBusy",
+  "message": "Tg id is busy",
+  "error": "Tg id is busy"
+}
+```
+```json Error - Ext ID Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "ExtIdIsBusy",
+  "message": "Ext id is busy",
+  "error": "Ext id is busy"
+}
+```
+```json Error - Domain Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "DomainIsBusy",
+  "message": "This domain is already taken",
+  "error": "This domain is already taken"
+}
+```
+```json Error - Domain Is Invalid
+{
+  "code": 400,
+  "success": false,
+  "cause": "DomainIsInvalid",
+  "message": "Domain is invalid",
+  "error": "Domain is invalid"
+}
+```
+```json Error - Invalid Phone
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": [
+    "phone must be a valid phone number"
+  ],
+  "error": "Bad Request"
+}
+```
+```json Error - Invalid First Name
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": [
+    "profile.firstName must be shorter than or equal to 15 characters"
+  ],
+  "error": "Bad Request"
+}
+```
+```json Error - Staff Is Required (Corporate)
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInputRequired",
+  "message": "Staff employment input is required for Corporate school user",
+  "error": "Staff employment input is required for Corporate school user"
+}
+```
+```json Error - Staff Only For Corporate School
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffOnlyForCorporateSchool",
+  "message": "Staff is available only for Corporate school",
+  "error": "Staff is available only for Corporate school"
+}
+```
+```json Error - Staff Department Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Department not found",
+  "error": "Department not found"
+}
+```
+```json Error - Staff Position Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotFound",
+  "message": "Position not found",
+  "error": "Position not found"
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+Creating a user requires the **"School User Management"** permission (`SchoolManageUsers`).
+</Check>
+
+<Warning>
+  The service user must be authenticated with a token and have the appropriate access permissions for the specified
+  school.
+</Warning>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

@@ -1,0 +1,165 @@
+---
+title: "User"
+description: "Structure of the user object (user) and its profile (profile) returned by the Exode API"
+---
+
+The `user` object describes a user account in an Exode school. It is returned by the `user/create`,
+`user/update`, `user/upsert` and `user/find` methods, in nested fields of other entities (invoices, accesses, webhooks) and,
+together with the `profile` object, in `userWithProfile`.
+
+<Info>
+    The set of fields strictly matches the public response schema: internal/private fields (internal metadata,
+    tokens) are not returned.
+</Info>
+
+## `user` fields
+
+### Identifiers and logins
+
+<ResponseField name="id" type="integer" required>User ID in Exode.</ResponseField>
+<ResponseField name="uuid" type="string" required>User UUID.</ResponseField>
+<ResponseField name="domain" type="string" required>
+    Domain login. Along with `email` and `phone`, it is used as a sign-in field for the school. By default it is generated
+    in the `id12345` format; you can set your own login (Latin letters, digits, `_` and dots not at the edges, up to 65 characters) in
+    `user/create`/`update`/`upsert`.
+</ResponseField>
+<ResponseField name="email" type="string | null">User email.</ResponseField>
+<ResponseField name="phone" type="string | null">Phone number in international format.</ResponseField>
+<ResponseField name="tgId" type="integer | null">Telegram ID.</ResponseField>
+<ResponseField name="vkId" type="integer | null">VK ID (when signing in via VK).</ResponseField>
+<ResponseField name="appleId" type="string | null">Apple ID (when signing in via Apple).</ResponseField>
+<ResponseField name="extId" type="string | null">
+    External ID from your system (CRM/LMS). Set in `user/create`/`update`/`upsert` and used
+    for lookup in `user/find`: it links the Exode user to a record in your database. It is not a login:
+    you cannot sign in with `extId`.
+</ResponseField>
+<ResponseField name="schoolId" type="integer | null">ID of the user's school.</ResponseField>
+
+### Statuses
+
+<ResponseField name="status" type="enum" required>
+    Account status, the **single source of truth** for the account lifecycle:
+    `Active`, `OnLeave`, `Banned`, `Blocked`, `Terminated`, `Deleted`.
+    - `Active`: regular access;
+    - `OnLeave`: "on leave" (informational, does not block access; synchronized automatically with
+      the employee's absences, including hourly recalculation by the calendar);
+    - `Banned`: banned by an administrator/moderator; when the ban is lifted, the actual status is recalculated
+      automatically (`Terminated` / `OnLeave` / `Active`, based on employments and absences);
+    - `Blocked`: blocked by an administrator;
+    - `Terminated`: terminated (set automatically on termination of the last active employment;
+      rehiring returns `Active`);
+    - `Deleted`: account deleted (credentials are wiped, data is kept for reports); set by the system
+      on deletion and cannot be passed manually.
+
+    `Banned`, `Blocked`, `Terminated` and `Deleted` close access: sign-in is denied, sessions are terminated,
+    product enrollments are blocked.
+</ResponseField>
+<ResponseField name="activated" type="boolean" required>The user has confirmed sign-in (via a code/payment).</ResponseField>
+<ResponseField name="banned" type="boolean" required>
+    Derived from `status`: `true` when the status is `Banned` or `Deleted`. Returned for compatibility;
+    use `status` to manage blocking.
+</ResponseField>
+<ResponseField name="active" type="boolean" required>
+    Derived from `status`: `true` when the account is not deleted (`status` ≠ `Deleted`). Returned for
+    compatibility; filter and manage access by `status`.
+</ResponseField>
+<ResponseField name="alive" type="boolean | null">
+    "Live" access: `status` is not one of the blocking statuses (`Banned`/`Blocked`/`Terminated`/`Deleted`).
+</ResponseField>
+
+### Locale and activity
+
+<ResponseField name="language" type="enum | null">Interface language: `Ru`, `Uz`, `En`, `Qa`.</ResponseField>
+<ResponseField name="timezone" type="integer | null">Time zone offset from UTC in hours (for example, `5`).</ResponseField>
+<ResponseField name="lastOnlineAt" type="string | null">Last activity (ISO 8601).</ResponseField>
+<ResponseField name="currentTime" type="string | null">The user's current local time, taking the time zone into account.</ResponseField>
+<ResponseField name="isSleepingNow" type="boolean | null">Heuristic for "night time" for the user.</ResponseField>
+
+### Platform and gamification
+
+<ResponseField name="starsBalance" type="integer" required>"Stars" balance in the gamification system.</ResponseField>
+
+### System audit fields
+
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Last update date (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Archive date (ISO 8601) or `null`.</ResponseField>
+
+## `profile` fields
+
+In `userWithProfile`, the user object is extended with the `profile` field (can be `null`).
+
+<ResponseField name="id" type="integer" required>Profile ID.</ResponseField>
+<ResponseField name="userId" type="integer | null">User ID.</ResponseField>
+<ResponseField name="official" type="boolean" required>Whether the profile is official (verified).</ResponseField>
+<ResponseField name="firstName" type="string | null">First name.</ResponseField>
+<ResponseField name="lastName" type="string | null">Last name.</ResponseField>
+<ResponseField name="fullName" type="string | null">Full name.</ResponseField>
+<ResponseField name="fullNameShort" type="string | null">Short name.</ResponseField>
+<ResponseField name="avatar" type="object">
+    User avatar: image links in different sizes.
+
+    <Expandable title="avatar properties">
+        <ResponseField name="id" type="integer">Profile ID.</ResponseField>
+        <ResponseField name="small" type="string | null">Thumbnail URL.</ResponseField>
+        <ResponseField name="medium" type="string | null">Medium-size URL.</ResponseField>
+        <ResponseField name="maximum" type="string | null">Maximum-size URL.</ResponseField>
+    </Expandable>
+</ResponseField>
+<ResponseField name="bdate" type="string | null">Date of birth (`YYYY-MM-DD`).</ResponseField>
+<ResponseField name="sex" type="enum">Sex: `Men`: male, `Women`: female, `Ufo`: not specified (default value).</ResponseField>
+<ResponseField name="country" type="string | null">Country.</ResponseField>
+<ResponseField name="city" type="string | null">City.</ResponseField>
+<ResponseField name="role" type="enum">Role: `Student`, `Tutor`, `Parent`.</ResponseField>
+<ResponseField name="status" type="string | null">Status (free text).</ResponseField>
+<ResponseField name="title" type="string | null">Title.</ResponseField>
+<ResponseField name="emojiTitle" type="string | null">Emoji title.</ResponseField>
+<ResponseField name="titleState" type="object">Title state (manual/location/achievements).</ResponseField>
+<ResponseField name="createdAt" type="string" required>Profile creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Profile update date (ISO 8601).</ResponseField>
+
+## Example `userWithProfile` object
+
+```json
+{
+  "id": 123,
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "domain": "id123",
+  "email": "user@example.com",
+  "phone": "+9876543210",
+  "tgId": 987654321,
+  "vkId": null,
+  "appleId": null,
+  "extId": "crm_12345",
+  "schoolId": 91,
+  "active": true,
+  "activated": true,
+  "banned": false,
+  "status": "Active",
+  "alive": true,
+  "language": "Ru",
+  "timezone": 5,
+  "lastOnlineAt": "2025-01-15T11:40:00Z",
+  "starsBalance": 0,
+  "createdAt": "2025-01-15T10:30:00Z",
+  "updatedAt": "2025-01-15T11:45:00Z",
+  "archivedAt": null,
+  "profile": {
+    "id": 456,
+    "userId": 123,
+    "official": false,
+    "firstName": "John",
+    "lastName": "Doe",
+    "fullName": "John Doe",
+    "sex": "Men",
+    "role": "Student",
+    "bdate": "1990-01-01"
+  }
+}
+```
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

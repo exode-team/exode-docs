@@ -32,7 +32,7 @@ You need three values, all from the school admin panel, section
 only at creation/rotation — save it immediately), plus the **Seller-Id** and **School-Id**.
 The token must belong to an API-client service user with the "School User Management" permission («Управление пользователями школы», `SchoolManageUsers`).
 Full setup details are in the sibling skill **exode-api-integration** and at
-https://docs.exode.biz/ru/exode-api/setup. Store all three as env vars
+https://docs.exode.biz/en/exode-api/setup. Store all three as env vars
 (`EXODE_TOKEN`, `SELLER_ID`, `SCHOOL_ID`); **never print the token into the chat**.
 
 ### Compact API recap (enough to run standalone)

@@ -1,0 +1,347 @@
+---
+title: "Create a session token"
+description: "Create or get an active session token for a school user"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+POST /saas/v2/user/session/auth-token
+```
+
+Requires authentication and the [**"School User Management"**](/en/exode-api/permissions) permission (`SchoolManageUsers`).
+
+## Request parameters
+
+<ParamField body="userId" type="integer" required>
+  The user's numeric ID in Exode (the `id` field from [`user/find`](/en/exode-api/school/user/find),
+  [`user/create`](/en/exode-api/school/user/create) or [`user/upsert`](/en/exode-api/school/user/upsert)).
+  The user must belong to the school from the `School-Id` header; otherwise you get `401` with `cause: "Forbidden"`
+  and the message `seller not entity owner`.
+</ParamField>
+
+<ParamField body="forceCreate" type="boolean" required={false} default="false">
+  Force creation of a new session. If `true`, a new session is always created, even if the user already has an active one.
+    If `false` or omitted, the existing active session is returned (or a new one is created if none exists).
+</ParamField>
+
+<Info>
+  The method creates a new session for the user or returns the existing active session. The session token is used to authenticate the user in the system. The `isCreated` flag in the response indicates whether a new session was created or an existing one was returned.
+</Info>
+
+<Warning>
+  For users who have at least one permission in the admin panel (administrators, managers, employees
+  with management access), this method does not issue a token: it returns a `Forbidden` error with the message
+  `User is school admin or manager`. The method is intended for students.
+</Warning>
+
+<Warning>
+  The token grants full sign-in to the user's account and is valid for a long time (see `expireAt`). Do not store it in logs,
+  transmit it only over HTTPS, and do not publish links containing it. `forceCreate: true` creates a
+  **new** session on every call without ending the previous ones, so do not use it on every sign-in unless necessary.
+</Warning>
+
+<RequestExample>
+```bash cURL
+curl --location --request POST 'https://api.exode.biz/saas/v2/user/session/auth-token' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "userId": 123,
+    "forceCreate": false
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const createSessionToken = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/user/session/auth-token', {
+      userId: 123,
+      forceCreate: false
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Session token created:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+createSessionToken();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/user/session/auth-token';
+$data = [
+  'userId' => 123,
+  'forceCreate' => false
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Session token created successfully\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/user/session/auth-token'
+
+data = {
+  'userId': 123,
+  'forceCreate': False
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Session token created successfully:')
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+
+```bsl 1С
+Данные = Новый Структура;
+Данные.Вставить("userId", 123);
+Данные.Вставить("forceCreate", Ложь);
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/user/session/auth-token");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
+
+Если Ответ.КодСостояния = 201 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Auth token received");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success - New Session Created
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "isCreated": true,
+    "session": {
+      "id": 3537,
+      "createdAt": "2025-07-29T10:26:19.037Z",
+      "updatedAt": "2025-07-29T10:26:19.917Z",
+      "archivedAt": null,
+      "userId": 123,
+      "uuid": "a65aa524-f822-4f89-9608-4fb5d4425877",
+      "deviceUuid": "d1f2c3b4-a5e6-47f8-9012-3456789abcde",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "alive": true,
+      "isOnline": false,
+      "appLocation": null,
+      "appLocationParams": {},
+      "language": null,
+      "timezone": null,
+      "appVersion": null,
+      "launcher": "Web",
+      "lastActivityAt": "2025-07-29T10:26:19.037Z",
+      "expireAt": "2027-07-29T10:26:18.823Z"
+    }
+  }
+}
+```
+```json Success - Existing Session Returned
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "isCreated": false,
+    "session": {
+      "id": 3536,
+      "createdAt": "2025-07-29T09:15:30.123Z",
+      "updatedAt": "2025-07-29T10:20:45.789Z",
+      "archivedAt": null,
+      "userId": 123,
+      "uuid": "b45bb635-f933-5a90-8719-5ac6e5536988",
+      "deviceUuid": "e2a3b4c5-d6f7-48a9-b012-3456789abcde",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "alive": true,
+      "isOnline": true,
+      "appLocation": "/education",
+      "appLocationParams": {},
+      "language": "Uz",
+      "timezone": 5,
+      "appVersion": "1.180.0",
+      "launcher": "Web",
+      "lastActivityAt": "2025-07-29T10:20:45.789Z",
+      "expireAt": "2027-07-29T09:15:29.823Z"
+    }
+  }
+}
+```
+```json Error - User Not Found / Other School
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
+}
+```
+```json Error - User Is Admin
+{
+  "code": 400,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "User is school admin or manager",
+  "error": "User is school admin or manager"
+}
+```
+```json Error - Invalid User ID
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": [
+    "userId must be an integer number"
+  ],
+  "error": "Bad Request"
+}
+```
+</ResponseExample>
+
+## Response parameters
+
+<ResponseField name="session" type="object" required>
+  The user session object; the full structure is described in the
+  [`session`](/en/exode-api/objects/entities/session) reference.
+
+  <Expandable title="Key session properties">
+    <ResponseField name="id" type="integer" required>
+      Unique session identifier.
+    </ResponseField>
+
+    <ResponseField name="uuid" type="string" required>
+      Session UUID.
+    </ResponseField>
+
+    <ResponseField name="token" type="string" required>
+      Token for authenticating the user.
+    </ResponseField>
+
+    <ResponseField name="alive" type="boolean" required>
+      Whether the session is active.
+    </ResponseField>
+
+    <ResponseField name="expireAt" type="string" required>
+      Session expiration time (ISO 8601).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="isCreated" type="boolean" required>
+  Indicates whether a new session was created. `true`: a session was created; `false`: the existing active session was returned.
+</ResponseField>
+
+## Permission requirements
+
+<Check>
+Creating a user session token requires the **"School User Management"** permission (`SchoolManageUsers`).
+</Check>
+
+<Warning>
+  The service user must be authenticated with a token and have the appropriate access permissions for the specified school.
+</Warning>
+
+## Using the token
+<Info>
+  The session token has a limited validity period (usually 2 years). After it expires, you need to create a new session for the user.
+</Info>
+
+<Tip>
+  **Automatic user sign-in:**
+
+  To sign the user in to the app automatically, use the `___uat` GET parameter in the URL:
+
+  ```
+  https://my-school.com/education?___uat=TOKEN_FROM_SESSION
+  ```
+
+  Where `TOKEN_FROM_SESSION` is the value of the `token` field from this API method's response.
+
+  <Check>
+  The user will be signed in automatically when following such a link.
+  </Check>
+</Tip>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

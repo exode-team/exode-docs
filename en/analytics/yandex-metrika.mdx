@@ -1,0 +1,76 @@
+---
+title: "Yandex Metrica"
+description: "Automatically send platform target events to Yandex Metrica goals"
+---
+
+## Setup
+
+Paste the standard counter snippet into the school's [custom code](/en/customization/js-config) (**For developers** → **Custom code**, HTML tab) and also
+specify the counter number in `window.YM_ID` — the platform needs it to call `reachGoal`:
+
+```html
+<script>
+    // ... standard Yandex Metrica counter snippet ...
+
+    window.YM_ID = 12345678; // your counter number
+</script>
+```
+
+## Goals
+
+In the counter settings, create [JS goals](https://yandex.ru/support/metrica/general/goal-js-event.html)
+with the following identifiers:
+
+### Sign-up
+
+<ParamField body="signup" type="reachGoal">
+    Registration of a new account.
+</ParamField>
+
+### Lead (onboarding questionnaire)
+
+<ParamField body="lead" type="reachGoal">
+    The onboarding questionnaire has been completed.
+</ParamField>
+
+### Course view
+
+<ParamField body="view_course" type="reachGoal">
+    A course page view.
+</ParamField>
+
+### Demo lesson opened
+
+<ParamField body="view_demo_lesson" type="reachGoal">
+    A demo lesson has been opened.
+</ParamField>
+
+### Free course enrollment
+
+<ParamField body="free_course_enroll" type="reachGoal">
+    Enrollment in a free course.
+</ParamField>
+
+### Checkout started
+
+<ParamField body="begin_checkout" type="reachGoal">
+    Proceeding to payment.
+</ParamField>
+
+### Purchase
+
+<ParamField body="purchase" type="reachGoal">
+    Successful payment. Goal parameters: `order_price`, `currency` (not passed for internal currencies).
+</ParamField>
+
+### Course completion
+
+<ParamField body="complete_course" type="reachGoal">
+    Completion of a course.
+</ParamField>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

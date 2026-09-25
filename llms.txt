@@ -6,112 +6,112 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 
 ## Getting started
 
-- [Introduction](https://docs.exode.biz/ru/welcome): API overview and entry points.
-- [Quickstart](https://docs.exode.biz/ru/exode-api/quickstart): your first request in 5 steps.
-- [Core concepts](https://docs.exode.biz/ru/exode-api/concepts): the data model (seller, school, users, courses, products, accesses, payments).
-- [Working with the API](https://docs.exode.biz/ru/exode-api/setup): base URL, authentication, response and error format, rate limits, pagination.
-- [Webhooks](https://docs.exode.biz/ru/exode-api/webhooks/about): outbound events, signature, retries.
+- [Introduction](https://docs.exode.biz/en/welcome): API overview and entry points.
+- [Quickstart](https://docs.exode.biz/en/exode-api/quickstart): your first request in 5 steps.
+- [Core concepts](https://docs.exode.biz/en/exode-api/concepts): the data model (seller, school, users, courses, products, accesses, payments).
+- [Working with the API](https://docs.exode.biz/en/exode-api/setup): base URL, authentication, response and error format, rate limits, pagination.
+- [Webhooks](https://docs.exode.biz/en/exode-api/webhooks/about): outbound events, signature, retries.
 
 ## Methods — Users
 
-- [Create a user](https://docs.exode.biz/ru/exode-api/school/user/create): `POST /saas/v2/user/create`.
-- [Update a user](https://docs.exode.biz/ru/exode-api/school/user/update): `PUT /saas/v2/user/:userId/update`.
-- [Upsert a user](https://docs.exode.biz/ru/exode-api/school/user/upsert): `PUT /saas/v2/user/upsert`.
-- [Find a user](https://docs.exode.biz/ru/exode-api/school/user/find): `GET /saas/v2/user/find`.
-- [Bulk-find users](https://docs.exode.biz/ru/exode-api/school/user/find-many): `POST /saas/v2/user/find-many`.
-- [List users](https://docs.exode.biz/ru/exode-api/school/user/list): `GET /saas/v2/user/list`.
-- [Delete users](https://docs.exode.biz/ru/exode-api/school/user/delete-many): `DELETE /saas/v2/user/delete-many`.
-- [User states](https://docs.exode.biz/ru/exode-api/school/user/state): `GET|PUT /saas/v2/user/:userId/state/{get,set}`.
-- [Session token](https://docs.exode.biz/ru/exode-api/school/user/session/auth-token): `POST /saas/v2/user/session/auth-token` (auto-login via `?___uat=<token>`).
+- [Create a user](https://docs.exode.biz/en/exode-api/school/user/create): `POST /saas/v2/user/create`.
+- [Update a user](https://docs.exode.biz/en/exode-api/school/user/update): `PUT /saas/v2/user/:userId/update`.
+- [Upsert a user](https://docs.exode.biz/en/exode-api/school/user/upsert): `PUT /saas/v2/user/upsert`.
+- [Find a user](https://docs.exode.biz/en/exode-api/school/user/find): `GET /saas/v2/user/find`.
+- [Bulk-find users](https://docs.exode.biz/en/exode-api/school/user/find-many): `POST /saas/v2/user/find-many`.
+- [List users](https://docs.exode.biz/en/exode-api/school/user/list): `GET /saas/v2/user/list`.
+- [Delete users](https://docs.exode.biz/en/exode-api/school/user/delete-many): `DELETE /saas/v2/user/delete-many`.
+- [User states](https://docs.exode.biz/en/exode-api/school/user/state): `GET|PUT /saas/v2/user/:userId/state/{get,set}`.
+- [Session token](https://docs.exode.biz/en/exode-api/school/user/session/auth-token): `POST /saas/v2/user/session/auth-token` (auto-login via `?___uat=<token>`).
 
 ## Methods — Staff (HR)
 
-- [HR system sync guide](https://docs.exode.biz/ru/exode-api/school/staff/sync-guide): how to keep the org structure in sync with an external HR system.
-- [Departments](https://docs.exode.biz/ru/exode-api/school/staff/department): `GET /saas/v2/staff/department/tree` (also `list`, `create`, `update`, `delete`; `ext/{extId}` variants).
-- [Positions](https://docs.exode.biz/ru/exode-api/school/staff/position): `GET /saas/v2/staff/position/list` (also `create`, `update`, `delete`).
-- [Employments](https://docs.exode.biz/ru/exode-api/school/staff/employment): `GET /saas/v2/staff/employment/list` (also `hire`, `promote`, `transfer`, `terminate`).
-- [Department managers](https://docs.exode.biz/ru/exode-api/school/staff/department-manager): `POST /saas/v2/staff/department-manager/set` (also `remove`).
-- [Absences](https://docs.exode.biz/ru/exode-api/school/staff/absence): `GET /saas/v2/staff/absence/list` (also `create`, `update`, `delete`).
-- [Sync example (1C)](https://docs.exode.biz/ru/exode-api/school/integrations/examples/1c-staff-sync): end-to-end staff-sync example via `ext/{extId}` endpoints.
+- [HR system sync guide](https://docs.exode.biz/en/exode-api/school/staff/sync-guide): how to keep the org structure in sync with an external HR system.
+- [Departments](https://docs.exode.biz/en/exode-api/school/staff/department): `GET /saas/v2/staff/department/tree` (also `list`, `create`, `update`, `delete`; `ext/{extId}` variants).
+- [Positions](https://docs.exode.biz/en/exode-api/school/staff/position): `GET /saas/v2/staff/position/list` (also `create`, `update`, `delete`).
+- [Employments](https://docs.exode.biz/en/exode-api/school/staff/employment): `GET /saas/v2/staff/employment/list` (also `hire`, `promote`, `transfer`, `terminate`).
+- [Department managers](https://docs.exode.biz/en/exode-api/school/staff/department-manager): `POST /saas/v2/staff/department-manager/set` (also `remove`).
+- [Absences](https://docs.exode.biz/en/exode-api/school/staff/absence): `GET /saas/v2/staff/absence/list` (also `create`, `update`, `delete`).
+- [Sync example (1C)](https://docs.exode.biz/en/exode-api/school/integrations/examples/1c-staff-sync): end-to-end staff-sync example via `ext/{extId}` endpoints.
 
 ## Methods — Groups
 
-- [List groups](https://docs.exode.biz/ru/exode-api/school/group/list): `GET /saas/v2/group/list/raw`.
-- [List group members](https://docs.exode.biz/ru/exode-api/school/group-member/list): `GET /saas/v2/group/member/list/raw`.
-- [Add members](https://docs.exode.biz/ru/exode-api/school/group-member/create-many): `POST /saas/v2/group/:groupId/member/create-many`.
-- [Remove members](https://docs.exode.biz/ru/exode-api/school/group-member/delete-many): `DELETE /saas/v2/group/:groupId/member/delete-many`.
+- [List groups](https://docs.exode.biz/en/exode-api/school/group/list): `GET /saas/v2/group/list/raw`.
+- [List group members](https://docs.exode.biz/en/exode-api/school/group-member/list): `GET /saas/v2/group/member/list/raw`.
+- [Add members](https://docs.exode.biz/en/exode-api/school/group-member/create-many): `POST /saas/v2/group/:groupId/member/create-many`.
+- [Remove members](https://docs.exode.biz/en/exode-api/school/group-member/delete-many): `DELETE /saas/v2/group/:groupId/member/delete-many`.
 
 ## Methods — Courses
 
-- [List courses](https://docs.exode.biz/ru/exode-api/school/course/list): `GET /saas/v2/course/list/raw`.
-- [Enroll in a course](https://docs.exode.biz/ru/exode-api/school/course/enroll): guide — grant course access by adding the user to the course group (`group-member/create-many`).
-- [Course progress](https://docs.exode.biz/ru/exode-api/school/course/progresses): `GET /saas/v2/course/:courseId/progresses`.
-- [List certificates](https://docs.exode.biz/ru/exode-api/school/certificate/list): `GET /saas/v2/certificate/list/raw`.
+- [List courses](https://docs.exode.biz/en/exode-api/school/course/list): `GET /saas/v2/course/list/raw`.
+- [Enroll in a course](https://docs.exode.biz/en/exode-api/school/course/enroll): guide — grant course access by adding the user to the course group (`group-member/create-many`).
+- [Course progress](https://docs.exode.biz/en/exode-api/school/course/progresses): `GET /saas/v2/course/:courseId/progresses`.
+- [List certificates](https://docs.exode.biz/en/exode-api/school/certificate/list): `GET /saas/v2/certificate/list/raw`.
 
 ## Methods — Accesses and sales
 
-- [List product accesses](https://docs.exode.biz/ru/exode-api/school/product-access/list): `GET /saas/v2/product-access/list/raw`.
-- [List invoices](https://docs.exode.biz/ru/exode-api/school/invoice/list): `GET /saas/v2/invoice/list/raw`.
+- [List product accesses](https://docs.exode.biz/en/exode-api/school/product-access/list): `GET /saas/v2/product-access/list/raw`.
+- [List invoices](https://docs.exode.biz/en/exode-api/school/invoice/list): `GET /saas/v2/invoice/list/raw`.
 
 ## Methods — Forms and custom fields
 
-- [List form layouts](https://docs.exode.biz/ru/exode-api/school/form-layout/list): `GET /saas/v2/form/layout/list`.
-- [Create a form layout](https://docs.exode.biz/ru/exode-api/school/form-layout/create): `POST /saas/v2/form/layout/create`.
-- [Update a form layout](https://docs.exode.biz/ru/exode-api/school/form-layout/update): `PUT /saas/v2/form/layout/:layoutId/update`.
-- [Delete a form layout](https://docs.exode.biz/ru/exode-api/school/form-layout/delete): `DELETE /saas/v2/form/layout/:layoutId/delete`.
-- [Get field values](https://docs.exode.biz/ru/exode-api/school/custom-field/get): `GET /saas/v2/form/custom-field/value/get`.
-- [Set field values](https://docs.exode.biz/ru/exode-api/school/custom-field/set): `POST /saas/v2/form/custom-field/value/{set,set-by-slug}`.
+- [List form layouts](https://docs.exode.biz/en/exode-api/school/form-layout/list): `GET /saas/v2/form/layout/list`.
+- [Create a form layout](https://docs.exode.biz/en/exode-api/school/form-layout/create): `POST /saas/v2/form/layout/create`.
+- [Update a form layout](https://docs.exode.biz/en/exode-api/school/form-layout/update): `PUT /saas/v2/form/layout/:layoutId/update`.
+- [Delete a form layout](https://docs.exode.biz/en/exode-api/school/form-layout/delete): `DELETE /saas/v2/form/layout/:layoutId/delete`.
+- [Get field values](https://docs.exode.biz/en/exode-api/school/custom-field/get): `GET /saas/v2/form/custom-field/value/get`.
+- [Set field values](https://docs.exode.biz/en/exode-api/school/custom-field/set): `POST /saas/v2/form/custom-field/value/{set,set-by-slug}`.
 
 ## Methods — Reports and exports
 
-- [Request a generation](https://docs.exode.biz/ru/exode-api/school/query-export/generate): `POST /saas/v2/query-export/generate` (asynchronous, limit 100/hour).
-- [Get the result](https://docs.exode.biz/ru/exode-api/school/query-export/result): `GET /saas/v2/workflow-execution/:executionUuid/result`.
-- [Report: school users](https://docs.exode.biz/ru/exode-api/school/query-export/school-user-find-many): type `QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY`.
-- [Report: school students](https://docs.exode.biz/ru/exode-api/school/query-export/school-student-find-many): type `QUERY_EXPORT_TYPE_SCHOOL_STUDENT_FIND_MANY`.
-- [Report: group members](https://docs.exode.biz/ru/exode-api/school/query-export/group-member-find-many): type `QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY`.
-- [Report: practice attempts](https://docs.exode.biz/ru/exode-api/school/query-export/practice-attempt-find-many): type `QUERY_EXPORT_TYPE_COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY`.
-- [Report: invoices](https://docs.exode.biz/ru/exode-api/school/query-export/invoice-manage-find-many): type `QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY`.
-- [Report: product billing accesses](https://docs.exode.biz/ru/exode-api/school/query-export/product-billing-access-find-many): type `QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY`.
+- [Request a generation](https://docs.exode.biz/en/exode-api/school/query-export/generate): `POST /saas/v2/query-export/generate` (asynchronous, limit 100/hour).
+- [Get the result](https://docs.exode.biz/en/exode-api/school/query-export/result): `GET /saas/v2/workflow-execution/:executionUuid/result`.
+- [Report: school users](https://docs.exode.biz/en/exode-api/school/query-export/school-user-find-many): type `QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY`.
+- [Report: school students](https://docs.exode.biz/en/exode-api/school/query-export/school-student-find-many): type `QUERY_EXPORT_TYPE_SCHOOL_STUDENT_FIND_MANY`.
+- [Report: group members](https://docs.exode.biz/en/exode-api/school/query-export/group-member-find-many): type `QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY`.
+- [Report: practice attempts](https://docs.exode.biz/en/exode-api/school/query-export/practice-attempt-find-many): type `QUERY_EXPORT_TYPE_COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY`.
+- [Report: invoices](https://docs.exode.biz/en/exode-api/school/query-export/invoice-manage-find-many): type `QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY`.
+- [Report: product billing accesses](https://docs.exode.biz/en/exode-api/school/query-export/product-billing-access-find-many): type `QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY`.
 
 ## Objects (structures based on zod schemas)
 
-- [API objects](https://docs.exode.biz/ru/exode-api/objects/entities/index): overview of all entities.
-- [User](https://docs.exode.biz/ru/exode-api/objects/entities/user): `user`, `profile`.
-- [Session](https://docs.exode.biz/ru/exode-api/objects/entities/session): `session`.
-- [Group](https://docs.exode.biz/ru/exode-api/objects/entities/group) and [Group member](https://docs.exode.biz/ru/exode-api/objects/entities/group-member).
-- [Course and learning](https://docs.exode.biz/ru/exode-api/objects/entities/course): `course`, `courseProgress`, `courseLesson`, `courseLessonPractice`, `courseLessonPracticeAttempt`.
-- [Product and accesses](https://docs.exode.biz/ru/exode-api/objects/entities/product): `product`, `productAccess`, `productPrice`, `discount`.
-- [Payment and invoice](https://docs.exode.biz/ru/exode-api/objects/entities/payment): `payment`, `invoice`, `invoiceProduct`, `acquiring`.
-- [School and seller](https://docs.exode.biz/ru/exode-api/objects/entities/school): `school`, `seller`, `organization`.
-- [Certificate](https://docs.exode.biz/ru/exode-api/objects/entities/certificate): `certificate` (issued for course completion, public `link`).
-- [Forms and fields](https://docs.exode.biz/ru/exode-api/objects/entities/form): `formLayout`, `formFieldValue`.
+- [API objects](https://docs.exode.biz/en/exode-api/objects/entities/index): overview of all entities.
+- [User](https://docs.exode.biz/en/exode-api/objects/entities/user): `user`, `profile`.
+- [Session](https://docs.exode.biz/en/exode-api/objects/entities/session): `session`.
+- [Group](https://docs.exode.biz/en/exode-api/objects/entities/group) and [Group member](https://docs.exode.biz/en/exode-api/objects/entities/group-member).
+- [Course and learning](https://docs.exode.biz/en/exode-api/objects/entities/course): `course`, `courseProgress`, `courseLesson`, `courseLessonPractice`, `courseLessonPracticeAttempt`.
+- [Product and accesses](https://docs.exode.biz/en/exode-api/objects/entities/product): `product`, `productAccess`, `productPrice`, `discount`.
+- [Payment and invoice](https://docs.exode.biz/en/exode-api/objects/entities/payment): `payment`, `invoice`, `invoiceProduct`, `acquiring`.
+- [School and seller](https://docs.exode.biz/en/exode-api/objects/entities/school): `school`, `seller`, `organization`.
+- [Certificate](https://docs.exode.biz/en/exode-api/objects/entities/certificate): `certificate` (issued for course completion, public `link`).
+- [Forms and fields](https://docs.exode.biz/en/exode-api/objects/entities/form): `formLayout`, `formFieldValue`.
 
 ## Integrations
 
-- [Telegram Mini App](https://docs.exode.biz/ru/customization/tg-mini-app): auto-authorization via `?___uat=<token>`.
-- [Mobile app deep link](https://docs.exode.biz/ru/customization/mobile-app): auto-login into the mobile app via a session token.
-- [Custom JS code](https://docs.exode.biz/ru/customization/js-config): customizing the platform interface.
+- [Telegram Mini App](https://docs.exode.biz/en/customization/tg-mini-app): auto-authorization via `?___uat=<token>`.
+- [Mobile app deep link](https://docs.exode.biz/en/customization/mobile-app): auto-login into the mobile app via a session token.
+- [Custom JS code](https://docs.exode.biz/en/customization/js-config): customizing the platform interface.
 
 ## Analytics
 
-- [Target events](https://docs.exode.biz/ru/analytics/events): platform events (signup, purchase, etc.) sent automatically to connected ad platforms; paste the platform snippet into the school custom code (For developers → Custom code).
-- [Meta Pixel (Facebook)](https://docs.exode.biz/ru/analytics/meta-pixel): connecting Meta Pixel.
-- [Google Analytics (GA4)](https://docs.exode.biz/ru/analytics/google-analytics): connecting GA4.
-- [Yandex Metrika](https://docs.exode.biz/ru/analytics/yandex-metrika): connecting Yandex Metrika.
-- [VK Ads](https://docs.exode.biz/ru/analytics/vk-ads): connecting the VK Ads pixel.
-- [Other platforms](https://docs.exode.biz/ru/analytics/custom): any pixel via `document.addEventListener('analytics:*')` in the school custom code (For developers → Custom code).
+- [Target events](https://docs.exode.biz/en/analytics/events): platform events (signup, purchase, etc.) sent automatically to connected ad platforms; paste the platform snippet into the school custom code (For developers → Custom code).
+- [Meta Pixel (Facebook)](https://docs.exode.biz/en/analytics/meta-pixel): connecting Meta Pixel.
+- [Google Analytics (GA4)](https://docs.exode.biz/en/analytics/google-analytics): connecting GA4.
+- [Yandex Metrika](https://docs.exode.biz/en/analytics/yandex-metrika): connecting Yandex Metrika.
+- [VK Ads](https://docs.exode.biz/en/analytics/vk-ads): connecting the VK Ads pixel.
+- [Other platforms](https://docs.exode.biz/en/analytics/custom): any pixel via `document.addEventListener('analytics:*')` in the school custom code (For developers → Custom code).
 
 ## SDK (@exode-team/sdk)
 
 Official npm package: a typed server-side REST API client plus a bridge for embeddable mini apps.
 
-- [SDK overview](https://docs.exode.biz/ru/exode-sdk/overview): package modules and version.
-- [Installation](https://docs.exode.biz/ru/exode-sdk/installation): npm/CDN, imports.
-- [API Client](https://docs.exode.biz/ru/exode-sdk/api-client): `ExodeAPI` — 7 `school.*` resources, validation, errors.
-- [MiniApp](https://docs.exode.biz/ru/exode-sdk/miniapp/introduction): bridge, commands, events, [React hooks](https://docs.exode.biz/ru/exode-sdk/miniapp/react).
+- [SDK overview](https://docs.exode.biz/en/exode-sdk/overview): package modules and version.
+- [Installation](https://docs.exode.biz/en/exode-sdk/installation): npm/CDN, imports.
+- [API Client](https://docs.exode.biz/en/exode-sdk/api-client): `ExodeAPI` — 7 `school.*` resources, validation, errors.
+- [MiniApp](https://docs.exode.biz/en/exode-sdk/miniapp/introduction): bridge, commands, events, [React hooks](https://docs.exode.biz/en/exode-sdk/miniapp/react).
 - npm: https://www.npmjs.com/package/@exode-team/sdk
 
 ## Optional
 
-- [Request a new method](https://docs.exode.biz/ru/exode-api/common/request-new-method): missing an endpoint? how to ask for one.
+- [Request a new method](https://docs.exode.biz/en/exode-api/common/request-new-method): missing an endpoint? how to ask for one.
 - [Support](https://t.me/exode_support_biz): creating a service user and issuing an API token.

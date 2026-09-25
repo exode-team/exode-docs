@@ -1,0 +1,274 @@
+---
+title: "Certificate list"
+description: "Get a list of issued certificates filtered by course, group, user and issue date"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/certificate/list/raw
+```
+
+<Info>
+    Returns certificates issued for the school's courses. All filter parameters are optional — without them
+    the method returns all of the school's certificates page by page, from newest to oldest (by descending `certificateId`).
+    Array parameters are passed by repeating the parameter: `courseIds=1&courseIds=2`.
+</Info>
+
+## Request parameters
+
+### Pagination
+
+<ParamField query="skip" type="integer" required={false}>
+    Number of records to skip. Defaults to `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Page number (an alternative to `skip`). Starts at `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Number of records per page. From `1` to `1000`. Defaults to `100`.
+</ParamField>
+
+### Filtering
+
+<ParamField query="certificateIds" type="integer[]" required={false}>
+    Filter by certificate IDs.
+</ParamField>
+
+<ParamField query="courseIds" type="integer[]" required={false}>
+    Filter by IDs of the courses the certificate was issued for.
+</ParamField>
+
+<ParamField query="userIds" type="integer[]" required={false}>
+    Filter by recipient user IDs.
+</ParamField>
+
+<ParamField query="groupIds" type="integer[]" required={false}>
+    Filter by group IDs. A group is linked to the recipient, not to the certificate: the results include
+    certificates of users who are members of at least one of the specified groups.
+</ParamField>
+
+<ParamField query="issuedAtDateRange" type="object" required={false}>
+    Issue date range.
+
+    <Expandable title="issuedAtDateRange properties">
+        <ParamField query="from" type="string">Start of the range (ISO 8601), exclusive.</ParamField>
+        <ParamField query="to" type="string">End of the range (ISO 8601), inclusive.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField query="archived" type="boolean" required={false}>
+    Filter by the certificate's archived state: `true` — archived only, `false` — non-archived only. If omitted,
+    both are returned.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="payload" type="object">
+    Paginated list of certificates (compact projection). The full structure is in the
+    [`certificate`](/en/exode-api/objects/entities/certificate) reference.
+
+    <Expandable title="payload properties">
+        <ResponseField name="items" type="object[]">
+            Array of certificates.
+
+            <Expandable title="Item properties">
+                <ResponseField name="certificateId" type="integer">Certificate ID.</ResponseField>
+                <ResponseField name="uuid" type="string">Public identifier of the certificate.</ResponseField>
+                <ResponseField name="link" type="string">
+                    Public link to the certificate. It opens without authorization, and you can also print it to PDF from there.
+                </ResponseField>
+                <ResponseField name="courseId" type="integer">Course ID.</ResponseField>
+                <ResponseField name="courseName" type="string | null">Course name.</ResponseField>
+                <ResponseField name="issuedAt" type="string">Issue date (ISO 8601).</ResponseField>
+                <ResponseField name="expireAt" type="string | null">
+                    Expiration date (ISO 8601), or `null` if the certificate does not expire.
+                </ResponseField>
+                <ResponseField name="user" type="object | null">
+                    The recipient with their profile — a [`user`](/en/exode-api/objects/entities/user) object.
+                    Users deleted via [`user/delete-many`](/en/exode-api/school/user/delete-many)
+                    are returned with `status: "Deleted"`; `null` if the user record is unavailable.
+                </ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Current page.</ResponseField>
+        <ResponseField name="count" type="integer">Total number of records.</ResponseField>
+        <ResponseField name="pages" type="integer">Total number of pages.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Whether this is the first page.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Whether this is the last page.</ResponseField>
+        <ResponseField name="next" type="object">Parameters of the next page (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Parameters of the previous page (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/certificate/list/raw?take=20&courseIds=10' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listCertificates = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/certificate/list/raw', {
+    params: { take: 20, courseIds: 10 },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listCertificates();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/certificate/list/raw?take=20&courseIds=10';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/certificate/list/raw'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'take': 20, 'courseIds': 10 }, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/certificate/list/raw?take=20&courseIds=10");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Certificate list received");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "certificateId": 10001,
+        "uuid": "AbCdEfGhJkLm",
+        "link": "https://verify.exode.biz/certificate/AbCdEfGhJkLm",
+        "courseId": 10,
+        "courseName": "Programming Fundamentals",
+        "issuedAt": "2026-01-01T00:00:00.000Z",
+        "expireAt": null,
+        "user": {
+          "id": 1683,
+          "createdAt": "2026-07-02T11:15:46.896Z",
+          "updatedAt": "2026-07-02T11:15:46.940Z",
+          "archivedAt": null,
+          "uuid": "e-cjTT0CWMCB",
+          "active": true,
+          "activated": true,
+          "banned": false,
+          "status": "Active",
+          "alive": true,
+          "domain": "id1683",
+          "email": "user@example.com",
+          "phone": null,
+          "tgId": null,
+          "vkId": null,
+          "appleId": null,
+          "extId": "crm_12345",
+          "schoolId": 198,
+          "language": null,
+          "timezone": null,
+          "lastOnlineAt": null,
+          "starsBalance": 0,
+          "profile": {
+            "id": 1665,
+            "userId": 1683,
+            "official": false,
+            "firstName": "Firstname",
+            "lastName": "Lastname",
+            "fullName": "Firstname Lastname",
+            "sex": "Ufo",
+            "role": "Student"
+          }
+        }
+      }
+    ],
+    "next": {
+      "skip": 20,
+      "take": 20,
+      "page": 2
+    },
+    "prev": {
+      "skip": 0,
+      "take": 20,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+    Requires token authentication and one of the permissions: [**"Course Management"**](/en/exode-api/permissions) (`CourseManage`)
+    or **"Course Student Management"** (`CourseStudentManage`).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

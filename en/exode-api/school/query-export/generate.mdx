@@ -1,0 +1,342 @@
+---
+title: "Generation request"
+description: "Create a request to export data in XLSX, CSV or JSON format"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## How it works
+
+Report generation runs as an asynchronous workflow. The process consists of three steps:
+
+<Steps>
+    <Step title="Create a generation task">
+        Send a `POST` request to `/saas/v2/query-export/generate` with the report type, filter variables and
+        format.
+        In response (HTTP `201`), you receive an object whose `payload` field contains a `uuid` — the identifier
+        for tracking the result. The file itself has not been created yet at this step.
+    </Step>
+
+    <Step title="Get the result">
+        Send a `GET` request
+        to <br/>[`/saas/v2/workflow-execution/:executionUuid/result`](/en/exode-api/school/query-export/result), <br/>substituting
+        the `uuid` from the first step, at an interval of 2–5 seconds.
+        Repeat the request until `status` becomes `Completed` (or `Failed`). Right after launch,
+        `payload` may be `null` — the task has not started yet, so keep polling.
+    </Step>
+
+    <Step title="Download the file">
+        When `status: Completed`, download the file from the `payload.result.fileUrl` link. Download it right away: the result
+        is stored for a limited time (see the [result retrieval](/en/exode-api/school/query-export/result) page for details).
+    </Step>
+</Steps>
+
+<Note>
+    Only a request with an unknown `type` or `format`, or with `variables` that is not an object, is rejected
+    immediately with status `400` and `cause: "validation"`. Errors inside `variables` (an unknown filter field, an invalid enum value, a missing `filter`) and missing permissions
+    for the data do not cause this request to fail: the task is created, and polling the result returns
+    `status: Failed`. The reason for the failure is not included in the response — check your request against the report type page and
+    the token's [permissions](#permission-requirements).
+</Note>
+
+---
+
+## Create an export request
+
+```
+POST /saas/v2/query-export/generate
+```
+
+<Info>
+  Rate limit: **100 requests per hour** per service user (token). When exceeded, HTTP `429` is returned —
+  see the [Rate-limit](/en/exode-api/setup#rate-limits) section for details. Polling for the result does not count toward this limit.
+</Info>
+
+<ParamField header="Ux-Language" type="string">
+  Language of column headers and translatable values in the file: `ru`, `en`, `uz`, `qa`. If the header is not sent,
+  columns are named in English. Column names on the report type pages are given in English.
+</ParamField>
+
+### Request parameters
+
+<ParamField body="type" type="string" required>
+  Report type. Determines which data is exported. Available values:
+
+  - `QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY` — [school users](/en/exode-api/school/query-export/school-user-find-many)
+  - `QUERY_EXPORT_TYPE_SCHOOL_STUDENT_FIND_MANY` — [school students](/en/exode-api/school/query-export/school-student-find-many)
+  - `QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY` — [group members](/en/exode-api/school/query-export/group-member-find-many)
+  - `QUERY_EXPORT_TYPE_COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY` — [practice assignment attempts](/en/exode-api/school/query-export/practice-attempt-find-many)
+  - `QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY` — [invoices](/en/exode-api/school/query-export/invoice-manage-find-many)
+  - `QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY` — [product access billing](/en/exode-api/school/query-export/product-billing-access-find-many)
+</ParamField>
+
+<ParamField body="variables" type="object" required>
+  Query variables: `filter` (required for all types; to export all records, pass `{}`) and
+  `sort` (optional). The set of fields depends on the selected `type` and is described on the report type page — see the links
+  in the list above.
+
+  Fields are validated during generation, not when the task is created: an unknown field or an invalid value results
+  in `status: Failed` at the result retrieval step. Dates in ranges (`...DateRange`) are passed in
+  ISO 8601 format, for example `2025-01-01T00:00:00Z`.
+</ParamField>
+
+<ParamField body="format" type="string">
+  Output file format. Defaults to `EXPORT_FORMAT_XLSX`.
+
+  - `EXPORT_FORMAT_XLSX` — Excel (.xlsx). The only format with additional sheets (for example, **Course
+    Progress** or **Billing Details** — see the report type page).
+  - `EXPORT_FORMAT_CSV` — CSV (.csv): main sheet only, comma-separated, UTF-8 with BOM encoding
+    (opens in Excel without issues with Cyrillic), the first row contains the column headers.
+  - `EXPORT_FORMAT_JSON` — JSON (.json): an array of objects, one per report row. Keys are the technical
+    English column names (`userId`, `fullName`, …); they do not depend on `Ux-Language`.
+</ParamField>
+
+### Response fields
+
+<ResponseField name="success" type="boolean">
+  Result of the request.
+</ResponseField>
+
+<ResponseField name="code" type="number">
+  HTTP response code (for example, `201`).
+</ResponseField>
+
+<ResponseField name="payload" type="object">
+  Generation task object.
+
+  <Expandable title="payload properties">
+    <ResponseField name="uuid" type="string">
+      Task UUID — used to [get the result](/en/exode-api/school/query-export/result).
+    </ResponseField>
+
+    <ResponseField name="flow" type="string">
+      Process type. For exports, `QueryExport`.
+    </ResponseField>
+
+    <ResponseField name="status" type="string">
+      Task status: `Waiting`, `Processing`, `Failed`, `Canceled`, `Completed` — described on the
+      [result retrieval](/en/exode-api/school/query-export/result) page. On creation, `Processing`.
+    </ResponseField>
+
+    <ResponseField name="isCompleted" type="boolean">
+      Task completion flag. On creation, `false`.
+    </ResponseField>
+
+    <ResponseField name="userId" type="number | null">
+      ID of the task initiator — the service user who owns the token.
+    </ResponseField>
+
+    <ResponseField name="createdAt" type="string">
+      Task creation date (ISO 8601).
+    </ResponseField>
+
+    <ResponseField name="updatedAt" type="string | null">
+      Task last update date (ISO 8601).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/query-export/generate' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data '{
+    "type": "QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY",
+    "variables": {
+      "filter": { "groupIds": [1, 2, 3] }
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const generateReport = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/query-export/generate', {
+      type: 'QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY',
+      variables: {
+        filter: { groupIds: [1, 2, 3] }
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    const { uuid } = response.data.payload;
+    console.log('Execution UUID:', uuid);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+generateReport();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/query-export/generate';
+$data = [
+  'type' => 'QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY',
+  'variables' => [
+    'filter' => ['groupIds' => [1, 2, 3]]
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200 || $httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Execution UUID: " . $result['payload']['uuid'] . "\n";
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/query-export/generate'
+
+data = {
+  'type': 'QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY',
+  'variables': {
+    'filter': {'groupIds': [1, 2, 3]}
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print(f"Execution UUID: {result['payload']['uuid']}")
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+```
+
+```bsl 1С
+ИдентификаторыГрупп = Новый Массив;
+ИдентификаторыГрупп.Добавить(1);
+ИдентификаторыГрупп.Добавить(2);
+ИдентификаторыГрупп.Добавить(3);
+
+Фильтр = Новый Структура;
+Фильтр.Вставить("groupIds", ИдентификаторыГрупп);
+
+Переменные = Новый Структура;
+Переменные.Вставить("filter", Фильтр);
+
+Данные = Новый Структура;
+Данные.Вставить("type", "QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY");
+Данные.Вставить("variables", Переменные);
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/query-export/generate");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
+
+Если Ответ.КодСостояния = 200 ИЛИ Ответ.КодСостояния = 201 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Export started, uuid: " + Результат.payload.uuid);
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "uuid": "ac4140c9-12d3-4c1f-a7aa-d12f16c7bbdd",
+    "flow": "QueryExport",
+    "status": "Processing",
+    "isCompleted": false,
+    "userId": 5562,
+    "createdAt": "2025-01-18T12:44:55.812Z"
+  }
+}
+```
+</ResponseExample>
+
+---
+
+## Permission requirements
+
+The generation request itself requires only token authentication as the school's service user. The data for the file
+is collected on behalf of the same user, so the token needs a permission for the exported data — one of those
+listed for the report type:
+
+| Report type | Required permission (any of) |
+|---|---|
+| `QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY` | **"School User Management"** (`SchoolManageUsers`) |
+| `QUERY_EXPORT_TYPE_SCHOOL_STUDENT_FIND_MANY` | **"School User Management"** (`SchoolManageUsers`), **"Course Student Management"** (`CourseStudentManage`) |
+| `QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY` | **"School User Management"** (`SchoolManageUsers`), **"Course Management"** (`CourseManage`), **"Course Curator"** (`CourseCurator`) |
+| `QUERY_EXPORT_TYPE_COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY` | **"Course Management"** (`CourseManage`), **"Course Curator"** (`CourseCurator`) |
+| `QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY` | **"School Sales"** (`SellerSales`) |
+| `QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY` | **"School User Management"** (`SchoolManageUsers`), **"Course Student Management"** (`CourseStudentManage`) |
+
+<Warning>
+  If the permission is missing, the generation request still returns `201`, and the export finishes with `status: Failed`.
+  To learn where to enable permissions, see the [permissions reference](/en/exode-api/permissions).
+</Warning>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

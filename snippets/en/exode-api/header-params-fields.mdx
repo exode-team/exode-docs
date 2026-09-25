@@ -1,0 +1,16 @@
+## Request headers
+
+<ParamField header="Authorization" type="string" required>
+    The service user's API token in the `Bearer YOUR_TOKEN` format. The school owner issues the token in the admin panel:
+    **Manage → School → For developers → API keys** — see the ["Authentication"](/en/exode-api/setup#authentication) section for details.
+</ParamField>
+
+<ParamField header="Seller-Id" type="integer" required>
+    The numeric ID of the seller — the account the school belongs to. Copy it on the **API keys** page, in
+    the **Integration data → Identifiers** card. The token's permissions are checked against this ID.
+</ParamField>
+
+<ParamField header="School-Id" type="integer" required>
+    The numeric ID of the school, found in the same place as `Seller-Id`. The value must match the seller's school — otherwise
+    a `400` error with `cause: "ForbiddenSchoolMismatch"` is returned.
+</ParamField>

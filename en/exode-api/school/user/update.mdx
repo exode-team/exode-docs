@@ -1,0 +1,591 @@
+---
+title: "Update a user"
+description: "Update an existing school user's data, including profile data"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+PUT /saas/v2/user/:userId/update
+```
+
+Requires authentication and the [**"School User Management"**](/en/exode-api/permissions) permission (`SchoolManageUsers`).
+
+## Request parameters
+
+##### All fields are optional on update. To clear a field that can be empty, pass `null`
+
+<Info>
+  `userId` is the numeric ID of the user in Exode (the `id` field in the [`user/create`](/en/exode-api/school/user/create),
+  [`user/find`](/en/exode-api/school/user/find) or [`user/list`](/en/exode-api/school/user/list) response). If you only
+  store your own identifier, use the
+  [external ID](#update-a-user-by-external-id) `extId` variant.
+  This method cannot change the password. If there is no user with this `userId` in the school from the `School-Id` header,
+  the method returns `401` with `cause: "Forbidden"` and the message `seller not entity owner`.
+</Info>
+
+<ParamField body="email" type="string" required={false}>
+  The user's email address. Must be a valid email. An empty string is converted to
+  `null`.
+</ParamField>
+
+<ParamField body="phone" type="string" required={false}>
+  The user's phone number. Must be in international format (for example, +9876543210). An empty string is converted to `null`.
+</ParamField>
+
+<ParamField body="domain" type="string" required={false}>
+  The user's domain login. Up to 65 characters: Latin letters, digits, `_` and dots. A dot cannot be the first or last character and cannot
+  be repeated consecutively (automatically converted to lower
+  case). Must be unique within the school. Used for sign-in alongside `email` and `phone`.
+</ParamField>
+
+<ParamField body="tgId" type="integer" required={false}>
+  The user's Telegram ID. An integer or `null`. It is not a login: it links the account to Telegram.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  The user's external ID from your system. A string of up to 50 characters or `null` (an empty string resets the
+  value to `null`). It is not a login: it is used only to link the user to your CRM/LMS and to find the user.
+</ParamField>
+
+<ParamField body="status" type="enum" required={false}>
+  Account status: `Active`, `OnLeave`, `Banned`, `Blocked` or `Terminated`.
+  - `Active`: regular access;
+  - `OnLeave`: "on leave", an informational status that does **not block** access. It is managed automatically by the
+    [absences](/en/exode-api/school/staff/absence) module; setting it manually is not recommended;
+  - `Banned`: banned. Sign-in is denied and active sessions are terminated. To lift the ban, pass `Active`:
+    the actual status is recalculated automatically from employments and absences (`Terminated` / `OnLeave` /
+    `Active`), so an employee terminated before the ban does not regain access by mistake;
+  - `Blocked`: blocked. Sign-in is denied, active sessions are terminated and product enrollments are blocked.
+    Returning to `Active` restores access;
+  - `Terminated`: terminated. Access is closed the same way as for `Blocked`. It is managed automatically by the
+    [employments](/en/exode-api/school/staff/employment) module (termination of the last active employment);
+    to terminate an employee, use `staff/employment/terminate` instead of setting the status directly.
+
+  The `Deleted` status is reserved by the system (account deletion) and cannot be passed.
+</ParamField>
+
+<Info>
+  The boolean `banned` request field has been **removed**: blocking is managed only via `status` (`Banned` /
+  `Blocked`). The response still includes the `banned` and `active` fields, derived from `status`.
+</Info>
+
+<Warning>
+  The school owner is protected: another administrator cannot change the owner's data, and moving the owner to a blocking
+  status (`Banned`/`Blocked`/`Terminated`) is forbidden even for the owner themselves. The method returns the
+  `ForbiddenModifySchoolOwner` error.
+</Warning>
+
+<ParamField body="extra" type="object" required={false}>
+  Container for related data, the same as in
+  [`user/create`](/en/exode-api/school/user/create#additional-aggregates-extra): the `staff.employments` block
+  (array of 1–10). Corporate schools only; unlike creation, it is **optional**. Employments
+  are applied idempotently: passing the same active department + position pair again does not create a duplicate.
+</ParamField>
+
+<Info>
+  Via `extra` in `update` you can only **add employments** to an employee. Transfers, position changes and termination
+  are handled by the endpoints in the [Staff (HR)](/en/exode-api/school/staff/employment) section.
+</Info>
+
+### Profile parameters
+
+<ParamField body="profile" type="object" required={false}>
+  Object with the user's profile data to update.
+
+  <Expandable title="Profile properties">
+    <ParamField body="firstName" type="string" required={false}>
+      The user's first name. 2 to 15 characters: letters (Latin and Cyrillic, including ў/ғ/қ/ҳ), spaces and apostrophes
+      (for example, `O'Brien`). Leading and trailing spaces are trimmed automatically.
+    </ParamField>
+
+    <ParamField body="lastName" type="string" required={false}>
+      The user's last name. 2 to 15 characters: letters (Latin and Cyrillic, including ў/ғ/қ/ҳ), spaces and apostrophes
+      (for example, `O'Brien`). Leading and trailing spaces are trimmed automatically.
+    </ParamField>
+
+    <ParamField body="bdate" type="string" required={false}>
+      Date of birth in YYYY-MM-DD format.
+    </ParamField>
+
+    <ParamField body="sex" type="enum" required={false}>
+      The user's sex. Possible values: `Ufo`, `Women`, `Men`.
+    </ParamField>
+
+    <ParamField body="role" type="enum" required={false}>
+      The user's role. Possible values: `Student`, `Tutor`, `Parent`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<Info>
+  When updating a user, you can change both the main data and the profile data. If the profile is not specified,
+  it remains unchanged.
+</Info>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/user/123/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "email": "updated@example.com",
+    "phone": "+9876543210",
+    "extId": "crm_12345",
+    "tgId": null,
+    "status": "Active",
+    "profile": {
+      "firstName": "Newfirstname",
+      "lastName": "Newlastname",
+      "bdate": "1990-01-01",
+      "sex": "Men",
+      "role": "Student"
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateUser = async (userId) => {
+  try {
+    const response = await axios.put(`https://api.exode.biz/saas/v2/user/${userId}/update`, {
+      email: 'updated@example.com',
+      phone: '+9876543210',
+      extId: 'crm_12345',
+      tgId: null,
+      status: 'Active',
+      profile: {
+        firstName: 'Newfirstname',
+        lastName: 'Newlastname',
+        bdate: '1990-01-01',
+        sex: 'Men',
+        role: 'Student'
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('User updated:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+updateUser(123);
+```
+
+```php PHP
+<?php
+
+$userId = 123;
+$url = "https://api.exode.biz/saas/v2/user/{$userId}/update";
+$data = [
+  'email' => 'updated@example.com',
+  'phone' => '+9876543210',
+  'extId' => 'crm_12345',
+  'tgId' => null,
+  'status' => 'Active',
+  'profile' => [
+    'firstName' => 'Newfirstname',
+    'lastName' => 'Newlastname',
+    'bdate' => '1990-01-01',
+    'sex' => 'Men',
+    'role' => 'Student'
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+  $result = json_decode($response, true);
+  echo "User updated successfully\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+import json
+
+user_id = 123
+url = f'https://api.exode.biz/saas/v2/user/{user_id}/update'
+
+data = {
+  'email': 'updated@example.com',
+  'phone': '+9876543210',
+  'extId': 'crm_12345',
+  'tgId': None,
+  'status': 'Active',
+  'profile': {
+    'firstName': 'Newfirstname',
+    'lastName': 'Newlastname',
+    'bdate': '1990-01-01',
+    'sex': 'Men',
+    'role': 'Student'
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.put(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('User updated successfully:')
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+
+```bsl 1С
+Профиль = Новый Структура;
+Профиль.Вставить("firstName", "Newfirstname");
+Профиль.Вставить("lastName", "Newlastname");
+Профиль.Вставить("bdate", "1990-01-01");
+Профиль.Вставить("sex", "Men");
+Профиль.Вставить("role", "Student");
+
+Данные = Новый Структура;
+Данные.Вставить("email", "updated@example.com");
+Данные.Вставить("phone", "+9876543210");
+Данные.Вставить("extId", "crm_12345");
+Данные.Вставить("tgId", Неопределено);
+Данные.Вставить("status", "Active");
+Данные.Вставить("profile", Профиль);
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/user/123/update");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("PUT", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("User updated");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "user": {
+      "id": 1683,
+      "createdAt": "2026-07-02T11:15:46.896Z",
+      "updatedAt": "2026-07-02T11:15:46.980Z",
+      "archivedAt": null,
+      "uuid": "e-cjTT0CWMCB",
+      "active": true,
+      "activated": true,
+      "banned": false,
+      "status": "Active",
+      "alive": true,
+      "domain": "id1683",
+      "email": "updated@example.com",
+      "phone": "+9876543210",
+      "tgId": null,
+      "vkId": null,
+      "appleId": null,
+      "extId": "crm_12345",
+      "schoolId": 198,
+      "language": null,
+      "timezone": null,
+      "lastOnlineAt": null,
+      "starsBalance": 0,
+      "currentTime": "2026-07-02T11:15:46+00:00",
+      "isSleepingNow": false,
+      "profile": {
+        "id": 1665,
+        "createdAt": "2026-07-02T11:15:46.932Z",
+        "updatedAt": "2026-07-02T11:15:46.976Z",
+        "archivedAt": null,
+        "userId": 1683,
+        "official": false,
+        "firstName": "Newfirstname",
+        "lastName": "Newlastname",
+        "fullName": "Newfirstname Newlastname",
+        "fullNameShort": "Newfirstname N.",
+        "bdate": "1990-01-01",
+        "sex": "Men",
+        "country": null,
+        "city": null,
+        "role": "Student",
+        "status": null,
+        "title": "",
+        "emojiTitle": "",
+        "avatar": {
+          "id": 1665,
+          "small": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/small/avatar.png",
+          "medium": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/medium/avatar.png",
+          "maximum": "https://storage.exode.biz/production/user/1683/xK2mVwNib9b0/avatar.png"
+        },
+        "titleState": {
+          "manualTitle": null,
+          "manualEmojiTitle": null,
+          "manualNextTitle": null,
+          "manualNextEmojiTitle": null,
+          "manualExpiredAt": null,
+          "locationTitle": null,
+          "locationEmojiTitle": null,
+          "achievementTitle": null,
+          "achievementEmojiTitle": null
+        }
+      }
+    }
+  }
+}
+```
+```json Error - User Not Found / Other School
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
+}
+```
+```json Error - Email Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "EmailIsBusy",
+  "message": "Email is busy",
+  "error": "Email is busy"
+}
+```
+```json Error - Phone Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "PhoneIsBusy",
+  "message": "Phone is busy",
+  "error": "Phone is busy"
+}
+```
+```json Error - Telegram ID Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "TgIdIsBusy",
+  "message": "Tg id is busy",
+  "error": "Tg id is busy"
+}
+```
+```json Error - Domain Is Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "DomainIsBusy",
+  "message": "This domain is already taken",
+  "error": "This domain is already taken"
+}
+```
+```json Error - Domain Is Invalid
+{
+  "code": 400,
+  "success": false,
+  "cause": "DomainIsInvalid",
+  "message": "Domain is invalid",
+  "error": "Domain is invalid"
+}
+```
+```json Error - Invalid Email
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": [
+    "email must be an email"
+  ],
+  "error": "Bad Request"
+}
+```
+```json Error - Invalid Phone
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": [
+    "phone must be a valid phone number"
+  ],
+  "error": "Bad Request"
+}
+```
+```json Error - Invalid First Name
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": [
+    "profile.firstName must be shorter than or equal to 15 characters"
+  ],
+  "error": "Bad Request"
+}
+```
+```json Error - Forbidden Modify School Owner
+{
+  "code": 400,
+  "success": false,
+  "cause": "ForbiddenModifySchoolOwner",
+  "message": "Not allowed to modify school owner",
+  "error": "Not allowed to modify school owner"
+}
+```
+</ResponseExample>
+
+## Update a user by external ID
+
+```
+PUT /saas/v2/user/ext/{extId}/update
+```
+
+Requires authentication and the **"School User Management"** permission (`SchoolManageUsers`).
+
+<Info>
+  Same as updating by `userId`, but the user is addressed by the external ID `extId`
+  within the school. This is convenient for integrations (CRM/1C) that do not store internal Exode IDs. The request body, response,
+  school owner protection and `extra` support are identical to the regular `update`.
+</Info>
+
+### Parameters
+
+<ParamField path="extId" type="string" required>
+  The user's external ID within the school. Cannot contain `/` or whitespace characters;
+  non-ASCII values (Cyrillic, etc.) in the path must be **URL-encoded** (`encodeURIComponent`).
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/user/ext/i.ivanov.01011990/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "email": "updated@example.com",
+    "profile": {
+      "firstName": "Newfirstname"
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateUserByExtId = async (extId) => {
+  const { data } = await axios.put(
+    `https://api.exode.biz/saas/v2/user/ext/${encodeURIComponent(extId)}/update`,
+    {
+      email: 'updated@example.com',
+      profile: {
+        firstName: 'Newfirstname',
+      },
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload.user);
+};
+
+updateUserByExtId('i.ivanov.01011990');
+```
+</RequestExample>
+
+<ResponseExample>
+```json Error - User Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "NotFound",
+  "message": "User not found",
+  "error": "User not found"
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+Updating a user requires the **"School User Management"** permission (`SchoolManageUsers`).
+</Check>
+
+<Warning>
+  The service user must be authenticated with a token and have the appropriate access rights to the specified
+  school.
+</Warning>
+
+<Info>
+  When a blocking status (`Banned`/`Blocked`/`Terminated`) is set, all of the user's active sessions
+  are **terminated automatically**. This is
+  done for security reasons.
+</Info>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

@@ -1,0 +1,87 @@
+---
+title: "Certificate"
+description: "Structure of the certificate object in the Exode API"
+---
+
+The `certificate` object describes a personal certificate issued to a user for completing a course.
+It is returned by the [`certificate/list`](/en/exode-api/school/certificate/list) method and arrives
+in the [`CertificateIssued`](/en/exode-api/webhooks/about#supported-events) webhook.
+
+A certificate is issued automatically when a course is completed, if issuing is enabled in the course settings
+and a template is selected. Certificates are not reissued: each "user + course" pair has
+at most one certificate.
+
+## `certificate` fields
+
+### Main
+
+<ResponseField name="id" type="integer" required>Certificate ID.</ResponseField>
+<ResponseField name="uuid" type="string" required>
+    The certificate's public identifier (12 characters, Latin letters excluding the visually similar `I`, `O`, `l`, `o`).
+    Used in the public link and for authenticity verification.
+</ResponseField>
+<ResponseField name="link" type="string" required>
+    Public link to the certificate in the form `https://verify.exode.biz/certificate/{uuid}`. The page
+    opens without authentication, and you can print it to PDF from there.
+</ResponseField>
+<ResponseField name="userId" type="integer" required>ID of the recipient user.</ResponseField>
+<ResponseField name="courseId" type="integer" required>ID of the course the certificate was issued for.</ResponseField>
+<ResponseField name="templateId" type="integer" required>ID of the design template.</ResponseField>
+
+### Validity
+
+<ResponseField name="issuedAt" type="string" required>Issue date (ISO 8601).</ResponseField>
+<ResponseField name="expireAt" type="string | null">
+    Expiration date (ISO 8601), or `null` if the certificate does not expire.
+</ResponseField>
+
+### Data snapshot
+
+<ResponseField name="snapshot" type="object" required>
+    A snapshot of the data at the time of issue: the recipient's full name, course name, number of lessons, issuer
+    name and design. It is stored separately, so renaming the course or profile later
+    does not change an already issued certificate.
+</ResponseField>
+
+### System audit fields
+
+<ResponseField name="createdAt" type="string" required>Record creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Archive date or `null`.</ResponseField>
+
+## Example `certificate` object
+
+```json
+{
+  "id": 10001,
+  "uuid": "AbCdEfGhJkLm",
+  "link": "https://verify.exode.biz/certificate/AbCdEfGhJkLm",
+  "userId": 1001,
+  "courseId": 2001,
+  "templateId": 1,
+  "issuedAt": "2026-01-01T00:00:00.000Z",
+  "expireAt": null,
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "updatedAt": "2026-01-01T00:00:00.000Z",
+  "archivedAt": null,
+  "snapshot": {
+    "courseName": "Programming Fundamentals",
+    "recipientName": "John Smith",
+    "lessonsCount": 24,
+    "issuerName": "Exode School",
+    "curatorName": "Mary Johnson",
+    "curatorRole": "Course curator"
+  }
+}
+```
+
+## Related objects
+
+- `userId` references the [`User`](./user) object.
+- `courseId` references the [`Course`](./course) object.
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

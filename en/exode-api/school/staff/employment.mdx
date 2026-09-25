@@ -1,0 +1,1193 @@
+---
+title: "Employments"
+description: "Hire, transfer, promote and terminate employees of a corporate school"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+    An employment (`employment`) links a school user to a department and, optionally, a position.
+    An employee can have several employment records in their history, but only **one active** record for
+    a given department + position pair. You can omit the position — the employee is then listed in the
+    department **without a position**, and an active record of this kind is unique per department + user pair.
+    The record also stores the employment terms: kind (`kind`), type (`type`) and rate (`rate`).
+</Info>
+
+<Warning>
+    All endpoints of the staff module are available **only** to schools in the `Corporate` segment. For other segments the request
+    returns `401` with `cause: "Forbidden"` and the message `Allowed only for Corporate school`.
+</Warning>
+
+<Info>
+    Transfer (`transfer`) and promotion (`promote`) do not modify the current record; they **close** it (`finishAt`, status
+    `Terminated`) and create a **new** active record in the target department or with the new position. The employment
+    terms (`kind`, `type`, `rate`) and the external identifier `extId` are carried over to the new record unchanged.
+    The response contains the new employment record — **with a new `id`**. Therefore, store the employment's
+    `extId` in your system, not its `id`: the `id` changes with every transfer and promotion, the `extId` does not. A department
+    manager assignment moves to the new record automatically; previously created absences remain
+    linked to the closed record.
+</Info>
+
+<Info>
+    An employment can have an external identifier `extId` — the record's ID in the client's system (for example, an HR system).
+    From 1 to 50 characters, without `/` or whitespace. It is unique within the school **among open (not finished)**
+    employments: on transfer or promotion the `extId` moves to the new active record (the closed one keeps a
+    copy), and after termination it is released — you can pass it again when rehiring. Separate routes
+    `ext/{extId}/transfer`, `ext/{extId}/promote` and `ext/{extId}/terminate` work by `extId`; they only find
+    an open record, so for an already closed employment they return `StaffEmploymentNotFound`.
+</Info>
+
+### Which operation to choose
+
+| Event in the HR system | Operation |
+|---|---|
+| Hiring, a new secondary job | [`hire`](#hire-an-employee) — creates another active record |
+| Transfer to another department (same position) | [`transfer`](#transfer-to-another-department) |
+| Position change within the same department | [`promote`](#change-position) |
+| Both the department and the position changed | `transfer`, then `promote` by the same `extId` with the same `startAt` |
+| Termination from one job | [`terminate`](#terminate-an-employee) |
+
+The API has no employment deletion: a record is closed only through `terminate` and stays in the history. Every
+modifying operation comes in two variants: by `employmentId` in the request body and by `extId` in the path
+(`ext/{extId}/...`). They work the same way; the `extId` variant is more convenient for synchronization — you don't need to store
+Exode's internal IDs.
+
+## List employments
+
+```
+GET /saas/v2/staff/employment/list
+```
+
+Requires authentication and the [**"Staff browsing"**](/en/exode-api/permissions) permission (`StaffView`).
+
+### Request parameters
+
+<Info>
+    Array parameters are passed by repeating the parameter in the query string: `userIds=1&userIds=2&userIds=3`.
+</Info>
+
+#### Pagination
+
+<ParamField query="skip" type="integer" required={false}>
+    Number of records to skip. Defaults to `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Page number (an alternative to `skip`). Starts at `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Number of records per page. Defaults to `100`, maximum `1000`.
+</ParamField>
+
+#### Filtering
+
+<ParamField query="employmentIds" type="integer[]" required={false}>
+    Filter by employment IDs. Up to 250 values.
+</ParamField>
+
+<ParamField query="extIds" type="string[]" required={false}>
+    Filter by employment external identifiers (`extId`). Up to 250 values, each up to 50 characters.
+</ParamField>
+
+<ParamField query="userIds" type="integer[]" required={false}>
+    Filter by user IDs. Up to 250 values.
+</ParamField>
+
+<ParamField query="departmentIds" type="integer[]" required={false}>
+    Filter by department IDs. Up to 250 values.
+</ParamField>
+
+<ParamField query="departmentExtIds" type="string[]" required={false}>
+    Filter by department external identifiers (`extId`). Up to 250 values, each up to 50 characters.
+</ParamField>
+
+<ParamField query="positionIds" type="integer[]" required={false}>
+    Filter by position IDs. Up to 250 values.
+</ParamField>
+
+<ParamField query="positionExtIds" type="string[]" required={false}>
+    Filter by position external identifiers (`extId`). Up to 250 values, each up to 50 characters.
+</ParamField>
+
+<ParamField query="statuses" type="enum[]" required={false}>
+    Filter by employment status. Possible values: `Active`, `Terminated`. Up to 250 values.
+</ParamField>
+
+<ParamField query="activeOnly" type="boolean" required={false}>
+    If `true`, returns only employments that are in effect right now: status `Active` and a `startAt` date
+    that has already passed. A hire with a future `startAt` is not included until that date — to get such
+    records as well, use `statuses=Active`.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+    Search by employee: full name, login, user ID. Maximum 50 characters.
+</ParamField>
+
+#### Sorting
+
+<ParamField query="createdAt" type="enum" required={false}>
+    Sort direction by record creation date: `ASC` or `DESC`. The `id` and `updatedAt` parameters work
+    the same way. Without sorting parameters, records of the same employee are listed together (grouped by `userId`).
+</ParamField>
+
+### Response fields
+
+<ResponseField name="payload" type="object">
+    Paginated list of employments.
+
+    <Expandable title="payload properties">
+        <ResponseField name="items" type="object[]">
+            Array of employments.
+
+            <Expandable title="Item properties">
+                <ResponseField name="id" type="integer">Employment ID.</ResponseField>
+                <ResponseField name="schoolId" type="integer">School ID.</ResponseField>
+                <ResponseField name="userId" type="integer">ID of the employee user.</ResponseField>
+                <ResponseField name="positionId" type="integer | null">Position ID, or `null` for an employment without a position.</ResponseField>
+                <ResponseField name="departmentId" type="integer">Department ID.</ResponseField>
+                <ResponseField name="extId" type="string | null">External identifier of the employment from the client's system, or `null`. Unique within the school among open (not finished) records; moves to the new record on transfer/promotion.</ResponseField>
+                <ResponseField name="startAt" type="string">Employment start date (ISO 8601).</ResponseField>
+                <ResponseField name="finishAt" type="string | null">Employment end date (ISO 8601), or `null` for an active record.</ResponseField>
+                <ResponseField name="status" type="enum">Status: `Active` or `Terminated`.</ResponseField>
+                <ResponseField name="kind" type="enum">Employment kind: `Main` (main job), `InternalSecondary` (internal secondary job), `ExternalSecondary` (external secondary job).</ResponseField>
+                <ResponseField name="type" type="enum">Employment type: `FullTime` (full-time) or `PartTime` (part-time).</ResponseField>
+                <ResponseField name="rate" type="number">Rate — a fraction of the full rate, from `0.01` to `1` (for example, `0.5`).</ResponseField>
+                <ResponseField name="createdAt" type="string">Record creation date.</ResponseField>
+                <ResponseField name="updatedAt" type="string">Last update date.</ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Current page.</ResponseField>
+        <ResponseField name="count" type="integer">Total number of records.</ResponseField>
+        <ResponseField name="pages" type="integer">Total number of pages.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Whether this is the first page.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Whether this is the last page.</ResponseField>
+        <ResponseField name="next" type="object">Parameters of the next page (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Parameters of the previous page (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/list?take=10&activeOnly=true' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listEmployments = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/staff/employment/list', {
+    params: { take: 10, activeOnly: true },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listEmployments();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 4,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "id": 9,
+        "createdAt": "2026-07-02T11:15:47.312Z",
+        "updatedAt": "2026-07-02T11:15:47.312Z",
+        "archivedAt": null,
+        "schoolId": 198,
+        "userId": 1683,
+        "positionId": 4,
+        "departmentId": 4,
+        "extId": "emp-1683",
+        "startAt": "2026-07-02T11:15:47.316Z",
+        "finishAt": null,
+        "status": "Active",
+        "kind": "Main",
+        "type": "FullTime",
+        "rate": 1
+      },
+      {
+        "id": 8,
+        "createdAt": "2026-07-02T11:15:47.295Z",
+        "updatedAt": "2026-07-02T11:15:47.312Z",
+        "archivedAt": null,
+        "schoolId": 198,
+        "userId": 1683,
+        "positionId": 3,
+        "departmentId": 4,
+        "extId": "emp-1683",
+        "startAt": "2026-07-02T11:15:47.299Z",
+        "finishAt": "2026-07-02T11:15:47.316Z",
+        "status": "Terminated",
+        "kind": "Main",
+        "type": "FullTime",
+        "rate": 1
+      }
+    ],
+    "next": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    },
+    "prev": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    }
+  }
+}
+```
+
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffView",
+  "message": "Forbidden seller resource - permissions StaffView"
+}
+```
+</ResponseExample>
+
+## Hire an employee
+
+```
+POST /saas/v2/staff/employment/hire
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Creates a new active employment record. The user, the department and the position (if specified) must
+belong to the school. The employee cannot have an active duplicate with the same department + position pair, and when
+hiring without a position — with the same department + user pair. If the user was previously terminated and has
+the `Terminated` status, hiring automatically restores their `Active` status.
+
+The department is **required** and is specified by ID or external identifier: pass exactly one parameter of the
+`departmentId` / `departmentExtId` pair. The position is **optional**: pass exactly one parameter of the
+`positionId` / `positionExtId` pair, or pass neither — the employee is then hired without a position. You cannot pass
+both fields of the same pair at once.
+
+### Request parameters
+
+<ParamField body="userId" type="integer" required>
+    ID of the user being hired. The user must already be registered in the school, otherwise
+    `UserNotBelongsToSchool` is returned. The ID is returned when the user is created; you can find it by your external
+    identifier with [`user/find`](/en/exode-api/school/user/find). To create a user
+    and hire them in a single call, use `extra.staff.employments` in
+    [`user/create`](/en/exode-api/school/user/create) or [`user/upsert`](/en/exode-api/school/user/upsert).
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+    External identifier of the employment from the client's system. From 1 to 50 characters, without `/` or whitespace.
+    Must be unique within the school among open (not finished) employments.
+</ParamField>
+
+<ParamField body="positionId" type="integer" required={false}>
+    Position ID. The position must belong to the school. Optional: pass one parameter of the
+    `positionId` / `positionExtId` pair, or pass neither — the employee is hired without a position.
+</ParamField>
+
+<ParamField body="positionExtId" type="string" required={false}>
+    External identifier (`extId`) of the position — an alternative to `positionId`.
+</ParamField>
+
+<ParamField body="departmentId" type="integer" required={false}>
+    Department ID. The department must belong to the school. Pass exactly one parameter of the
+    `departmentId` / `departmentExtId` pair.
+</ParamField>
+
+<ParamField body="departmentExtId" type="string" required={false}>
+    External identifier (`extId`) of the department — an alternative to `departmentId`.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Employment start date in ISO 8601 format (for example, `2026-07-02T00:00:00.000Z`). Defaults to the current
+    moment. You can specify a past date (history migration) or a future date (a scheduled hire): a future record
+    gets the `Active` status right away, but until `startAt` arrives it is not included in `activeOnly=true` results and cannot
+    be assigned as a department manager.
+</ParamField>
+
+<ParamField body="kind" type="enum" required={false}>
+    Employment kind: `Main` (main job), `InternalSecondary` (internal secondary job),
+    `ExternalSecondary` (external secondary job). Defaults to `Main`.
+</ParamField>
+
+<ParamField body="type" type="enum" required={false}>
+    Employment type: `FullTime` (full-time) or `PartTime` (part-time). Defaults to `FullTime`.
+</ParamField>
+
+<ParamField body="rate" type="number" required={false}>
+    Rate — a fraction of the full rate, from `0.01` to `1`. Defaults to `1`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/hire' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "userId": 1683,
+    "extId": "emp-1683",
+    "positionId": 3,
+    "departmentId": 3,
+    "startAt": "2026-07-02T00:00:00.000Z",
+    "kind": "Main",
+    "type": "PartTime",
+    "rate": 0.5
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const hireEmployment = async () => {
+  const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/employment/hire', {
+    userId: 1683,
+    extId: 'emp-1683',
+    positionId: 3,
+    departmentId: 3,
+    startAt: '2026-07-02T00:00:00.000Z',
+    kind: 'Main',
+    type: 'PartTime',
+    rate: 0.5,
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+hireEmployment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 6,
+    "createdAt": "2026-07-02T11:15:47.273Z",
+    "updatedAt": "2026-07-02T11:15:47.273Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 3,
+    "departmentId": 3,
+    "extId": "emp-1683",
+    "startAt": "2026-07-02T11:15:47.273Z",
+    "finishAt": null,
+    "status": "Active",
+    "kind": "Main",
+    "type": "PartTime",
+    "rate": 0.5
+  }
+}
+```
+
+```json Error - Employment Already Exists
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentAlreadyExists",
+  "message": "Staff active employment already exists",
+  "error": "Staff active employment already exists"
+}
+```
+
+```json Error - ExtId Is Not Uniq
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentExtIdIsNotUniq",
+  "message": "Staff employment extId is not uniq",
+  "error": "Staff employment extId is not uniq"
+}
+```
+
+```json Error - Position Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotFound",
+  "message": "Staff position not found",
+  "error": "Staff position not found"
+}
+```
+
+```json Error - Department Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
+}
+```
+
+```json Error - User Not Belongs To School
+{
+  "code": 400,
+  "success": false,
+  "cause": "UserNotBelongsToSchool",
+  "message": "User does not belong to the school",
+  "error": "User does not belong to the school"
+}
+```
+</ResponseExample>
+
+## Transfer to another department
+
+```
+POST /saas/v2/staff/employment/transfer
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Closes the current active employment record (`finishAt`, status `Terminated`) and creates a **new** active
+record in the target department, keeping the position. The target department must belong to the school. If
+the employee already has an open record with the same position in the target department,
+`StaffEmploymentAlreadyExists` is returned.
+
+### Request parameters
+
+<ParamField body="employmentId" type="integer" required>
+    ID of the active employment record being transferred.
+</ParamField>
+
+<ParamField body="toDepartmentId" type="integer" required={false}>
+    ID of the target department. The department must belong to the school. Pass exactly one parameter of the
+    `toDepartmentId` / `toDepartmentExtId` pair.
+</ParamField>
+
+<ParamField body="toDepartmentExtId" type="string" required={false}>
+    External identifier (`extId`) of the target department — an alternative to `toDepartmentId`.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Transfer date in ISO 8601 format. Must not be earlier than the current record's `startAt`, otherwise
+    `StaffEmploymentInvalidTransitionDate` is returned. Defaults to the current moment.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/transfer' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "employmentId": 6,
+    "toDepartmentId": 4,
+    "startAt": "2026-07-02T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const transferEmployment = async () => {
+  const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/employment/transfer', {
+    employmentId: 6,
+    toDepartmentId: 4,
+    startAt: '2026-07-02T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+transferEmployment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 8,
+    "createdAt": "2026-07-02T11:15:47.295Z",
+    "updatedAt": "2026-07-02T11:15:47.295Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 3,
+    "departmentId": 4,
+    "extId": "emp-1683",
+    "startAt": "2026-07-02T11:15:47.299Z",
+    "finishAt": null,
+    "status": "Active",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
+  }
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
+}
+```
+
+```json Error - Invalid Transition Date
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInvalidTransitionDate",
+  "message": "Staff employment transition date is outside employment interval",
+  "error": "Staff employment transition date is outside employment interval"
+}
+```
+
+```json Error - Employment Already Exists
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentAlreadyExists",
+  "message": "Staff active employment already exists",
+  "error": "Staff active employment already exists"
+}
+```
+</ResponseExample>
+
+## Transfer by external identifier
+
+```
+POST /saas/v2/staff/employment/ext/{extId}/transfer
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Same as transfer by `employmentId`, but the active employment record is looked up by the external identifier
+`extId` within the school. The request body is the same as for a regular transfer, without the `employmentId` field.
+
+### Request parameters
+
+<ParamField path="extId" type="string" required>
+    External identifier of the active employment record. The value in the path must be URL-encoded.
+</ParamField>
+
+<ParamField body="toDepartmentId" type="integer" required={false}>
+    ID of the target department. The department must belong to the school. Pass exactly one parameter of the
+    `toDepartmentId` / `toDepartmentExtId` pair.
+</ParamField>
+
+<ParamField body="toDepartmentExtId" type="string" required={false}>
+    External identifier (`extId`) of the target department — an alternative to `toDepartmentId`.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Transfer date in ISO 8601 format. Must not be earlier than the current record's `startAt`, otherwise
+    `StaffEmploymentInvalidTransitionDate` is returned. Defaults to the current moment.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/ext/emp-1683/transfer' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "toDepartmentExtId": "dep-sales",
+    "startAt": "2026-07-02T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const transferEmploymentByExtId = async () => {
+  const extId = encodeURIComponent('emp-1683');
+
+  const { data } = await axios.post(`https://api.exode.biz/saas/v2/staff/employment/ext/${extId}/transfer`, {
+    toDepartmentExtId: 'dep-sales',
+    startAt: '2026-07-02T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+transferEmploymentByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 8,
+    "createdAt": "2026-07-02T11:15:47.295Z",
+    "updatedAt": "2026-07-02T11:15:47.295Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 3,
+    "departmentId": 4,
+    "extId": "emp-1683",
+    "startAt": "2026-07-02T11:15:47.299Z",
+    "finishAt": null,
+    "status": "Active",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
+  }
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
+}
+```
+</ResponseExample>
+
+## Change position
+
+```
+POST /saas/v2/staff/employment/promote
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Closes the current active employment record (`finishAt`, status `Terminated`) and creates a **new** active
+record with the new position in the same department. The target position must belong to the school. If the employee
+already has an open record with the new position in this department, `StaffEmploymentAlreadyExists` is returned.
+
+The request must state the intent explicitly: pass a position (`toPositionId` **or** `toPositionExtId`) to
+assign it, or `toPositionId: null` to **remove** the position (the employee stays in the department without a
+position). If you pass none of these fields, the `StaffEmploymentInputRequired` error is returned.
+
+### Request parameters
+
+<ParamField body="employmentId" type="integer" required>
+    ID of the active employment record being changed.
+</ParamField>
+
+<ParamField body="toPositionId" type="integer | null" required={false}>
+    ID of the target position. The position must belong to the school. Pass exactly one parameter of the
+    `toPositionId` / `toPositionExtId` pair. The value `null` **removes** the position — the employment stays in the
+    department without a position. You cannot pass both fields of the pair at once.
+</ParamField>
+
+<ParamField body="toPositionExtId" type="string" required={false}>
+    External identifier (`extId`) of the target position — an alternative to `toPositionId`.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Position change date in ISO 8601 format. Must not be earlier than the current record's `startAt`, otherwise
+    `StaffEmploymentInvalidTransitionDate` is returned. Defaults to the current moment.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/promote' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "employmentId": 8,
+    "toPositionId": 4,
+    "startAt": "2026-07-02T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const promoteEmployment = async () => {
+  const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/employment/promote', {
+    employmentId: 8,
+    toPositionId: 4,
+    startAt: '2026-07-02T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+promoteEmployment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 9,
+    "createdAt": "2026-07-02T11:15:47.312Z",
+    "updatedAt": "2026-07-02T11:15:47.312Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 4,
+    "departmentId": 4,
+    "extId": "emp-1683",
+    "startAt": "2026-07-02T11:15:47.316Z",
+    "finishAt": null,
+    "status": "Active",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
+  }
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
+}
+```
+
+```json Error - Invalid Transition Date
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInvalidTransitionDate",
+  "message": "Staff employment transition date is outside employment interval",
+  "error": "Staff employment transition date is outside employment interval"
+}
+```
+
+```json Error - Employment Already Exists
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentAlreadyExists",
+  "message": "Staff active employment already exists",
+  "error": "Staff active employment already exists"
+}
+```
+
+```json Error - Target Position Required
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInputRequired",
+  "message": "Staff employment promote target position is required",
+  "error": "Staff employment promote target position is required"
+}
+```
+</ResponseExample>
+
+## Change position by external identifier
+
+```
+POST /saas/v2/staff/employment/ext/{extId}/promote
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Same as changing the position by `employmentId`, but the active employment record is looked up by the external identifier
+`extId` within the school. The request body is the same as for a regular position change, without the `employmentId` field: pass
+a position to assign it, or `toPositionId: null` to remove it; otherwise the
+`StaffEmploymentInputRequired` error is returned.
+
+### Request parameters
+
+<ParamField path="extId" type="string" required>
+    External identifier of the active employment record. The value in the path must be URL-encoded.
+</ParamField>
+
+<ParamField body="toPositionId" type="integer | null" required={false}>
+    ID of the target position. The position must belong to the school. Pass exactly one parameter of the
+    `toPositionId` / `toPositionExtId` pair. The value `null` **removes** the position — the employment stays in the
+    department without a position. You cannot pass both fields of the pair at once.
+</ParamField>
+
+<ParamField body="toPositionExtId" type="string" required={false}>
+    External identifier (`extId`) of the target position — an alternative to `toPositionId`.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Position change date in ISO 8601 format. Must not be earlier than the current record's `startAt`, otherwise
+    `StaffEmploymentInvalidTransitionDate` is returned. Defaults to the current moment.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/ext/emp-1683/promote' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "toPositionExtId": "pos-lead",
+    "startAt": "2026-07-02T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const promoteEmploymentByExtId = async () => {
+  const extId = encodeURIComponent('emp-1683');
+
+  const { data } = await axios.post(`https://api.exode.biz/saas/v2/staff/employment/ext/${extId}/promote`, {
+    toPositionExtId: 'pos-lead',
+    startAt: '2026-07-02T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+promoteEmploymentByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 9,
+    "createdAt": "2026-07-02T11:15:47.312Z",
+    "updatedAt": "2026-07-02T11:15:47.312Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 4,
+    "departmentId": 4,
+    "extId": "emp-1683",
+    "startAt": "2026-07-02T11:15:47.316Z",
+    "finishAt": null,
+    "status": "Active",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
+  }
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
+}
+```
+</ResponseExample>
+
+## Terminate an employee
+
+```
+POST /saas/v2/staff/employment/terminate
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Closes an active employment record: sets `finishAt`, changes the status to `Terminated` and removes
+the employee as manager of any departments. The response contains the closed record.
+
+<Warning>
+    Terminating the **last active** employment automatically switches the user to the
+    `Terminated` status — access to the platform is closed: sign-in is blocked and active sessions are ended. Rehiring
+    (`hire`) a user with the `Terminated` status automatically restores their `Active` status.
+</Warning>
+
+<Info>
+    Safeguards when terminating the last active employment: you cannot terminate yourself — the user
+    on whose behalf the request is made (`StaffCannotTerminateSelf`) — or the school owner
+    (`StaffCannotTerminateSchoolOwner`). Skip these users when reconciling the full employee list.
+</Info>
+
+<Note>
+    Termination takes effect at the moment of the call: the record gets the `Terminated` status immediately, and when
+    terminating the last employment, access is closed immediately — even if `finishAt` is set in the future. There is no deferred
+    termination, so call `terminate` on the actual termination day.
+</Note>
+
+### Request parameters
+
+<ParamField body="employmentId" type="integer" required>
+    ID of the active employment record being terminated.
+</ParamField>
+
+<ParamField body="finishAt" type="string" required={false}>
+    Termination date in ISO 8601 format, stored in the record. Must not be earlier than the employment's `startAt`, otherwise
+    `StaffEmploymentInvalidTransitionDate` is returned. Defaults to the current moment.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/terminate' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "employmentId": 7,
+    "finishAt": "2026-07-02T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const terminateEmployment = async () => {
+  const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/employment/terminate', {
+    employmentId: 7,
+    finishAt: '2026-07-02T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+terminateEmployment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 7,
+    "createdAt": "2026-07-02T11:15:47.284Z",
+    "updatedAt": "2026-07-02T11:15:47.400Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1684,
+    "positionId": 3,
+    "departmentId": 4,
+    "extId": "emp-1684",
+    "startAt": "2026-07-02T11:15:47.285Z",
+    "finishAt": "2026-07-02T11:15:47.401Z",
+    "status": "Terminated",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
+  }
+}
+```
+
+```json Error - Invalid Transition Date
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInvalidTransitionDate",
+  "message": "Staff employment transition date is outside employment interval",
+  "error": "Staff employment transition date is outside employment interval"
+}
+```
+
+```json Error - Cannot Terminate Self
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffCannotTerminateSelf",
+  "message": "Staff cannot terminate himself",
+  "error": "Staff cannot terminate himself"
+}
+```
+
+```json Error - Cannot Terminate School Owner
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffCannotTerminateSchoolOwner",
+  "message": "Staff school owner cannot be terminated",
+  "error": "Staff school owner cannot be terminated"
+}
+```
+</ResponseExample>
+
+## Terminate by external identifier
+
+```
+POST /saas/v2/staff/employment/ext/{extId}/terminate
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Same as termination by `employmentId`, but the active employment record is looked up by the external identifier
+`extId` within the school. The request body is the same as for a regular termination, without the `employmentId` field. The same
+safeguards apply, as does the same logic of switching the user to the `Terminated` status when their last active
+employment is terminated.
+
+### Request parameters
+
+<ParamField path="extId" type="string" required>
+    External identifier of the active employment record. The value in the path must be URL-encoded.
+</ParamField>
+
+<ParamField body="finishAt" type="string" required={false}>
+    Termination date in ISO 8601 format, stored in the record. Must not be earlier than the employment's `startAt`, otherwise
+    `StaffEmploymentInvalidTransitionDate` is returned. Defaults to the current moment.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/employment/ext/emp-1684/terminate' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "finishAt": "2026-07-02T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const terminateEmploymentByExtId = async () => {
+  const extId = encodeURIComponent('emp-1684');
+
+  const { data } = await axios.post(`https://api.exode.biz/saas/v2/staff/employment/ext/${extId}/terminate`, {
+    finishAt: '2026-07-02T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+terminateEmploymentByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 7,
+    "createdAt": "2026-07-02T11:15:47.284Z",
+    "updatedAt": "2026-07-02T11:15:47.400Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1684,
+    "positionId": 3,
+    "departmentId": 4,
+    "extId": "emp-1684",
+    "startAt": "2026-07-02T11:15:47.285Z",
+    "finishAt": "2026-07-02T11:15:47.401Z",
+    "status": "Terminated",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
+  }
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+    The staff module is available only to schools in the `Corporate` segment. Reading the list requires the **"Staff browsing"** permission (`StaffView`);
+    hiring, transfer, promotion and termination require the **"Staff Management"** permission (`StaffManage`).
+</Check>
+
+<Warning>
+    The service user must be authenticated with a token and have the appropriate access permissions for the specified
+    school.
+</Warning>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

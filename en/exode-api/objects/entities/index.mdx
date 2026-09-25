@@ -1,0 +1,74 @@
+---
+title: "API objects"
+description: "Reference of Exode API entities — structures based on shared zod schemas"
+---
+
+This page collects the public structures of objects returned by the Exode API and webhooks. The set of fields strictly
+matches the server-side zod schemas of the public contracts: internal and private fields are not returned.
+
+<Info>
+    List methods (`.../list/raw`) often return a **compact projection** of an object. The full structure
+    of each entity is described on its page below.
+</Info>
+
+## Users and access
+
+<CardGroup cols={2}>
+    <Card title="User" icon="user" href="/en/exode-api/objects/entities/user">
+        `user` and `profile`: logins, contacts, statuses, `extId`, permissions.
+    </Card>
+    <Card title="Session" icon="key" href="/en/exode-api/objects/entities/session">
+        `session`: authorization token, device, online status.
+    </Card>
+    <Card title="Group" icon="users" href="/en/exode-api/objects/entities/group">
+        `group`: learning/product groups, restrictions, Telegram.
+    </Card>
+    <Card title="Group member" icon="id-card" href="/en/exode-api/objects/entities/group-member">
+        `groupMember`: the link between a user and a group, blocks.
+    </Card>
+</CardGroup>
+
+## Learning and sales
+
+<CardGroup cols={2}>
+    <Card title="Course and learning" icon="graduation-cap" href="/en/exode-api/objects/entities/course">
+        `course`, `courseProgress`, `courseLesson`, `courseLessonPractice`, `courseLessonPracticeAttempt`.
+    </Card>
+    <Card title="Product and accesses" icon="box" href="/en/exode-api/objects/entities/product">
+        `product`, `productAccess`, `productPrice`, `discount`.
+    </Card>
+    <Card title="Payment and invoice" icon="credit-card" href="/en/exode-api/objects/entities/payment">
+        `payment`, `invoice`, `invoiceProduct`, `acquiring`.
+    </Card>
+    <Card title="School and seller" icon="building" href="/en/exode-api/objects/entities/school">
+        `school`, `seller`, `organization`.
+    </Card>
+    <Card title="Certificate" icon="award" href="/en/exode-api/objects/entities/certificate">
+        `certificate`: a personalized course completion certificate and its verification.
+    </Card>
+</CardGroup>
+
+## Forms
+
+<CardGroup cols={2}>
+    <Card title="Forms and fields" icon="list-check" href="/en/exode-api/objects/entities/form">
+        `formLayout` and `formFieldValue`: form layouts and custom field values.
+    </Card>
+</CardGroup>
+
+## General field conventions
+
+- **Dates** (`createdAt`, `expireAt`, …) are ISO 8601 strings (UTC). Fields with the `At` suffix and a `null` value mean
+  that the event has not occurred.
+- **Money fields** (`totalAmount`, `amount`, `balance`, …) are numbers.
+- **Audit fields** are present on most entities: `id`, `createdAt`, `updatedAt`, `archivedAt`.
+- **`*Id` fields** reference another entity (for example, `courseId`, `userId`).
+- **Optional fields** (type `… | null`, not marked required) may come with a `null` value or be absent
+  entirely — handle both cases.
+- **Enum values** are PascalCase strings (`Active`, `OnReview`); compare them case-sensitively.
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

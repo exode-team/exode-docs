@@ -1,0 +1,316 @@
+---
+title: "Product access billing"
+description: "Export of product access billing records: charge statuses, renewal and end dates"
+---
+
+**type:** `QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY`
+
+Exports product access billing records: charge statuses (subscriptions/installments), start dates,
+end dates and charge retry dates.
+
+This is a report type for the [`query-export/generate`](/en/exode-api/school/query-export/generate) method: pass it
+in the `type` field, and the fields described below in `variables`.
+
+<Info>
+  The report is built from product accesses (`productAccessManageFindMany`) with a focus on billing (subscriptions and
+  installments). `variables` is the access filter and sort (`FilterAccessProductInput` / `SortAccessProductInput`),
+  the same structure as in the ["School students"](/en/exode-api/school/query-export/school-student-find-many) report,
+  which also describes the other filter fields (`courseIds`, `groupIds`, `search`, date ranges, etc.).
+  An unknown field or an invalid value is not ignored: the export finishes with
+  `status: Failed`.
+</Info>
+
+---
+
+### Variables (`variables`)
+
+<ParamField body="filter" type="object" required>
+  Access filter parameters (billing fields have the `billing` prefix). Required: to export all
+  records without filtering, pass an empty object `{}`.
+
+  <Expandable title="filter properties">
+    <ParamField body="userIds" type="integer[]">Filter by user IDs.</ParamField>
+    <ParamField body="accessIds" type="integer[]">Filter by access IDs.</ParamField>
+    <ParamField body="active" type="boolean">Only active (`true`) or deactivated (`false`) accesses.</ParamField>
+    <ParamField body="billingActive" type="boolean">Only accesses with active billing (subscription/installment).</ParamField>
+    <ParamField body="hasProductBillingTypes" type="string[]">
+      Billing type. An array of values: `Subscription`, `Installment`.
+    </ParamField>
+    <ParamField body="billingStatuses" type="string[]">
+      Billing status. An array of values: `Scheduled`, `Processing`, `WaitingEntryFee`, `Paid`, `Failed`,
+      `CanceledByUser`, `CanceledByFailedAutoCharge`, `CanceledByFailedManualCharge`,
+      `CanceledByPreviousCancellation`, `CanceledByReinitialization`.
+    </ParamField>
+    <ParamField body="billingIntervals" type="string[]">
+      Charge interval. An array of values: `Week`, `Month`, `Year`.
+    </ParamField>
+    <ParamField body="billingInvoiceIds" type="integer[]">Filter by billing invoice IDs.</ParamField>
+    <ParamField body="billingAmountRange" type="object">
+      Charge amount range. The `from` and `to` properties are numbers.
+    </ParamField>
+    <ParamField body="billingCurrentPaymentAtDateRange" type="object">
+      Date range of the last charge. The `from` and `to` properties are ISO 8601 dates.
+    </ParamField>
+    <ParamField body="billingNextPaymentAtDateRange" type="object">
+      Date range of the next charge. The `from` and `to` properties are ISO 8601 dates.
+    </ParamField>
+    <ParamField body="product" type="object">
+      Nested product filter (for example, `{ "productIds": [12] }`). The set of fields matches the
+      `product` filter of the ["Product access list"](/en/exode-api/school/product-access/list) method.
+    </ParamField>
+    <ParamField body="price" type="object">
+      Nested price plan filter. The set of fields matches the `price` filter of the
+      ["Product access list"](/en/exode-api/school/product-access/list) method.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="sort" type="object">
+  Sort parameters. Values: `ASC` (ascending) or `DESC` (descending).
+
+  <Expandable title="sort properties">
+    <ParamField body="id" type="string">Sort by ID. `ASC` | `DESC`.</ParamField>
+    <ParamField body="createdAt" type="string">Sort by access grant date. `ASC` | `DESC`.</ParamField>
+    <ParamField body="updatedAt" type="string">Sort by update date. `ASC` | `DESC`.</ParamField>
+    <ParamField body="billingStatus" type="string">Sort by billing status. `ASC` | `DESC`.</ParamField>
+    <ParamField body="billingPercent" type="string">Sort by payment percentage. `ASC` | `DESC`.</ParamField>
+    <ParamField body="currentPaymentAt" type="string">Sort by last charge date. `ASC` | `DESC`.</ParamField>
+    <ParamField body="nextPaymentAt" type="string">Sort by next charge date. `ASC` | `DESC`.</ParamField>
+    <ParamField body="billingPaidCount" type="string">Sort by number of completed charges. `ASC` | `DESC`.</ParamField>
+  </Expandable>
+</ParamField>
+
+### Report columns
+
+**Billing Access** sheet: User ID, Full name, Login method, Phone number, Email, Telegram, Payment ID,
+Last payment date, Next payment date, Last payment amount, Paid amount, Total amount,
+_Payment percent_, _Completed payments_, _Total payments_, _Renewal count_, _Renewal period_,
+Course ID, Course name, Tariff ID, Tariff, Payment method, Status.
+
+<Info>
+    The _Payment percent_, _Completed payments_ and _Total payments_ columns appear only with an
+    installment filter (`hasProductBillingTypes: ["Installment"]`), and _Renewal count_ and _Renewal period_
+    only with a subscription filter (`hasProductBillingTypes: ["Subscription"]`).
+</Info>
+
+In XLSX format only, an additional **Billing Details** sheet is generated with a per-payment breakdown: User ID, Access ID, Billing ID,
+Number, Payment date, Status, Amount, Invoice ID, Used attempts, Total attempts, Next retry date,
+Cancel date.
+
+Column names are given as they appear without the `Ux-Language` header (in English); with `Ux-Language: ru` the columns are named in Russian
+(see the [`generate`](/en/exode-api/school/query-export/generate) description for details).
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/query-export/generate' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data '{
+    "type": "QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY",
+    "variables": {
+      "filter": {
+        "billingStatuses": ["Paid", "Failed"]
+      },
+      "sort": {
+        "billingStatus": "DESC"
+      }
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const exportBillingAccess = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/query-export/generate', {
+      type: 'QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY',
+      variables: {
+        filter: {
+          billingStatuses: ["Paid", "Failed"]
+        },
+        sort: {
+          billingStatus: 'DESC'
+        }
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    const { uuid } = response.data.payload;
+    console.log('Execution UUID:', uuid);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+exportBillingAccess();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/query-export/generate';
+$data = [
+  'type' => 'QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY',
+  'variables' => [
+    'filter' => [
+      'billingStatuses' => ['Paid', 'Failed']
+    ],
+    'sort' => [
+      'billingStatus' => 'DESC'
+    ]
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200 || $httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Execution UUID: " . $result['payload']['uuid'] . "\n";
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/query-export/generate'
+
+data = {
+  'type': 'QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY',
+  'variables': {
+    'filter': {
+      'billingStatuses': ['Paid', 'Failed']
+    },
+    'sort': {
+      'billingStatus': 'DESC'
+    }
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print(f"Execution UUID: {result['payload']['uuid']}")
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+```
+
+```bsl 1С
+Статусы = Новый Массив;
+Статусы.Добавить("Paid");
+Статусы.Добавить("Failed");
+
+Фильтр = Новый Структура;
+Фильтр.Вставить("billingStatuses", Статусы);
+
+Сортировка = Новый Структура;
+Сортировка.Вставить("billingStatus", "DESC");
+
+Переменные = Новый Структура;
+Переменные.Вставить("filter", Фильтр);
+Переменные.Вставить("sort", Сортировка);
+
+Данные = Новый Структура;
+Данные.Вставить("type", "QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY");
+Данные.Вставить("variables", Переменные);
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/query-export/generate");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
+
+Если Ответ.КодСостояния = 200 ИЛИ Ответ.КодСостояния = 201 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Export started");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "uuid": "ac4140c9-12d3-4c1f-a7aa-d12f16c7bbdd",
+    "flow": "QueryExport",
+    "status": "Processing",
+    "isCompleted": false,
+    "userId": 5562,
+    "createdAt": "2025-01-18T12:44:55.812Z",
+    "updatedAt": "2025-01-18T12:44:55.812Z"
+  }
+}
+```
+</ResponseExample>
+
+The method responds with a generation task that has a `uuid`. Get the file via
+[fetching the result](/en/exode-api/school/query-export/result).
+
+## Permission requirements
+
+<Check>
+  Requires token authentication and one of the permissions: [**"School User Management"**](/en/exode-api/permissions) (`SchoolManageUsers`)
+  or **"Course Student Management"** (`CourseStudentManage`). Without the permission, the generation request succeeds, but
+  the export finishes with `status: Failed`.
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

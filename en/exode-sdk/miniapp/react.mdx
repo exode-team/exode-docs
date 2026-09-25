@@ -1,0 +1,272 @@
+---
+title: 'React hooks'
+description: 'Provider and reactive hooks for a MiniApp in React'
+---
+
+The `@exode-team/sdk/miniapp/react` module provides a declarative layer over `ExodeMiniApp` for React apps. All hooks are reactive: components re-render automatically on host events.
+
+<Info>
+  React is an optional peer dependency. If your project doesn't use React, you don't need this module — use the [vanilla client](/en/exode-sdk/miniapp/client).
+</Info>
+
+## Provider
+
+Wraps the app, creates `ExodeMiniApp`, performs the handshake and propagates event subscriptions:
+
+```jsx
+import { ExodeMiniAppProvider } from '@exode-team/sdk/miniapp/react'
+
+function App() {
+  return (
+    <ExodeMiniAppProvider config={{ appId: 'my-app', targetOrigin: 'https://my-school.exode.biz' }}>
+      <MyApp />
+    </ExodeMiniAppProvider>
+  )
+}
+```
+
+### Parameters
+
+<ResponseField name="config" type="ExodeMiniAppProviderConfig" required>
+  Client configuration: `appId`, `targetOrigin?`, `timeout?` (see [`ExodeMiniApp` parameters](/en/exode-sdk/miniapp/client#configuration-parameters)) plus `renderMode?`.
+
+  <Expandable title="renderMode">
+    Children rendering mode:
+    - `'defer'` (default) — children are mounted only after the handshake completes (successfully or with an error);
+      until then, the provider renders `null`.
+    - `'immediate'` — children are mounted from the first render (including during SSR); until ready, hooks return
+      default values (`scheme: 'light'`, `user: null`, etc.).
+  </Expandable>
+</ResponseField>
+
+## useExodeApp
+
+Connection state and low-level access to the `ExodeMiniApp` instance.
+
+```jsx
+function Status() {
+  const { app, isReady, error } = useExodeApp()
+
+  if (error) return <div>Connection error: {error.message}</div>
+  if (!isReady) return <div>Connecting to Exode...</div>
+
+  return <div>Connected</div>
+}
+```
+
+| Field | Type | Description |
+|------|-----|----------|
+| `app` | `ExodeMiniApp` | Client instance (created on the provider's first render, before the handshake) |
+| `isReady` | `boolean` | Handshake completed |
+| `error` | `Error \| null` | Initialization error (for example, the app is not opened in an iframe or the host didn't respond within `timeout`) |
+
+<Note>
+  In `renderMode: 'defer'` mode (default), the provider's children are not mounted while the handshake is in progress, so
+  the "Connecting to Exode..." branch from the example above is never rendered. To show a loading state, use
+  `renderMode: 'immediate'`.
+</Note>
+
+## useExodeUser
+
+The current user. Updated on the `user:updated` event. `isLoggedIn` is `true` if `user.id > 0`;
+for an unauthenticated page visitor, the host passes `user.id === 0`.
+
+```jsx
+function Greeting() {
+  const { user, isLoggedIn } = useExodeUser()
+
+  if (!isLoggedIn) return <div>Not signed in</div>
+
+  return <div>Hello, {user?.firstName}</div>
+}
+```
+
+## useExodeTheme
+
+The current theme. Updated on the `theme:changed` event. Also returns `isReady` — whether the theme has been received from the host.
+
+```jsx
+function ThemedBox() {
+  const { scheme, isDark } = useExodeTheme()
+
+  return (
+    <div style={{ background: isDark ? '#1a1a1a' : '#ffffff' }}>
+      Scheme: {scheme}
+    </div>
+  )
+}
+```
+
+## useExodeSchool
+
+School data. Updated on the `school:updated` event.
+
+```jsx
+function SchoolInfo() {
+  const { school } = useExodeSchool()
+
+  return <div>{String(school?.name ?? '')}</div>
+}
+```
+
+## useExodeConfig
+
+Environment configuration. Updated on the `config:updated` event.
+
+```jsx
+function Layout({ children }) {
+  const { isDesktop, isMobile, language, platform } = useExodeConfig()
+
+  return (
+    <div className={isMobile ? 'layout-compact' : 'layout-wide'} lang={language}>
+      {children}
+    </div>
+  )
+}
+```
+
+## useExodeNavigation
+
+Navigation commands for the main app. `navigate(path, params)` takes a route template and parameters —
+see the "Navigation" section in [ExodeMiniApp client](/en/exode-sdk/miniapp/client).
+
+```jsx
+function NavButtons() {
+  const { navigate, back } = useExodeNavigation()
+
+  return (
+    <>
+      <button onClick={() => navigate('/course/:courseId([0-9_A-Za-z]+)', { courseId: '123' })}>
+        Open course
+      </button>
+      <button onClick={() => back()}>Back</button>
+    </>
+  )
+}
+```
+
+## useExodeUI
+
+UI commands to the host.
+
+```jsx
+function Controls() {
+  const { showSnackbar, setTabbarVisible, setHeaderVisible, minimize, close } = useExodeUI()
+
+  return (
+    <>
+      <button onClick={() => showSnackbar({ message: 'Done!', type: 'success' })}>
+        Notification
+      </button>
+      <button onClick={() => setTabbarVisible(false)}>Hide tabbar</button>
+      <button onClick={() => minimize()}>Minimize window</button>
+      <button onClick={() => close()}>Close app</button>
+    </>
+  )
+}
+```
+
+<Note>
+  `minimize` works only for pages with the **"Floating window"** or **"Side panel"** window type
+  (see [Custom pages](/en/customization/custom-pages)). You can track minimizing with
+  the `useExodeVisibility` hook. `setHeaderVisible` currently has no effect on custom pages.
+</Note>
+
+## useExodeVisibility
+
+Whether the app is visible to the user right now. The host doesn't unload the iframe when the user navigates to another
+page or minimizes the window — instead, it sends `visibility:changed`. Use
+the hook to pause polling, videos and animations in the background.
+
+```jsx
+import { useEffect } from 'react'
+
+function Poller() {
+  const { visible } = useExodeVisibility()
+
+  useEffect(() => {
+    if (!visible) return
+
+    const timer = setInterval(() => refetch(), 5000)
+
+    return () => clearInterval(timer)
+  }, [ visible ])
+
+  return <Dashboard/>
+}
+```
+
+## useExodeInitData
+
+The signed [Init Data](/en/exode-sdk/miniapp/init-data) string from the iframe URL (`#exodeInitData=...`).
+The value is read once, removed from the address bar and cached. This hook doesn't need the provider.
+Send the string to your backend and verify it there with the `verifyInitData` function — it must not be trusted in the browser.
+
+```jsx
+import { useEffect } from 'react'
+import { useExodeInitData } from '@exode-team/sdk/miniapp/react'
+
+function Session() {
+  const { initData } = useExodeInitData() // string | null — null when opened outside Exode
+
+  useEffect(() => {
+    if (!initData) return
+
+    fetch('/api/session', { method: 'POST', headers: { 'X-Exode-Init-Data': initData } })
+  }, [ initData ])
+
+  return null
+}
+```
+
+## Requirements
+
+<Warning>
+  All hooks except `useExodeInitData` work only inside `<ExodeMiniAppProvider>`. Calling them outside of it
+  throws an error.
+</Warning>
+
+## Full example
+
+```jsx
+import {
+  ExodeMiniAppProvider,
+  useExodeApp,
+  useExodeUser,
+  useExodeTheme,
+  useExodeUI,
+} from '@exode-team/sdk/miniapp/react'
+
+function Content() {
+  const { isReady, error } = useExodeApp()
+  const { user } = useExodeUser()
+  const { isDark } = useExodeTheme()
+  const { showSnackbar } = useExodeUI()
+
+  if (error) return <div>Error: {error.message}</div>
+  if (!isReady) return <div>Loading...</div>
+
+  return (
+    <div data-theme={isDark ? 'dark' : 'light'}>
+      <h1>Hello, {user?.firstName ?? 'guest'}</h1>
+      <button onClick={() => showSnackbar({ message: 'Hello!', type: 'info' })}>
+        Show notification
+      </button>
+    </div>
+  )
+}
+
+export default function App() {
+  return (
+    <ExodeMiniAppProvider config={{ appId: 'my-app', renderMode: 'immediate' }}>
+      <Content />
+    </ExodeMiniAppProvider>
+  )
+}
+```
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

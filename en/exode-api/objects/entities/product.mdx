@@ -1,0 +1,90 @@
+---
+title: "Product and accesses"
+description: "Structures of the product, access, price and discount objects based on the shared zod schemas"
+---
+
+Public structures of the sales objects: `product`, `productAccess`, `productPrice`, `discount`. They are used in
+nested fields of invoices/payments and in webhooks (`ProductEnrolledToFree`, `PaymentCompleted`).
+
+<Info>
+    The [`product-access/list/raw`](/en/exode-api/school/product-access/list) method returns a compact projection
+    of an access (`accessId`, `productId`, `courseId`, `active`, `expireAt`, `user`). The full public schemas are below.
+</Info>
+
+## `product`
+
+<ResponseField name="id" type="integer" required>Product ID.</ResponseField>
+<ResponseField name="sellerId" type="integer" required>Seller ID.</ResponseField>
+<ResponseField name="type" type="enum" required>Type: `Course`, `School`, `Digital`.</ResponseField>
+<ResponseField name="status" type="enum | null">Status: `Draft`, `OnCheck`, `Declined`, `ReadyToPublish`, `Published`.</ResponseField>
+<ResponseField name="currency" type="enum" required>Currency: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ResponseField>
+<ResponseField name="name" type="string | null">Name.</ResponseField>
+<ResponseField name="showInCatalog" type="boolean" required>Shown in the catalog.</ResponseField>
+<ResponseField name="approves" type="enum[]" required>Approvals: `Certified`, `Recommended`.</ResponseField>
+<ResponseField name="domains" type="enum[]" required>Domains: `Ru`, `Uz`, `Kz`, `Biz`, `Global`.</ResponseField>
+<ResponseField name="publishedAt" type="string | null">Publication date (ISO 8601).</ResponseField>
+<ResponseField name="saleStartAt" type="string | null">Sales start (ISO 8601).</ResponseField>
+<ResponseField name="saleFinishAt" type="string | null">Sales end (ISO 8601).</ResponseField>
+<ResponseField name="isFree" type="boolean | null">Free.</ResponseField>
+<ResponseField name="isPublished" type="boolean | null">Published.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Archiving date or `null`.</ResponseField>
+
+## `productAccess`
+
+<ResponseField name="id" type="integer" required>Access ID.</ResponseField>
+<ResponseField name="productId" type="integer" required>Product ID.</ResponseField>
+<ResponseField name="parentId" type="integer | null">Parent access ID (for bundles).</ResponseField>
+<ResponseField name="active" type="boolean" required>The access is active.</ResponseField>
+<ResponseField name="deactivatedAt" type="string | null">Deactivation date (ISO 8601).</ResponseField>
+<ResponseField name="expireAt" type="string | null">Expiration date (ISO 8601).</ResponseField>
+<ResponseField name="billingIsActive" type="boolean | null">Whether billing for the access is active.</ResponseField>
+<ResponseField name="meta" type="object | null">
+  Enrollment attribution: `utmParams` — an object with the UTM tags of the visit from which the user enrolled (see [UTM attribution](/en/exode-api/webhooks/about#utm-attribution)); `inviteLinkId` — the invite link ID if the user enrolled via one (`integer | null`).
+</ResponseField>
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+
+## `productPrice`
+
+<ResponseField name="id" type="integer" required>Price ID.</ResponseField>
+<ResponseField name="mode" type="enum" required>Mode: `AccordingToGroup`, `SelfDefinition`.</ResponseField>
+<ResponseField name="type" type="enum" required>Type: `Demo`, `OneTime`, `Installment`, `Subscription`, `ExternalLink`.</ResponseField>
+<ResponseField name="title" type="string | null">Title.</ResponseField>
+<ResponseField name="description" type="string | null">Description.</ResponseField>
+<ResponseField name="amount" type="number" required>Amount.</ResponseField>
+<ResponseField name="previousAmount" type="number | null">Previous amount (for displaying the discount).</ResponseField>
+<ResponseField name="accessDays" type="integer | null">Access duration in days.</ResponseField>
+<ResponseField name="infinityAccess" type="boolean" required>Unlimited access.</ResponseField>
+<ResponseField name="active" type="boolean" required>The price is active.</ResponseField>
+<ResponseField name="hidden" type="boolean" required>The price is hidden.</ResponseField>
+<ResponseField name="activeFrom" type="string | null">Active from (ISO 8601).</ResponseField>
+<ResponseField name="activeTo" type="string | null">Active until (ISO 8601).</ResponseField>
+<ResponseField name="meta" type="object" required>Internal price metadata (arbitrary object).</ResponseField>
+<ResponseField name="installmentConfig" type="object | null">Installment configuration.</ResponseField>
+<ResponseField name="subscriptionConfig" type="object | null">Subscription configuration.</ResponseField>
+<ResponseField name="isDemo" type="boolean | null">Demo price.</ResponseField>
+<ResponseField name="isRecurrent" type="boolean | null">Recurring.</ResponseField>
+<ResponseField name="isInstallment" type="boolean | null">Installment.</ResponseField>
+<ResponseField name="isSubscription" type="boolean | null">Subscription.</ResponseField>
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+
+## `discount`
+
+<ResponseField name="id" type="integer" required>Discount ID.</ResponseField>
+<ResponseField name="code" type="string" required>Promo code.</ResponseField>
+<ResponseField name="type" type="enum" required>Type: `Amount` (fixed amount), `Percent` (percentage).</ResponseField>
+<ResponseField name="value" type="number" required>Discount value.</ResponseField>
+<ResponseField name="currency" type="enum" required>Currency: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ResponseField>
+<ResponseField name="active" type="boolean" required>The discount is active.</ResponseField>
+<ResponseField name="activeFrom" type="string | null">Active from (ISO 8601).</ResponseField>
+<ResponseField name="activeTo" type="string | null">Active until (ISO 8601).</ResponseField>
+<ResponseField name="note" type="string | null">Discount note.</ResponseField>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

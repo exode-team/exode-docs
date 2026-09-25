@@ -1,0 +1,418 @@
+---
+title: "User states"
+description: "REST endpoints for reading and writing user state by key"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+    User states are key-value records in the database linked to a specific user.
+    Reading and writing are available only for a limited list of keys (whitelist). Some keys are
+    masked on read.
+
+    The endpoints below work in the school context and require the school user management permission.
+
+    Setting a value via PUT <u>fully replaces the key's previous value</u>.
+    There are no partial updates (merge).
+</Info>
+
+## Supported keys
+
+<AccordionGroup>
+<Accordion title="UtmSignupParams">
+  - Type: object.
+  - GET/SET: yes/yes.
+  - Masking: no.
+  - Purpose: UTM/referral parameters of the first visit/sign-up.
+
+  - <code>UtmSignupParams</code> is stored as an object of arbitrary string key-value pairs (for example, utm_source, utm_medium, fbclid).
+
+  ```json Success (GET UtmSignupParams)
+  {
+    "success": true,
+    "code": 200,
+    "payload": {
+      "value": {
+        "fbclid": "EAA12xQ9YzGpKJ7tMoNybfBcGgGSsSixioGWZRcjvdAUCzvIjyGEXStvsIJC1wKj8ZpJ3kTn5Q2sL0mH7u9vW",
+        "utm_term": "9876543210123456789",
+        "utm_medium": "paid",
+        "utm_source": "google",
+        "utm_content": "creative_42_variant_b",
+        "utm_campaign": "back_to_school_2025_ru"
+      }
+    }
+  }
+  ```
+
+  ```json Body (SET UtmSignupParams)
+  {
+    "value": {
+      "utm_source": "google",
+      "utm_medium": "paid",
+      "utm_campaign": "back_to_school_2025_ru",
+      "utm_content": "creative_42_variant_b",
+      "utm_term": "9876543210123456789",
+      "fbclid": "EAA12xQ9YzGpKJ7tMoNybfBcGgGSsSixioGWZRcjvdAUCzvIjyGEXStvsIJC1wKj8ZpJ3kTn5Q2sL0mH7u9vW"
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="PersonalInfoFilled">
+  - Type: boolean.
+  - GET/SET: yes/yes.
+  - Masking: no.
+  - Purpose: flag indicating that personal information has been filled in.
+  - <code>PersonalInfoFilled</code> is a boolean <code>true / false</code> value indicating whether personal information has been filled in.
+
+  ```json Success (GET PersonalInfoFilled)
+  {
+    "success": true,
+    "code": 200,
+    "payload": {
+      "value": true
+    }
+  }
+  ```
+
+  ```json Body (SET PersonalInfoFilled)
+  {
+    "value": true
+  }
+  ```
+</Accordion>
+
+<Accordion title="OnBoardingProgress">
+  - Type: object.
+  - GET/SET: yes/yes.
+  - Masking: no.
+  - Purpose: the user's onboarding progress.
+
+  ```json Body (SET OnBoardingProgress)
+  {
+    "value": { "step": 3, "completed": false }
+  }
+  ```
+</Accordion>
+
+<Accordion title="ContentCategoryIds">
+  - Type: array.
+  - GET/SET: yes/yes.
+  - Masking: no.
+  - Purpose: content categories selected by the user (an array of IDs).
+
+  ```json Body (SET ContentCategoryIds)
+  {
+    "value": [12, 45, 78]
+  }
+  ```
+</Accordion>
+</AccordionGroup>
+
+<Info>
+  Writing (`SET`) is allowed only for the keys `UtmSignupParams`, `PersonalInfoFilled`, `OnBoardingProgress`,
+  `ContentCategoryIds`. Reading (`GET`) is additionally available for `VkToken` (returned **masked**).
+  A request for a key outside this list returns a `400` error with `cause: "Unauthorized"` and the message
+  `Not allowed key <key>` — this is a key restriction, not a token problem. A non-existent key name
+  is rejected by validation (`400`).
+</Info>
+
+## Get a state by key
+
+GET /saas/v2/user/:userId/state/get?key=PersonalInfoFilled
+
+### Parameters
+
+<ParamField path=":userId" type="integer" required>
+The user's numeric ID in Exode (the `id` field from [`user/find`](/en/exode-api/school/user/find) or
+[`user/list`](/en/exode-api/school/user/list)). The user must belong to the school from the `School-Id` header.
+</ParamField>
+
+<ParamField query="key" type="string" required>
+State key — one of the values from the [list above](#supported-keys), case-sensitive.
+</ParamField>
+
+### Response
+
+<ResponseField name="value" type="any" required>
+The state value. If no value has been written for the key yet, `null`.
+</ResponseField>
+
+<RequestExample>
+```bash cURL (GET)
+curl --location 'https://api.exode.biz/saas/v2/user/123/state/get?key=PersonalInfoFilled' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js (GET)
+const axios = require('axios');
+
+async function getState() {
+  const { data } = await axios.get(
+    'https://api.exode.biz/saas/v2/user/123/state/get',
+    {
+      params: { key: 'PersonalInfoFilled' },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data);
+}
+
+getState();
+```
+
+```php PHP (GET)
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/user/123/state/get?key=PersonalInfoFilled';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPGET, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+echo $response;
+?>
+```
+
+```python Python (GET)
+import requests
+
+url = 'https://api.exode.biz/saas/v2/user/123/state/get'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'key': 'PersonalInfoFilled' }, headers=headers)
+print(response.json())
+```
+
+```bsl 1С (GET)
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/user/123/state/get?key=PersonalInfoFilled");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("State value received");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+
+```bash cURL (SET)
+curl --location --request PUT 'https://api.exode.biz/saas/v2/user/123/state/set?key=PersonalInfoFilled' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "value": true
+  }'
+```
+
+```javascript Node.js (SET)
+const axios = require('axios');
+
+async function setState() {
+  const { data } = await axios.put(
+    'https://api.exode.biz/saas/v2/user/123/state/set',
+    { value: true },
+    {
+      params: { key: 'PersonalInfoFilled' },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data);
+}
+
+setState();
+```
+
+```php PHP (SET)
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/user/123/state/set?key=PersonalInfoFilled';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$payload = json_encode([ 'value' => true ]);
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+echo $response;
+?>
+```
+
+```python Python (SET)
+import requests
+
+url = 'https://api.exode.biz/saas/v2/user/123/state/set'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.put(url, json={ 'value': { 'step': 3 } }, params={ 'key': 'PersonalInfoFilled' }, headers=headers)
+print(response.json())
+```
+
+```bsl 1С (SET)
+Данные = Новый Структура;
+Данные.Вставить("value", Истина);
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/user/123/state/set?key=PersonalInfoFilled");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("PUT", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("State value saved");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success (GET)
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "value": true
+  }
+}
+```
+
+```json Error (GET) - Not allowed key
+{
+  "code": 400,
+  "success": false,
+  "cause": "Unauthorized",
+  "message": "Not allowed key KeyName",
+  "error": "Not allowed key KeyName"
+}
+```
+
+```json Success (SET)
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "set": true
+  }
+}
+```
+
+```json Error (SET) - Not allowed key
+{
+  "code": 400,
+  "success": false,
+  "cause": "Unauthorized",
+  "message": "Not allowed key KeyName",
+  "error": "Not allowed key KeyName"
+}
+```
+</ResponseExample>
+
+## Set a state by key
+
+PUT /saas/v2/user/:userId/state/set?key=PersonalInfoFilled
+
+### Parameters
+
+<ParamField path=":userId" type="integer" required>
+The user's numeric ID in Exode (the `id` field from [`user/find`](/en/exode-api/school/user/find) or
+[`user/list`](/en/exode-api/school/user/list)). The user must belong to the school from the `School-Id` header.
+</ParamField>
+
+<ParamField query="key" type="string" required>
+State key — one of the values from the [list above](#supported-keys), case-sensitive.
+</ParamField>
+
+<ParamField body="value" type="any" required>
+The value to write to the state. Its type depends on the key.
+</ParamField>
+
+### Response
+
+<ResponseField name="set" type="boolean" required>
+Flag indicating that the state was written successfully.
+</ResponseField>
+
+## Permission requirements
+
+<Check>
+Requires token authentication and the [**"School User Management"**](/en/exode-api/permissions) permission (`SchoolManageUsers`).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

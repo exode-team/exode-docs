@@ -11,7 +11,7 @@ setup, and a verified first request. Other Exode skills (import-users,
 export-reports, sync-staff-hr, setup-webhooks) build on this one — complete the
 auth setup here first.
 
-**Ground truth**: the docs at https://docs.exode.biz/ru/exode-api/setup. Never
+**Ground truth**: the docs at https://docs.exode.biz/en/exode-api/setup. Never
 invent endpoints, fields or headers — if a method is not in the docs, say so.
 
 ## First: detect where you are running
@@ -153,7 +153,7 @@ const exodeApi = new ExodeAPI({
 const user = await exodeApi.school.user.find({ extId: 'crm_12345' }); // user or null
 ```
 
-SDK reference: https://docs.exode.biz/ru/exode-sdk/api-client. Server-side only — never
+SDK reference: https://docs.exode.biz/en/exode-sdk/api-client. Server-side only — never
 bundle it (or the token) into browser code.
 
 ## Step 4. Smoke test — the first request
@@ -263,7 +263,7 @@ Plus `formLayout`/`formFieldValue` for custom forms. Conventions: dates are ISO
 8601 UTC strings (`*At` = null means "has not happened"); money fields are
 numbers; most entities carry `id`, `createdAt`, `updatedAt`, `archivedAt`;
 `*Id` fields reference other entities. Full entity reference:
-https://docs.exode.biz/ru/exode-api/objects/entities/index.
+https://docs.exode.biz/en/exode-api/objects/entities/index.
 
 ## Troubleshooting
 
@@ -287,7 +287,7 @@ https://docs.exode.biz/ru/exode-api/objects/entities/index.
 3. Smoke test `user/find` returns `success: true` (Mode B: run in sandbox; Mode C:
    user confirmed the cURL output).
 4. The client checks `success`/`code`, branches on `cause`, honors `retryAfter`.
-5. The user knows where the full docs live: https://docs.exode.biz/ru/exode-api/setup
-   (headers, errors, pagination), /ru/exode-api/quickstart, /ru/exode-api/concepts,
-   /ru/exode-api/objects/entities/index — and that the other Exode skills reuse
+5. The user knows where the full docs live: https://docs.exode.biz/en/exode-api/setup
+   (headers, errors, pagination), /en/exode-api/quickstart, /en/exode-api/concepts,
+   /en/exode-api/objects/entities/index — and that the other Exode skills reuse
    this auth setup.

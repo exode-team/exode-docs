@@ -1,0 +1,75 @@
+---
+title: "VK Ads"
+description: "Automatic delivery of platform conversion events to VK Ads pixel goals (top.mail.ru)"
+---
+
+## Setup
+
+Paste the standard VK Ads pixel snippet into the school's [custom code](/en/customization/js-config) ("For developers" → "Custom code", HTML tab)
+and additionally specify its ID in `window.VK_PIXEL_ID`:
+
+```html
+<script>
+    // ... standard VK Ads pixel snippet ...
+
+    window.VK_PIXEL_ID = 3456789; // your pixel ID
+</script>
+```
+
+## Goals
+
+In your VK Ads account, create goals with the following IDs (the same as for [Yandex Metrica](/en/analytics/yandex-metrika)):
+
+### Sign-up
+
+<ParamField body="signup" type="reachGoal">
+    A new account is registered.
+</ParamField>
+
+### Lead (onboarding questionnaire)
+
+<ParamField body="lead" type="reachGoal">
+    The onboarding questionnaire is completed.
+</ParamField>
+
+### Course view
+
+<ParamField body="view_course" type="reachGoal">
+    A course page is viewed.
+</ParamField>
+
+### Demo lesson opened
+
+<ParamField body="view_demo_lesson" type="reachGoal">
+    A demo lesson is opened.
+</ParamField>
+
+### Free course enrollment
+
+<ParamField body="free_course_enroll" type="reachGoal">
+    Enrollment in a free course.
+</ParamField>
+
+### Checkout started
+
+<ParamField body="begin_checkout" type="reachGoal">
+    The user proceeds to checkout.
+</ParamField>
+
+### Purchase
+
+<ParamField body="purchase" type="reachGoal">
+    Successful payment. `value` is passed — the payment amount (not passed for internal currencies).
+</ParamField>
+
+### Course completion
+
+<ParamField body="complete_course" type="reachGoal">
+    A course is completed.
+</ParamField>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

@@ -1,0 +1,293 @@
+---
+title: "List users"
+description: "Paginated list of school users with filtering by status, dates and search"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/user/list
+```
+
+Requires authentication and the [**"School User Management"**](/en/exode-api/permissions) permission (`SchoolManageUsers`).
+
+<Info>
+    All filter parameters are optional. Without filters, the method returns all school users, subject to
+    pagination. Each response item is a
+    [`userWithProfile`](/en/exode-api/objects/entities/user) object (a user with a nested profile).
+</Info>
+
+<Tip>
+    **Which method to choose.** If you need a single user by exact login, `tgId` or `extId`, use
+    [`user/find`](/en/exode-api/school/user/find). If you need to match a batch of IDs from your system (up to 250), use
+    [`user/find-many`](/en/exode-api/school/user/find-many). `user/list` is suited for paginated exports and selections
+    by filters (statuses, dates, `search` — substring search, not an exact match).
+</Tip>
+
+<Info>
+    Pass array parameters by repeating the parameter: `statuses=Active&statuses=OnLeave`. Pass date ranges as
+    nested fields: `createdAtDateRange[from]=2026-01-01&createdAtDateRange[to]=2026-02-01`.
+</Info>
+
+## Request parameters
+
+### Pagination
+
+<ParamField query="take" type="integer" required={false}>
+    Number of records per page. From `1` to `1000`. Defaults to `100`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Page number (starting from `1`). An alternative to `skip`.
+</ParamField>
+
+<ParamField query="skip" type="integer" required={false}>
+    Number of records to skip. Defaults to `0`.
+</ParamField>
+
+### Filtering
+
+<ParamField query="search" type="string" required={false}>
+    Search by first name, last name, email, phone and domain login. Maximum 50 characters.
+</ParamField>
+
+<ParamField query="statuses" type="enum[]" required={false}>
+    Filter by account status: `Active`, `OnLeave`, `Banned`, `Blocked`, `Terminated`, `Deleted`.
+    Statuses are described in the [`user`](/en/exode-api/objects/entities/user) reference.
+</ParamField>
+
+<ParamField query="activated" type="boolean" required={false}>
+    Filter by the confirmed sign-in flag (`true`/`false`).
+</ParamField>
+
+<ParamField query="archived" type="boolean" required={false}>
+    Filter by archive state: `true` — archived only, `false` — non-archived only.
+</ParamField>
+
+<ParamField query="userIds" type="integer[]" required={false}>
+    Filter by user IDs.
+</ParamField>
+
+<ParamField query="extIds" type="string[]" required={false}>
+    Filter by external IDs from your system. 1 to 50 characters each, maximum 250 items.
+</ParamField>
+
+<ParamField query="createdAtDateRange" type="object" required={false}>
+    Creation date range: `createdAtDateRange[from]`, `createdAtDateRange[to]` (ISO 8601).
+</ParamField>
+
+<ParamField query="lastOnlineAtDateRange" type="object" required={false}>
+    Last activity range: `lastOnlineAtDateRange[from]`, `lastOnlineAtDateRange[to]` (ISO 8601).
+</ParamField>
+
+<ParamField query="utmSignupParams" type="object" required={false}>
+    Filter by sign-up UTM tags. The `value` field is an array of `{ key, value }` pairs (non-empty strings).
+</ParamField>
+
+<ParamField query="archivedAtDateRange" type="object" required={false}>
+    Archiving (deletion) date range: `archivedAtDateRange[from]`, `archivedAtDateRange[to]` (ISO 8601).
+</ParamField>
+
+<ParamField query="archivedByUserIds" type="integer[]" required={false}>
+    Filter by IDs of the users who performed the archiving (deletion).
+</ParamField>
+
+<ParamField query="profile" type="object" required={false}>
+    Nested profile filter.
+
+    <Expandable title="profile properties">
+        <ParamField query="search" type="string">Search by profile data (up to 50 characters).</ParamField>
+        <ParamField query="hasAvatar" type="boolean">Whether an avatar has been uploaded.</ParamField>
+    </Expandable>
+</ParamField>
+
+### Sorting
+
+<ParamField query="id" type="enum" required={false}>
+    Sort by ID: `ASC` or `DESC`.
+</ParamField>
+
+<ParamField query="createdAt" type="enum" required={false}>
+    Sort by creation date: `ASC` or `DESC`.
+</ParamField>
+
+<ParamField query="lastOnlineAt" type="enum" required={false}>
+    Sort by last activity: `ASC` or `DESC`.
+</ParamField>
+
+<ParamField query="updatedAt" type="enum" required={false}>
+    Sort by update date: `ASC` or `DESC`.
+</ParamField>
+
+<ParamField query="starsBalance" type="enum" required={false}>
+    Sort by "stars" balance: `ASC` or `DESC`.
+</ParamField>
+
+<ParamField query="productAccessesCount" type="enum" required={false}>
+    Sort by number of product accesses: `ASC` or `DESC`.
+</ParamField>
+
+<ParamField query="archivedAt" type="enum" required={false}>
+    Sort by archiving date: `ASC` or `DESC`.
+</ParamField>
+
+<ParamField query="order" type="enum" required={false}>
+    Sort by internal order: `ASC` or `DESC`.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="payload" type="object">
+    Paginated list of users. The item structure is described in the
+    [`user`](/en/exode-api/objects/entities/user) reference.
+
+    <Expandable title="payload properties">
+        <ResponseField name="items" type="object[]">
+            Array of `userWithProfile` objects.
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Current page.</ResponseField>
+        <ResponseField name="count" type="integer">Total number of records.</ResponseField>
+        <ResponseField name="pages" type="integer">Total number of pages.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Whether this is the first page.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Whether this is the last page.</ResponseField>
+        <ResponseField name="next" type="object">Next page parameters (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Previous page parameters (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/user/list?take=50&statuses=Active&statuses=OnLeave&createdAt=DESC' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listUsers = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/user/list', {
+    params: { take: 50, statuses: ['Active', 'OnLeave'], createdAt: 'DESC' },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listUsers();
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/user/list'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={
+  'take': 50,
+  'statuses': ['Active', 'OnLeave'],
+  'createdAt': 'DESC',
+}, headers=headers)
+
+print(response.json()['payload']['items'])
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/user/list?take=50&statuses=Active&statuses=OnLeave&createdAt=DESC");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("User list received");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 245,
+    "pages": 5,
+    "isFirst": true,
+    "isLast": false,
+    "items": [
+      {
+        "id": 1683,
+        "createdAt": "2026-07-02T11:15:46.896Z",
+        "updatedAt": "2026-07-02T11:15:46.940Z",
+        "archivedAt": null,
+        "uuid": "e-cjTT0CWMCB",
+        "active": true,
+        "activated": true,
+        "banned": false,
+        "status": "Active",
+        "alive": true,
+        "domain": "id1683",
+        "email": "user@example.com",
+        "phone": null,
+        "tgId": null,
+        "vkId": null,
+        "appleId": null,
+        "extId": "crm_12345",
+        "schoolId": 198,
+        "language": null,
+        "timezone": null,
+        "lastOnlineAt": null,
+        "starsBalance": 0,
+        "profile": {
+          "id": 1665,
+          "userId": 1683,
+          "official": false,
+          "firstName": "Firstname",
+          "lastName": "Lastname",
+          "fullName": "Firstname Lastname",
+          "sex": "Ufo",
+          "role": "Student"
+        }
+      }
+    ],
+    "next": { "skip": 50, "take": 50, "page": 2 },
+    "prev": { "skip": 0, "take": 50, "page": 1 }
+  }
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+    Requires token authentication and the **"School User Management"** permission (`SchoolManageUsers`).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

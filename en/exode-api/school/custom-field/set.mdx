@@ -1,0 +1,408 @@
+---
+title: "Set field values"
+description: "Create or update custom field values for a school user"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+POST /saas/v2/form/custom-field/value/set
+POST /saas/v2/form/custom-field/value/set-by-slug
+```
+
+Requires authentication and the [**"Forms management"**](/en/exode-api/permissions) permission (`FormManage`).
+
+## Request parameters
+
+Two formats are available for passing values: **by slug** (recommended) and **by fieldId** (advanced).
+
+<ParamField body="userId" type="integer" required={true}>
+  Numeric ID of the Exode user (the `id` field from [`user/find`](/en/exode-api/school/user/find)) for whom
+  the field values are set. The user must belong to the school from the `School-Id` header.
+</ParamField>
+
+<ParamField body="layoutId" type="integer" required={true}>
+  ID of the form layout the fields belong to — the `id` field from the [form list](/en/exode-api/school/form-layout/list).
+  All fields from `values` must belong to this layout (otherwise — `FieldNotBelongsToLayout`).
+</ParamField>
+
+<Tip>
+  **Where to get `slug` and `fieldId`.** Form fields are created in the school's admin panel (not through the API); the
+  field's code (`slug`) is set there as well. `fieldId`, `slug` and the field type are also returned by
+  [getting values](/en/exode-api/school/custom-field/get) in the nested `field` object.
+  **Which method to choose:** `set-by-slug` is more convenient — the slug is stable and the value type is matched to the field
+  automatically; use `set` if you already store `fieldId` on your side.
+</Tip>
+
+### Format 1: By slug (recommended)
+
+**Endpoint:** `POST /saas/v2/form/custom-field/value/set-by-slug`
+
+Simplified format — the value type is determined automatically based on the field type in the layout.
+
+<ParamField body="values" type="object[]" required={true}>
+  Array of field values. At least 1 element.
+
+  <Expandable title="values element properties">
+    <ParamField body="slug" type="string" required={true}>
+      The field code.
+    </ParamField>
+
+    <ParamField body="value" type="any" required={false}>
+      The field value. The type must match the field type:
+
+      | Field type | Expected `value` type | Example |
+      |---|---|---|
+      | Text, Textarea, Select, Radio | `string` | `"Tashkent"` |
+      | Number | `number` | `25` |
+      | Boolean, Switch, Checkbox | `boolean` | `true` |
+      | Date | `string` (ISO 8601) | `"2025-03-10T12:00:00.000Z"` |
+      | Json, File, Multiselect | `object` | `{"key": "value"}` |
+
+      Pass `null` to clear the value.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Format 2: By fieldId (advanced)
+
+**Endpoint:** `POST /saas/v2/form/custom-field/value/set`
+
+Typed format — you specify the column for the value yourself.
+
+<ParamField body="values" type="object[]" required={true}>
+  Array of field values. At least 1 element.
+
+  <Expandable title="values element properties">
+    <ParamField body="fieldId" type="integer" required={true}>
+      ID of the field for which the value is set.
+    </ParamField>
+
+    <ParamField body="text" type="string" required={false}>
+      Text value. For fields: Text, Select, Radio, Textarea.
+    </ParamField>
+
+    <ParamField body="number" type="number" required={false}>
+      Numeric value. For fields: Number.
+    </ParamField>
+
+    <ParamField body="boolean" type="boolean" required={false}>
+      Boolean value. For fields: Boolean, Switch, Checkbox.
+    </ParamField>
+
+    <ParamField body="date" type="string" required={false}>
+      Date in ISO 8601 format. For fields: Date.
+    </ParamField>
+
+    <ParamField body="json" type="object" required={false}>
+      JSON object. For fields: Json, File, Multiselect.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<Info>
+  Both methods work in **upsert** mode — if a field value already exists for this user, it is
+  updated. If it doesn't exist, it is created. One value is stored per "user + field" pair, so
+  a repeated call is safe and simply overwrites the value. Fields not passed in `values` are not changed.
+  If at least one field from the request is not found or not writable, the entire request is rejected.
+</Info>
+
+<Warning>
+  Fields whose RBAC settings have `api = false` (API access denied) cannot be written
+  through this method — the `FieldWritePermissionDenied` error is returned. The permission is changed in the field settings in the admin panel.
+</Warning>
+
+<RequestExample>
+```bash By slug (cURL)
+curl --location 'https://api.exode.biz/saas/v2/form/custom-field/value/set-by-slug' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "userId": 27,
+    "layoutId": 5,
+    "values": [
+      { "slug": "city", "value": "Tashkent" },
+      { "slug": "age", "value": 25 },
+      { "slug": "is-active", "value": true }
+    ]
+  }'
+```
+
+```bash By fieldId (cURL)
+curl --location 'https://api.exode.biz/saas/v2/form/custom-field/value/set' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "userId": 27,
+    "layoutId": 5,
+    "values": [
+      { "fieldId": 10, "text": "Tashkent" },
+      { "fieldId": 11, "number": 25 },
+      { "fieldId": 12, "boolean": true }
+    ]
+  }'
+```
+
+```javascript Node.js (by slug)
+const axios = require('axios');
+
+const setFieldValues = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/form/custom-field/value/set-by-slug', {
+      userId: 27,
+      layoutId: 5,
+      values: [
+        { slug: 'city', value: 'Tashkent' },
+        { slug: 'age', value: 25 },
+        { slug: 'is-active', value: true }
+      ]
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Values set:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+setFieldValues();
+```
+
+```php PHP (by slug)
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/form/custom-field/value/set-by-slug';
+$data = [
+  'userId' => 27,
+  'layoutId' => 5,
+  'values' => [
+    [ 'slug' => 'city', 'value' => 'Tashkent' ],
+    [ 'slug' => 'age', 'value' => 25 ],
+    [ 'slug' => 'is-active', 'value' => true ]
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Values set successfully\n";
+  print_r($result['payload']);
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python (by slug)
+import requests
+import json
+
+url = 'https://api.exode.biz/saas/v2/form/custom-field/value/set-by-slug'
+
+data = {
+  'userId': 27,
+  'layoutId': 5,
+  'values': [
+    { 'slug': 'city', 'value': 'Tashkent' },
+    { 'slug': 'age', 'value': 25 },
+    { 'slug': 'is-active', 'value': True }
+  ]
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+try:
+  response = requests.post(url, json=data, headers=headers)
+  response.raise_for_status()
+
+  result = response.json()
+  print('Values set successfully:')
+  print(json.dumps(result['payload'], indent=2, ensure_ascii=False))
+
+except requests.exceptions.RequestException as e:
+  print(f'Error: {e}')
+  if hasattr(e, 'response') and e.response is not None:
+    print(f'Response: {e.response.text}')
+```
+
+```bsl 1C (by slug)
+Значение1 = Новый Структура;
+Значение1.Вставить("slug", "city");
+Значение1.Вставить("value", "Tashkent");
+
+Значение2 = Новый Структура;
+Значение2.Вставить("slug", "age");
+Значение2.Вставить("value", 25);
+
+Значение3 = Новый Структура;
+Значение3.Вставить("slug", "is-active");
+Значение3.Вставить("value", Истина);
+
+Значения = Новый Массив;
+Значения.Добавить(Значение1);
+Значения.Добавить(Значение2);
+Значения.Добавить(Значение3);
+
+Данные = Новый Структура;
+Данные.Вставить("userId", 27);
+Данные.Вставить("layoutId", 5);
+Данные.Вставить("values", Значения);
+
+// Serialize body to JSON
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/form/custom-field/value/set-by-slug");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
+
+Если Ответ.КодСостояния = 201 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Field values saved");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": [
+    {
+      "id": 1,
+      "userId": 27,
+      "fieldId": 10,
+      "fillId": null,
+      "value": "Tashkent",
+      "createdAt": "2025-03-10T12:00:00.000Z",
+      "updatedAt": "2025-03-10T12:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "userId": 27,
+      "fieldId": 11,
+      "fillId": null,
+      "value": 25,
+      "createdAt": "2025-03-10T12:00:00.000Z",
+      "updatedAt": "2025-03-10T12:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "userId": 27,
+      "fieldId": 12,
+      "fillId": null,
+      "value": true,
+      "createdAt": "2025-03-10T12:00:00.000Z",
+      "updatedAt": "2025-03-10T12:00:00.000Z"
+    }
+  ]
+}
+```
+```json Error - Field Not Found (slug)
+{
+  "code": 400,
+  "success": false,
+  "cause": "FieldNotFound",
+  "message": "Fields not found: unknown-slug",
+  "error": "Fields not found: unknown-slug"
+}
+```
+```json Error - User Not In School
+{
+  "code": 400,
+  "success": false,
+  "cause": "UserNotBelongsToSchool",
+  "message": "User does not belong to the school",
+  "error": "User does not belong to the school"
+}
+```
+```json Error - Layout Not Owned By Seller
+{
+  "code": 400,
+  "success": false,
+  "cause": "LayoutNotOwnedBySeller",
+  "message": "Layout does not belong to this seller",
+  "error": "Layout does not belong to this seller"
+}
+```
+```json Error - Write Denied
+{
+  "code": 400,
+  "success": false,
+  "cause": "FieldWritePermissionDenied",
+  "message": "No Write permission for field 12",
+  "error": "No Write permission for field 12"
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+  Setting custom field values requires the service user to have the **"Forms management"** permission (`FormManage`).
+</Check>
+
+<Warning>
+  The service user must be authenticated with a token and have the appropriate access permissions for the specified
+  school.
+</Warning>
+
+<Info>
+  The form layout (`layoutId`) must belong to the current school. The user (`userId`) must be a member of this school.
+</Info>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

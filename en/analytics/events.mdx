@@ -1,0 +1,127 @@
+---
+title: "Conversion events"
+description: "Platform events that are automatically sent to connected ad platforms"
+---
+
+<Info>
+  Paste the platform's snippet into the school's [custom code](/en/customization/js-config) (**For developers → Custom code**, HTML tab), and the platform starts
+  sending conversion events to it automatically. No additional code is needed. Changes take effect after
+  a page reload; the code in the field is limited to 3000 characters.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Meta Pixel (Facebook)" icon="facebook" href="/en/analytics/meta-pixel"/>
+  <Card title="Google Analytics (GA4)" icon="google" href="/en/analytics/google-analytics"/>
+  <Card title="Yandex Metrica" icon="yandex" href="/en/analytics/yandex-metrika"/>
+  <Card title="VK Ads" icon="vk" href="/en/analytics/vk-ads"/>
+</CardGroup>
+
+## Accuracy and transparency
+
+<Columns cols={3}>
+  <Card title="No duplicates" icon="shield-check">
+    A purchase is sent once per invoice: an on-device guard plus `eventID` / `transaction_id`
+    for deduplication on the Meta and GA4 side.
+  </Card>
+  <Card title="Real money only" icon="coins">
+    Amounts and currencies come from the invoice (ISO 4217); internal points do not distort revenue and ROAS.
+  </Card>
+  <Card title="Fully transparent" icon="eye">
+    Events are regular `document` events: you can see them in the console and intercept them with your own code.
+  </Card>
+</Columns>
+
+## Event list
+
+Each event is dispatched as a `CustomEvent` on `document` (data is in `event.detail`), so
+you can intercept it with your own code for [any other platform](/en/analytics/custom).
+
+### Sign-up
+
+<ParamField body="analytics:signup-completed" type="event">
+    Registration of a new account via email or phone. The event is not sent when signing in via social networks (VK, Telegram)
+    or OTP, because these methods do not yet distinguish a new user from a returning sign-in.
+
+    <Expandable title="event.detail fields">
+        <ParamField body="method" type="enum">Registration method: `email`, `phone`.</ParamField>
+    </Expandable>
+</ParamField>
+
+### Lead (onboarding form)
+
+<ParamField body="profile:personal-info-filled-success" type="event">
+    The user filled in the onboarding form (name and personal data). No `event.detail`.
+</ParamField>
+
+### Course view
+
+<ParamField body="analytics:course-viewed" type="event">
+    Course page view.
+
+    <Expandable title="event.detail fields">
+        <ParamField body="courseId" type="number">Course ID.</ParamField>
+    </Expandable>
+</ParamField>
+
+### Demo lesson opened
+
+<ParamField body="analytics:demo-lesson-opened" type="event">
+    A demo lesson is opened from the course page.
+
+    <Expandable title="event.detail fields">
+        <ParamField body="courseId" type="number">Course ID.</ParamField>
+        <ParamField body="lessonId" type="number">Demo lesson ID.</ParamField>
+    </Expandable>
+</ParamField>
+
+### Free course enrollment
+
+<ParamField body="analytics:free-course-enrolled" type="event">
+    Enrollment in a free course.
+
+    <Expandable title="event.detail fields">
+        <ParamField body="productId" type="number">Course product ID.</ParamField>
+    </Expandable>
+</ParamField>
+
+### Checkout initiated
+
+<ParamField body="analytics:checkout-initiated" type="event">
+    The user proceeds to checkout (a pricing plan is selected).
+
+    <Expandable title="event.detail fields">
+        <ParamField body="productId" type="number">Product ID.</ParamField>
+        <ParamField body="priceId" type="number">Selected pricing plan ID.</ParamField>
+    </Expandable>
+</ParamField>
+
+### Purchase
+
+<ParamField body="analytics:purchase-completed" type="event">
+    Successful invoice payment. Sent **once per invoice**: resending on the same device
+    is blocked for 90 days by the invoice uuid, and if the page is opened late (another device,
+    a link from an email, more than 5 minutes after payment), the event is not sent at all.
+
+    <Expandable title="event.detail fields">
+        <ParamField body="value" type="number">Invoice amount.</ParamField>
+        <ParamField body="currency" type="enum">Invoice currency: `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`, `Exes`, `Free`.</ParamField>
+        <ParamField body="invoiceUuid" type="string">Invoice uuid: a unique identifier for deduplication.</ParamField>
+        <ParamField body="productIds" type="number[]">IDs of the paid products.</ParamField>
+    </Expandable>
+</ParamField>
+
+### Course completion
+
+<ParamField body="analytics:course-completed" type="event">
+    The user completed a course.
+
+    <Expandable title="event.detail fields">
+        <ParamField body="productId" type="number">Course product ID.</ParamField>
+    </Expandable>
+</ParamField>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

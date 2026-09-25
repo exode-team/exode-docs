@@ -1,0 +1,329 @@
+---
+title: "Getting the result"
+description: "Get the progress and result of a generated report"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+## Getting the report result
+
+```
+GET /saas/v2/workflow-execution/:executionUuid/result
+```
+
+Use the `uuid` you received when [creating the generation task](/en/exode-api/school/query-export/generate).
+Send the request periodically (polling) at 2–5 second intervals until `status` becomes `Completed` or
+`Failed`. This method is not subject to the generation rate limit, but frequent polling does not speed up the export.
+
+<Note>
+  Right after the task is created, `payload` may be `null`: the task is queued and has not reported progress yet.
+  Keep polling. If `payload` stays `null` for a `uuid` you have already received a status for, the result's
+  retention period has expired; start the generation again. Add an overall polling timeout to your code so you do not poll
+  an unknown `uuid` forever.
+</Note>
+
+### Path parameters
+
+<ParamField path="executionUuid" type="string" required>
+  UUID of the generation task, taken from the `POST /generate` response.
+</ParamField>
+
+### Response fields
+
+<ResponseField name="success" type="boolean">
+  The result of the request.
+</ResponseField>
+
+<ResponseField name="code" type="number">
+  HTTP response code (for example, `200`).
+</ResponseField>
+
+<ResponseField name="payload" type="object | null">
+  Data on the generation progress and result. `null` if the task has not started yet, if no task with this
+  `executionUuid` was found, or if the result's retention period has expired.
+
+  <Expandable title="payload properties">
+    <ResponseField name="total" type="number">
+      Total progress (always `100`: percentage mode).
+    </ResponseField>
+
+    <ResponseField name="completed" type="number">
+      Current progress from `0` to `100`. It grows unevenly: most of the time is spent fetching data, then
+      progress jumps to `100`. May be `0` when the status is `Failed`.
+    </ResponseField>
+
+    <ResponseField name="status" type="string">
+      Execution status:
+
+      - `Waiting` — the task is queued and waiting to run
+      - `Processing` — the report is being generated; keep polling
+      - `Completed` — the report is ready; the `result` field contains the file link
+      - `Failed` — generation failed. The reason is not returned in the response. Common causes: `variables` has no
+        `filter`, contains an unknown field or an invalid enum value, or the token lacks the permission for the exported data
+        (see [permissions by report type](/en/exode-api/school/query-export/generate#permission-requirements)).
+        Fix the request and start the generation again
+      - `Canceled` — the task was canceled. You cannot cancel an export through the API, so in practice this status
+        is rare; start the generation again
+    </ResponseField>
+
+    <ResponseField name="result" type="object | null">
+      The generation result (available only when `status: Completed`). In other statuses it is `null` or absent.
+
+      <Expandable title="result properties">
+        <ResponseField name="fileUrl" type="string">
+          URL for downloading the generated file. No authorization headers are needed to download it. The link may
+          be temporary, so download the file right after `Completed` instead of storing the link.
+        </ResponseField>
+
+        <ResponseField name="fileName" type="string">
+          File name (for example, `79d46a97-a149-432b-bac7-45f6732b9115.xlsx`).
+        </ResponseField>
+
+        <ResponseField name="fileSize" type="number">
+          File size in bytes.
+        </ResponseField>
+
+        <ResponseField name="result" type="object">
+          Internal information about the task in the export service. Not needed for integration: rely on the top-level
+          `status` and the fields above.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<Warning>
+  The result is stored for **24 hours** after generation completes. After that, the method returns `payload: null`;
+  to get the data again, start the generation again.
+</Warning>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/workflow-execution/550e8400-e29b-41d4-a716-446655440000/result' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const pollResult = async (executionUuid) => {
+  const url = `https://api.exode.biz/saas/v2/workflow-execution/${executionUuid}/result`;
+
+  const headers = {
+    'Seller-Id': '{{ sellerId }}',
+    'School-Id': '{{ schoolId }}',
+    'Authorization': 'Bearer YOUR_TOKEN'
+  };
+
+  const deadline = Date.now() + 30 * 60 * 1000; // overall polling timeout: 30 minutes
+
+  while (Date.now() < deadline) {
+    const { data } = await axios.get(url, { headers });
+    const { payload } = data;
+
+    if (!payload) {
+      // The task has not started yet (or the uuid is unknown): wait and retry
+      await new Promise((r) => setTimeout(r, 3000));
+      continue;
+    }
+
+    console.log(`Progress: ${payload.completed}/${payload.total} — ${payload.status}`);
+
+    if (payload.status === 'Completed') {
+      console.log('File URL:', payload.result.fileUrl);
+      return payload.result;
+    }
+
+    if (payload.status === 'Failed' || payload.status === 'Canceled') {
+      throw new Error(`Export ${payload.status}`);
+    }
+
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+
+  throw new Error('Export polling timed out');
+};
+
+pollResult('550e8400-e29b-41d4-a716-446655440000');
+```
+
+```php PHP
+<?php
+
+$executionUuid = '550e8400-e29b-41d4-a716-446655440000';
+$url = "https://api.exode.biz/saas/v2/workflow-execution/$executionUuid/result";
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$deadline = time() + 30 * 60; // overall polling timeout: 30 minutes
+
+while (time() < $deadline) {
+  $ch = curl_init();
+  curl_setopt($ch, CURLOPT_URL, $url);
+  curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+  $response = curl_exec($ch);
+  curl_close($ch);
+
+  $data = json_decode($response, true);
+  $payload = $data['payload'] ?? null;
+
+  if ($payload === null) {
+    // The task has not started yet (or the uuid is unknown): wait and retry
+    sleep(3);
+    continue;
+  }
+
+  echo "Progress: {$payload['completed']}/{$payload['total']} — {$payload['status']}\n";
+
+  if ($payload['status'] === 'Completed') {
+    echo "File URL: " . $payload['result']['fileUrl'] . "\n";
+    break;
+  }
+
+  if (in_array($payload['status'], ['Failed', 'Canceled'])) {
+    echo "Error: Export {$payload['status']}\n";
+    break;
+  }
+
+  sleep(3);
+}
+?>
+```
+
+```python Python
+import requests
+import time
+
+execution_uuid = '550e8400-e29b-41d4-a716-446655440000'
+url = f'https://api.exode.biz/saas/v2/workflow-execution/{execution_uuid}/result'
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+deadline = time.time() + 30 * 60  # overall polling timeout: 30 minutes
+
+while time.time() < deadline:
+  response = requests.get(url, headers=headers)
+  data = response.json()
+  payload = data['payload']
+
+  if payload is None:
+    # The task has not started yet (or the uuid is unknown): wait and retry
+    time.sleep(3)
+    continue
+
+  print(f"Progress: {payload['completed']}/{payload['total']} — {payload['status']}")
+
+  if payload['status'] == 'Completed':
+    print(f"File URL: {payload['result']['fileUrl']}")
+    break
+
+  if payload['status'] in ('Failed', 'Canceled'):
+    print(f"Error: Export {payload['status']}")
+    break
+
+  time.sleep(3)
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/workflow-execution/550e8400-e29b-41d4-a716-446655440000/result");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    // payload = Неопределено means the task has not started yet: repeat the request in a few seconds
+    Если Результат.payload <> Неопределено И Результат.payload.status = "Completed" Тогда
+        Сообщить("File: " + Результат.payload.result.fileUrl);
+    ИначеЕсли Результат.payload <> Неопределено Тогда
+        Сообщить("Status: " + Результат.payload.status);
+    КонецЕсли;
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Processing
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "total": 100,
+    "completed": 45,
+    "status": "Processing",
+    "result": null
+  }
+}
+```
+```json Completed
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "total": 100,
+    "completed": 100,
+    "status": "Completed",
+    "result": {
+      "fileUrl": "https://static.exode.biz/generated/reports/79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
+      "fileName": "79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
+      "fileSize": 6748
+    }
+  }
+}
+```
+```json Failed
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "total": 100,
+    "completed": 0,
+    "status": "Failed",
+    "result": null
+  }
+}
+```
+```json Not started
+{
+  "success": true,
+  "code": 200,
+  "payload": null
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+  Token authentication is required. The method does not require any specific permissions: data permissions are checked at generation time
+  (see [permissions by report type](/en/exode-api/school/query-export/generate#permission-requirements)).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

@@ -1,0 +1,386 @@
+---
+title: "List product accesses"
+description: "Get a list of users' accesses to products (courses) with filtering and pagination"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/product-access/list/raw
+```
+
+<Info>
+    Returns users' accesses to the school's products. All filter parameters are optional.
+    Array parameters are passed by repeating the parameter: `userIds=1&userIds=2`.
+</Info>
+
+<Tip>
+    To check whether a user has access to a course: `userIds=<user ID>&courseIds=<course ID>&active=true`.
+    You can get a course's `productId` and `courseId` from the [course list](/en/exode-api/school/course/list).
+</Tip>
+
+## Request parameters
+
+### Pagination
+
+<ParamField query="skip" type="integer" required={false}>
+    Number of records to skip. Defaults to `0`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+    Page number (an alternative to `skip`). Starts at `1`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+    Number of records per page. From `1` to `1000`. Defaults to `100`.
+</ParamField>
+
+### Filtering
+
+<ParamField query="accessIds" type="integer[]" required={false}>
+    Filter by access IDs.
+</ParamField>
+
+<ParamField query="userIds" type="integer[]" required={false}>
+    Filter by user IDs.
+</ParamField>
+
+<ParamField query="active" type="boolean" required={false}>
+    Only active (`true`) or inactive (`false`) accesses. An access becomes inactive, for example, when
+    the user is removed from all groups of the product ([`member/delete-many`](/en/exode-api/school/group-member/delete-many)).
+    Check expiration (`expireAt`) separately, with the `expiryStatuses` or `expireAtDateRange` filter.
+</ParamField>
+
+<ParamField query="groupIds" type="integer[]" required={false}>
+    Filter by group IDs: accesses of users who are currently members of at least one of the specified groups.
+</ParamField>
+
+<ParamField query="expiryStatuses" type="enum[]" required={false}>
+    Access expiry status (values are combined with "OR"):
+    - `NoExpiry`: access with no expiration (`expireAt` = `null`);
+    - `Active`: expires in more than 14 days;
+    - `Expiring`: expires within the next 14 days;
+    - `Expired`: already expired.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+    Search by user/product. Up to 50 characters; leading and trailing spaces are trimmed.
+</ParamField>
+
+<ParamField query="launchIds" type="integer[]" required={false}>
+    Filter by launch (cohort) IDs.
+</ParamField>
+
+<ParamField query="courseIds" type="integer[]" required={false}>
+    Filter by course IDs: accesses to the products that the specified courses belong to.
+</ParamField>
+
+<ParamField query="currentLessonIds" type="integer[]" required={false}>
+    Filter by the participant's current lesson ID.
+</ParamField>
+
+<ParamField query="enrolledByUserIds" type="integer[]" required={false}>
+    Filter by IDs of the users who granted the access.
+</ParamField>
+
+<ParamField query="participantCuratorIds" type="integer[]" required={false}>
+    Filter by curator IDs (seller managers).
+</ParamField>
+
+<ParamField query="participantStatuses" type="enum[]" required={false}>
+    Participant status: `InUse`, `Completed`.
+</ParamField>
+
+<ParamField query="withParent" type="boolean" required={false}>
+    Include accesses granted as part of a parent access (bundle).
+</ParamField>
+
+<ParamField query="expireAtDateRange" type="object" required={false}>
+    Access expiration date range.
+
+    <Expandable title="expireAtDateRange properties">
+        <ParamField query="from" type="string">Start of the range (ISO 8601).</ParamField>
+        <ParamField query="to" type="string">End of the range (ISO 8601).</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField query="createdAtDateRange" type="object" required={false}>
+    Access grant date range.
+
+    <Expandable title="createdAtDateRange properties">
+        <ParamField query="from" type="string">Start of the range (ISO 8601).</ParamField>
+        <ParamField query="to" type="string">End of the range (ISO 8601).</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField query="progressPercentRange" type="object" required={false}>
+    Completion percentage range. Fields `from` / `to` (number); at least one is required.
+</ParamField>
+
+### Billing filters (subscriptions/installments)
+
+<ParamField query="billingActive" type="boolean" required={false}>
+    Only with active (`true`) billing. "Active" means renewal is not canceled **and** the first payment has already gone through
+    (accesses awaiting the entry payment, `WaitingEntryFee`, are not considered active).
+</ParamField>
+
+<ParamField query="hasProductBillingTypes" type="enum[]" required={false}>
+    Product billing type: `Installment` (installment plan), `Subscription` (subscription).
+</ParamField>
+
+<ParamField query="billingStatuses" type="enum[]" required={false}>
+    Access billing status: `Scheduled`, `Processing`, `Paid`, `Failed`, `WaitingEntryFee`,
+    `CanceledByUser`, `CanceledByFailedAutoCharge`, `CanceledByReinitialization`,
+    `CanceledByFailedManualCharge`, `CanceledByPreviousCancellation`.
+</ParamField>
+
+<ParamField query="billingIntervals" type="enum[]" required={false}>
+    Charge interval: `Week`, `Month`, `Year`.
+</ParamField>
+
+<ParamField query="billingInvoiceIds" type="integer[]" required={false}>
+    Filter by billing invoice IDs.
+</ParamField>
+
+<ParamField query="billingAmountRange" type="object" required={false}>
+    Billing amount range. Fields `from` / `to` (number); at least one is required.
+</ParamField>
+
+<ParamField query="billingCurrentPaymentAtDateRange" type="object" required={false}>
+    Date range of the current billing payment. Fields `from` / `to` (ISO 8601).
+</ParamField>
+
+<ParamField query="billingNextPaymentAtDateRange" type="object" required={false}>
+    Date range of the next billing payment. Fields `from` / `to` (ISO 8601).
+</ParamField>
+
+### Nested filters
+
+<ParamField query="product" type="object" required={false}>
+    Filter by product.
+
+    <Expandable title="product properties">
+        <ParamField query="productIds" type="integer[]">Product IDs.</ParamField>
+        <ParamField query="sellerIds" type="integer[]">Seller IDs.</ParamField>
+        <ParamField query="statuses" type="enum[]">Statuses: `Draft`, `OnCheck`, `Declined`, `ReadyToPublish`, `Published`.</ParamField>
+        <ParamField query="currencies" type="enum[]">Currencies: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ParamField>
+        <ParamField query="showInCatalog" type="boolean">Whether it is shown in the catalog.</ParamField>
+        <ParamField query="isOnSale" type="boolean">Whether the product is on sale.</ParamField>
+        <ParamField query="archived" type="boolean">Include archived.</ParamField>
+        <ParamField query="search" type="string">Search by product (up to 50 characters).</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField query="price" type="object" required={false}>
+    Filter by the product's plan (price).
+
+    <Expandable title="price properties">
+        <ParamField query="priceIds" type="integer[]">Plan IDs.</ParamField>
+        <ParamField query="productId" type="integer">Product ID.</ParamField>
+        <ParamField query="productIds" type="integer[]">Product IDs.</ParamField>
+        <ParamField query="launchIds" type="integer[]">Launch (cohort) IDs.</ParamField>
+        <ParamField query="groupIds" type="integer[]">Group IDs.</ParamField>
+        <ParamField query="types" type="enum[]">Plan types (`ProductPriceType`).</ParamField>
+        <ParamField query="active" type="boolean">Active.</ParamField>
+        <ParamField query="isActive" type="boolean">Active at the current moment.</ParamField>
+        <ParamField query="archived" type="boolean">Include archived.</ParamField>
+        <ParamField query="hidden" type="boolean">Hidden plans.</ParamField>
+        <ParamField query="search" type="string">Search by plan (up to 50 characters).</ParamField>
+        <ParamField query="activeDateRange" type="object">Activity period range (`from`/`to`).</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField query="user" type="object" required={false}>
+    Filter by user.
+
+    <Expandable title="user properties">
+        <ParamField query="userIds" type="integer[]">User IDs.</ParamField>
+        <ParamField query="extIds" type="string[]">External IDs (up to 250 values, each up to 50 characters).</ParamField>
+        <ParamField query="search" type="string">Search by user (up to 50 characters).</ParamField>
+        <ParamField query="activated" type="boolean">Has confirmed sign-in.</ParamField>
+        <ParamField query="statuses" type="enum[]">
+            Account statuses: `Active`, `OnLeave`, `Banned`, `Blocked`, `Terminated`, `Deleted`
+            (the `active`/`banned` fields have been removed from the filter; use `statuses`).
+        </ParamField>
+        <ParamField query="archived" type="boolean">Archived.</ParamField>
+        <ParamField query="domains" type="enum[]">Registration domains: `Ru`, `Uz`, `Kz`, `Biz`, `Global`.</ParamField>
+        <ParamField query="products" type="enum[]">Products: `BizSchool`, `Marketplace`.</ParamField>
+        <ParamField query="createdAtDateRange" type="object">Registration date range (`from`/`to`).</ParamField>
+        <ParamField query="lastOnlineAtDateRange" type="object">Last activity range (`from`/`to`).</ParamField>
+    </Expandable>
+</ParamField>
+
+## Response fields
+
+<ResponseField name="payload" type="object">
+    Paginated list of accesses (compact projection). For the full structure, see `productAccess` in the
+    [`product`](/en/exode-api/objects/entities/product) reference.
+
+    <Expandable title="payload properties">
+        <ResponseField name="items" type="object[]">
+            Array of accesses.
+
+            <Expandable title="Item properties">
+                <ResponseField name="accessId" type="integer">Access ID.</ResponseField>
+                <ResponseField name="productId" type="integer">Product ID.</ResponseField>
+                <ResponseField name="courseId" type="integer | null">ID of the linked course.</ResponseField>
+                <ResponseField name="active" type="boolean">Whether the access is active.</ResponseField>
+                <ResponseField name="expireAt" type="string | null">Access expiration date (ISO 8601).</ResponseField>
+                <ResponseField name="user" type="object">
+                    User: `id`, `extId`, `tgId`, `login`, `email`, `phone`, `fullName`. `login` is the first
+                    non-empty value of `phone`, `email`, `domain`; `fullName` is the first and last name from the profile.
+                </ResponseField>
+            </Expandable>
+        </ResponseField>
+
+        <ResponseField name="page" type="integer">Current page.</ResponseField>
+        <ResponseField name="count" type="integer">Total number of records.</ResponseField>
+        <ResponseField name="pages" type="integer">Total number of pages.</ResponseField>
+        <ResponseField name="isFirst" type="boolean">Whether this is the first page.</ResponseField>
+        <ResponseField name="isLast" type="boolean">Whether this is the last page.</ResponseField>
+        <ResponseField name="next" type="object">Parameters of the next page (`skip`, `take`, `page`).</ResponseField>
+        <ResponseField name="prev" type="object">Parameters of the previous page (`skip`, `take`, `page`).</ResponseField>
+    </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/product-access/list/raw?take=20&active=true' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const listAccess = async () => {
+  const { data } = await axios.get('https://api.exode.biz/saas/v2/product-access/list/raw', {
+    params: { take: 20, active: true },
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload.items);
+};
+
+listAccess();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/product-access/list/raw?take=20&active=true';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/product-access/list/raw'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, params={ 'take': 20, 'active': 'true' }, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/product-access/list/raw?take=20&active=true");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Access list received");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 1,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "accessId": 4001,
+        "productId": 200,
+        "courseId": 10,
+        "active": true,
+        "expireAt": "2025-12-31T23:59:59Z",
+        "user": {
+          "id": 123,
+          "extId": "crm_12345",
+          "tgId": null,
+          "login": "user@example.com",
+          "email": "user@example.com",
+          "phone": "+9876543210",
+          "fullName": "John Doe"
+        }
+      }
+    ],
+    "next": {
+      "skip": 20,
+      "take": 20,
+      "page": 2
+    },
+    "prev": {
+      "skip": 0,
+      "take": 20,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Permission requirements
+
+<Check>
+    Requires token authentication and one of the permissions: [**"School User Management"**](/en/exode-api/permissions) (`SchoolManageUsers`)
+    or **"Course Student Management"** (`CourseStudentManage`).
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

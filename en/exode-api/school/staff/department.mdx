@@ -1,0 +1,800 @@
+---
+title: "Departments"
+description: "REST endpoints for managing the departments (organizational units) of a corporate school"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+  Departments are the hierarchical organizational units of a school. Each department can have a parent department
+  (`parentId`), which is how the organizational structure tree is built. The staff module uses departments to
+  assign employees to organizational units and to appoint managers.
+</Info>
+
+<Info>
+  The `extId` field is the department's external identifier from the client's system (CRM, 1C, etc.). It is unique
+  within the school among non-deleted records, is 1 to 50 characters long, and cannot contain `/` or whitespace
+  (the value must be URL-safe because it is used in `ext/{extId}` paths). Separate update and delete endpoints are
+  available by `extId`.
+</Info>
+
+<Warning>
+  All staff module endpoints are available **only to corporate-segment schools** (`Corporate`).
+  Requests from a school in any other segment are rejected.
+</Warning>
+
+## Permission requirements
+
+<Check>
+  Reading (`tree`, `list`) requires the [**"Staff browsing"**](/en/exode-api/permissions) permission (`StaffView`). Creating, updating and deleting require the
+  **"Staff Management"** permission (`StaffManage`). In all cases, token authentication is required and the school must belong to the
+  `Corporate` segment.
+</Check>
+
+<Warning>
+  The service user must be authenticated by token and have the appropriate access permissions for the specified
+  school.
+</Warning>
+
+## Department tree
+
+```
+GET /saas/v2/staff/department/tree
+```
+
+Requires authentication and the **"Staff browsing"** permission (`StaffView`).
+
+<Info>
+  The endpoint returns a **flat array** of all departments of the school. The hierarchy is defined by each
+  department's `parentId` field (`null` means a root department). You build the tree itself on the client side by
+  grouping items by `parentId`.
+</Info>
+
+### Response
+
+<ResponseField name="payload" type="array" required>
+  Array of the school's departments. The `parentId` field points to the parent department (`null` means root).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/department/tree' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function getDepartmentTree() {
+  const { data } = await axios.get(
+    'https://api.exode.biz/saas/v2/staff/department/tree',
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+getDepartmentTree();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": [
+    {
+      "id": 3,
+      "createdAt": "2026-07-02T11:15:47.223Z",
+      "updatedAt": "2026-07-02T11:15:47.223Z",
+      "archivedAt": null,
+      "schoolId": 198,
+      "parentId": null,
+      "extId": "dep_engineering",
+      "name": "Engineering"
+    },
+    {
+      "id": 4,
+      "createdAt": "2026-07-02T11:15:47.234Z",
+      "updatedAt": "2026-07-02T11:15:47.247Z",
+      "archivedAt": null,
+      "schoolId": 198,
+      "parentId": 3,
+      "extId": null,
+      "name": "Backend & Infra Team"
+    }
+  ]
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffView",
+  "message": "Forbidden seller resource - permissions StaffView"
+}
+```
+</ResponseExample>
+
+## Department list
+
+```
+GET /saas/v2/staff/department/list
+```
+
+Requires authentication and the **"Staff browsing"** permission (`StaffView`).
+
+<Info>
+  Unlike `tree`, this endpoint returns a paginated list of departments. Pagination and filter parameters are
+  passed as query parameters.
+</Info>
+
+### Parameters
+
+<ParamField query="skip" type="integer" required={false}>
+  Number of records to skip (offset pagination). Minimum `0`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+  Number of records to return per page. From `1` to `1000`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+  Page number (an alternative to `skip`). Minimum `1`.
+</ParamField>
+
+<ParamField query="departmentIds" type="array" required={false}>
+  Array of department IDs to filter by (up to 250 values).
+</ParamField>
+
+<ParamField query="parentIds" type="array" required={false}>
+  Array of parent department IDs to filter by (up to 250 values). Returns only the child departments of the
+  specified parents.
+</ParamField>
+
+<ParamField query="extIds" type="array" required={false}>
+  Array of external identifiers (`extId`) to filter by (up to 250 values, each up to 50 characters).
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+  Search by department name. Maximum 50 characters.
+</ParamField>
+
+<ParamField query="createdAt" type="enum" required={false}>
+  Sort direction by creation date. Possible values: `ASC`, `DESC`. The `id` and `updatedAt` parameters work the
+  same way.
+</ParamField>
+
+### Response
+
+<ResponseField name="payload" type="object" required>
+  Paginated object: `items` (array of departments), `page`, `count`, `pages`, `isFirst`, `isLast`, `next`,
+  `prev`.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/department/list?take=10&page=1&search=Engineering' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function getDepartmentList() {
+  const { data } = await axios.get(
+    'https://api.exode.biz/saas/v2/staff/department/list',
+    {
+      params: {
+        take: 10,
+        page: 1,
+        search: 'Engineering',
+        parentIds: [3],
+      },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+getDepartmentList();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 2,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "id": 4,
+        "createdAt": "2026-07-02T11:15:47.234Z",
+        "updatedAt": "2026-07-02T11:15:47.247Z",
+        "archivedAt": null,
+        "schoolId": 198,
+        "parentId": 3,
+        "extId": null,
+        "name": "Backend & Infra Team"
+      },
+      {
+        "id": 3,
+        "createdAt": "2026-07-02T11:15:47.223Z",
+        "updatedAt": "2026-07-02T11:15:47.223Z",
+        "archivedAt": null,
+        "schoolId": 198,
+        "parentId": null,
+        "extId": "dep_engineering",
+        "name": "Engineering"
+      }
+    ],
+    "next": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    },
+    "prev": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Create a department
+
+```
+POST /saas/v2/staff/department/create
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+### Request parameters
+
+<ParamField body="name" type="string" required>
+  Department name. From 1 to 100 characters. Leading and trailing whitespace is trimmed automatically.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  External identifier of the department from the client's system (CRM/1C). From 1 to 50 characters; cannot contain `/`
+  or whitespace (URL-safe, because it is used in `ext/{extId}` paths). Must be unique within the school among
+  non-deleted departments; otherwise the `StaffDepartmentExtIdIsNotUniq` error is returned.
+</ParamField>
+
+<ParamField body="parentId" type="integer" required={false}>
+  ID of the parent department. Specify the parent with `parentId` **or** `parentExtId` — pass at most one field
+  of the pair. If specified, the parent must belong to the same school; otherwise the `StaffDepartmentNotFound`
+  error is returned. If neither field specifies a parent, the department is created as a root department.
+</ParamField>
+
+<ParamField body="parentExtId" type="string" required={false}>
+  External identifier (`extId`) of the parent department — an alternative to `parentId` (pass at most one field
+  of the pair). From 1 to 50 characters. The parent must be created before the child department and belong to
+  the same school; otherwise the `StaffDepartmentNotFound` error is returned.
+</ParamField>
+
+<ParamField body="primaryManagerEmploymentId" type="integer" required={false}>
+  Employment to assign as the primary manager of the department being created. Optional. Specify it
+  with `primaryManagerEmploymentId` **or** `primaryManagerEmploymentExtId`. The employment must be
+  active and already started (`startAt` is not in the future); otherwise `StaffEmploymentNotFound` is returned.
+  The employment's department can be any department. The result is the same as calling
+  [`department-manager/set`](/en/exode-api/school/staff/department-manager) with `isPrimary: true`.
+</ParamField>
+
+<ParamField body="primaryManagerEmploymentExtId" type="string" required={false}>
+  External identifier (`extId`) of the manager's employment — an alternative to `primaryManagerEmploymentId`
+  (pass at most one field of the pair). From 1 to 50 characters.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/department/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Engineering",
+    "extId": "dep_engineering",
+    "parentId": null
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function createDepartment() {
+  const { data } = await axios.post(
+    'https://api.exode.biz/saas/v2/staff/department/create',
+    {
+      name: 'Engineering',
+      extId: 'dep_engineering',
+      parentId: null,
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+createDepartment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 3,
+    "createdAt": "2026-07-02T11:15:47.223Z",
+    "updatedAt": "2026-07-02T11:15:47.223Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "parentId": null,
+    "extId": "dep_engineering",
+    "name": "Engineering"
+  }
+}
+```
+```json Error - Parent Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
+}
+```
+```json Error - ExtId Is Not Uniq
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentExtIdIsNotUniq",
+  "message": "Staff department extId is not uniq",
+  "error": "Staff department extId is not uniq"
+}
+```
+</ResponseExample>
+
+## Update a department
+
+```
+PUT /saas/v2/staff/department/{departmentId}/update
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+<Info>
+  The request body is the same as for creation (all fields are optional): `name`, `extId`, the parent
+  (`parentId`/`parentExtId`) and the primary manager (`primaryManagerEmploymentId`/`primaryManagerEmploymentExtId`).
+  Pass only the fields you want to change.
+</Info>
+
+### Parameters
+
+<ParamField path="departmentId" type="integer" required>
+  ID of the department to update within the school.
+</ParamField>
+
+<ParamField body="name" type="string" required={false}>
+  New department name. From 1 to 100 characters. Leading and trailing whitespace is trimmed automatically.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  New external identifier of the department (it can be reassigned). From 1 to 50 characters; cannot contain `/`
+  or whitespace (URL-safe). Must be unique within the school among non-deleted departments; otherwise the
+  `StaffDepartmentExtIdIsNotUniq` error is returned.
+</ParamField>
+
+<ParamField body="parentId" type="integer" required={false}>
+  New parent department (re-parenting). Specify it with `parentId` **or** `parentExtId`.
+  Pass `null` to make the department a root department. The new parent must belong to the same school
+  (`StaffDepartmentNotFound`) and cannot be the department itself or one of its descendants; otherwise the
+  `StaffDepartmentParentCreatesCycle` error is returned.
+</ParamField>
+
+<ParamField body="parentExtId" type="string" required={false}>
+  External identifier (`extId`) of the new parent — an alternative to `parentId` (pass at most one field of the
+  pair). From 1 to 50 characters. `null` makes the department a root department. If the field is omitted, the parent does not change —
+  so always pass it when syncing, so that re-parenting in your HR system is reflected in Exode.
+</ParamField>
+
+<ParamField body="primaryManagerEmploymentId" type="integer" required={false}>
+  Employment to assign as the primary manager of the department. Specify it with
+  `primaryManagerEmploymentId` **or** `primaryManagerEmploymentExtId`. Pass `null` so that the department
+  has no primary manager: the current primary manager becomes a regular manager (the manager record
+  is kept; you can remove it completely with
+  [`department-manager/remove`](/en/exode-api/school/staff/department-manager#remove-a-manager)).
+</ParamField>
+
+<ParamField body="primaryManagerEmploymentExtId" type="string" required={false}>
+  External identifier (`extId`) of the manager's employment — an alternative to `primaryManagerEmploymentId`
+  (pass at most one field of the pair). From 1 to 50 characters.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/department/4/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Backend & Infra Team"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function updateDepartment() {
+  const { data } = await axios.put(
+    'https://api.exode.biz/saas/v2/staff/department/4/update',
+    {
+      name: 'Backend & Infra Team',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+updateDepartment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 4,
+    "createdAt": "2026-07-02T11:15:47.234Z",
+    "updatedAt": "2026-07-02T11:15:47.247Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "parentId": 3,
+    "extId": null,
+    "name": "Backend & Infra Team"
+  }
+}
+```
+```json Error - ExtId Is Not Uniq
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentExtIdIsNotUniq",
+  "message": "Staff department extId is not uniq",
+  "error": "Staff department extId is not uniq"
+}
+```
+</ResponseExample>
+
+## Update a department by extId
+
+```
+PUT /saas/v2/staff/department/ext/{extId}/update
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+<Info>
+  Works like the regular update, but the department is looked up by its external identifier (`extId`) within the school.
+  The request body is the same as for `PUT /saas/v2/staff/department/{departmentId}/update`. The `extId` value in the path
+  must be URL-encoded. If no department with this `extId` is found within the school, the
+  `StaffDepartmentNotFound` error is returned.
+</Info>
+
+### Parameters
+
+<ParamField path="extId" type="string" required>
+  External identifier of the department within the school. Must be URL-encoded.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/department/ext/dep_engineering/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Engineering & Research"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function updateDepartmentByExtId() {
+  const extId = encodeURIComponent('dep_engineering');
+
+  const { data } = await axios.put(
+    `https://api.exode.biz/saas/v2/staff/department/ext/${extId}/update`,
+    {
+      name: 'Engineering & Research',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+updateDepartmentByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 3,
+    "createdAt": "2026-07-02T11:15:47.223Z",
+    "updatedAt": "2026-07-02T11:15:47.247Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "parentId": null,
+    "extId": "dep_engineering",
+    "name": "Engineering & Research"
+  }
+}
+```
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
+}
+```
+</ResponseExample>
+
+## Delete a department
+
+```
+DELETE /saas/v2/staff/department/{departmentId}/delete
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+<Warning>
+  You can delete only a "leaf" department with no active employees:
+  - if the department has child units, the `StaffDepartmentHasChildren` error is returned (deleting a node
+    in the middle of the tree would orphan its descendants). Delete or move the child departments first;
+  - if the department has active employees (including a scheduled hire with a future date), the
+    `StaffDepartmentHasActiveEmployments` error is returned. Transfer or terminate the employees first. Closed
+    (terminated) employments do not block deletion.
+</Warning>
+
+### Parameters
+
+<ParamField path="departmentId" type="integer" required>
+  ID of the department to delete within the school.
+</ParamField>
+
+### Response
+
+<ResponseField name="affected" type="integer" required>
+  Number of affected (deleted) records. On successful deletion, `1`.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/department/4/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function deleteDepartment() {
+  const { data } = await axios.delete(
+    'https://api.exode.biz/saas/v2/staff/department/4/delete',
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+deleteDepartment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+```json Error - Has Children
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentHasChildren",
+  "message": "Staff department has child departments",
+  "error": "Staff department has child departments"
+}
+```
+```json Error - Has Active Employments
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentHasActiveEmployments",
+  "message": "Staff department has active employments",
+  "error": "Staff department has active employments"
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
+}
+```
+</ResponseExample>
+
+## Delete a department by extId
+
+```
+DELETE /saas/v2/staff/department/ext/{extId}/delete
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+<Info>
+  Works like the regular deletion, but the department is looked up by its external identifier (`extId`) within the school. The
+  same rules apply: you can delete only a "leaf" department with no child units and no active employees
+  (otherwise `StaffDepartmentHasChildren` / `StaffDepartmentHasActiveEmployments` is returned). The `extId` value in the path must
+  be URL-encoded. If no department with this `extId` is found within the school, the
+  `StaffDepartmentNotFound` error is returned.
+</Info>
+
+### Parameters
+
+<ParamField path="extId" type="string" required>
+  External identifier of the department within the school. Must be URL-encoded.
+</ParamField>
+
+### Response
+
+<ResponseField name="affected" type="integer" required>
+  Number of affected (deleted) records. On successful deletion, `1`.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/department/ext/dep_engineering/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function deleteDepartmentByExtId() {
+  const extId = encodeURIComponent('dep_engineering');
+
+  const { data } = await axios.delete(
+    `https://api.exode.biz/saas/v2/staff/department/ext/${extId}/delete`,
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+deleteDepartmentByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
+}
+```
+```json Error - Has Children
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentHasChildren",
+  "message": "Staff department has child departments",
+  "error": "Staff department has child departments"
+}
+```
+```json Error - Has Active Employments
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentHasActiveEmployments",
+  "message": "Staff department has active employments",
+  "error": "Staff department has active employments"
+}
+```
+</ResponseExample>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

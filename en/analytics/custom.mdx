@@ -1,0 +1,30 @@
+---
+title: "Other platforms"
+description: "Connect any ad platform by subscribing to the platform's conversion events"
+---
+
+For a platform without built-in support, subscribe to [conversion events](/en/analytics/events)
+with your own code in the school's [custom code](/en/customization/js-config) (**For Developers → Custom code**, HTML tab) and call the platform's JS API:
+
+```html
+<script>
+    document.addEventListener('analytics:purchase-completed', function (e) {
+        // any pixel: e.detail.value, e.detail.currency, e.detail.productIds
+    });
+
+    document.addEventListener('analytics:signup-completed', function (e) {
+        // e.detail.method: 'email' | 'phone'
+    });
+</script>
+```
+
+<Tip>
+  If you need built-in support for your platform, contact our
+  [support team](https://t.me/exode_support_biz) and we will add it on the platform side.
+</Tip>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

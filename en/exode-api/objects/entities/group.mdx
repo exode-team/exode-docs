@@ -1,0 +1,94 @@
+---
+title: "Group"
+description: "Structure of the group object in the Exode API"
+---
+
+The `group` object describes a learning or product group: its members, access rules, schedule and communication
+settings.
+
+<Info>
+    The [`group/list/raw`](/en/exode-api/school/group/list) list method returns a compact projection
+    (`groupId`, `name`, `courseId`, `courseName`, `membersCount`). The full public structure of the `group` object is described below.
+</Info>
+
+## `group` fields
+
+### Basic
+
+<ResponseField name="id" type="integer" required>Group ID.</ResponseField>
+<ResponseField name="uuid" type="string" required>Group UUID.</ResponseField>
+<ResponseField name="name" type="string" required>Group name.</ResponseField>
+<ResponseField name="space" type="enum" required>Group space: `Education`.</ResponseField>
+<ResponseField name="order" type="integer | null">Sort order.</ResponseField>
+<ResponseField name="maxMembers" type="integer | null">Maximum number of members.</ResponseField>
+
+### Limitations and settings
+
+<ResponseField name="communication" type="object" required>
+    Communication settings (Telegram channel, group chat, connection modes).
+</ResponseField>
+<ResponseField name="accessLimitation" type="object" required>
+    Access limitations: start type, common start date, duration, etc.
+</ResponseField>
+<ResponseField name="scheduleLimitation" type="object" required>
+    Schedule limitations (access windows by day/hour, date restrictions).
+</ResponseField>
+<ResponseField name="contentLimitation" type="object" required>
+    Content limitations (lesson access rules, dependencies on assignments).
+</ResponseField>
+
+### Telegram
+
+<ResponseField name="isTgConnected" type="boolean | null">Whether the group has an active Telegram connection.</ResponseField>
+<ResponseField name="tgConnectionMode" type="enum | null">
+    Telegram connection mode: `Disconnected`: no Telegram channel or chat is linked to the group; `Connected`:
+    a channel or chat is linked; `Required`: linked, and the user must have Telegram to enroll in the group.
+</ResponseField>
+
+### System audit fields
+
+<ResponseField name="createdAt" type="string" required>Creation date (ISO 8601).</ResponseField>
+<ResponseField name="updatedAt" type="string" required>Update date (ISO 8601).</ResponseField>
+<ResponseField name="archivedAt" type="string | null">Archive date or `null`.</ResponseField>
+
+## `group` object example
+
+```json
+{
+  "id": 101,
+  "uuid": "8b8b2b0e-6a27-4c3c-b5a5-9f4f0e3f1c01",
+  "name": "Group 7A — Math",
+  "space": "Education",
+  "order": 10,
+  "maxMembers": 30,
+  "isTgConnected": false,
+  "tgConnectionMode": "Disconnected",
+  "createdAt": "2025-01-10T09:00:00Z",
+  "updatedAt": "2025-01-15T12:30:00Z",
+  "archivedAt": null,
+  "communication": {
+    "tgChannelId": null,
+    "tgGroupChatId": null
+  },
+  "accessLimitation": {
+    "active": true,
+    "startPointType": "CommonDate"
+  },
+  "scheduleLimitation": {
+    "active": false
+  },
+  "contentLimitation": {
+    "active": false
+  }
+}
+```
+
+## Related objects
+
+- Group members: [`groupMember`](./group-member) objects.
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

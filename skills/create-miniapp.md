@@ -522,7 +522,7 @@ trusts the page URL's origin, so any appId works. Beyond this showcase the bridg
 offers `useExodeNavigation` (navigate the host, go back), `setTabbarVisible` /
 `setHeaderVisible` / `close` in `useExodeUI`, and `useExodeVisibility` (pause
 polling/video while the keep-alive iframe is hidden) — reference:
-https://docs.exode.biz/ru/exode-sdk/miniapp/react
+https://docs.exode.biz/en/exode-sdk/miniapp/react
 
 ### 2.3 `app/page.tsx` — the page
 
@@ -807,7 +807,7 @@ Ask the user to open the school admin panel → **School → For developers → 
 2. Note the **Seller ID** and **School ID** shown there.
 3. Enable the permissions the calls need on the key («Редактировать»): e.g. writing custom
    fields (6.3) needs **"Forms management"** («Управление формами», `FormManage`). Each method's required
-   permission is listed on its page at https://docs.exode.biz/ru/exode-api/setup.
+   permission is listed on its page at https://docs.exode.biz/en/exode-api/setup.
 
 Put all three into the server env (never the client): `EXODE_API_TOKEN`,
 `EXODE_SELLER_ID`, `EXODE_SCHOOL_ID`.

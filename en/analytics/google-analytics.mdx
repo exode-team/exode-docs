@@ -1,0 +1,69 @@
+---
+title: "Google Analytics (GA4)"
+description: "Automatically send platform conversion events to Google Analytics"
+---
+
+## Setup
+
+Paste the standard Google tag (gtag.js) snippet with your Measurement ID into the school's [custom code](/en/customization/js-config) (**For developers** → **Custom code**, HTML tab). The platform detects `window.gtag` and starts sending events automatically.
+
+## Events sent
+
+Where possible, [Google's recommended events](https://support.google.com/analytics/answer/9267735) are used;
+the rest are custom:
+
+### Sign-up
+
+<ParamField body="sign_up" type="event">
+    A new account is registered. The `method` parameter is `email` or `phone`.
+</ParamField>
+
+### Lead (onboarding questionnaire)
+
+<ParamField body="generate_lead" type="event">
+    The onboarding questionnaire is completed.
+</ParamField>
+
+### Course view
+
+<ParamField body="view_item" type="event">
+    A course page is viewed. The `items` parameter contains the course `item_id`.
+</ParamField>
+
+### Demo lesson opened
+
+<ParamField body="view_demo_lesson" type="event">
+    A demo lesson is opened. Parameters: `item_id`, `lesson_id`. A custom event.
+</ParamField>
+
+### Free course enrollment
+
+<ParamField body="free_course_enroll" type="event">
+    Enrollment in a free course. The `item_id` parameter. A custom event.
+</ParamField>
+
+### Checkout started
+
+<ParamField body="begin_checkout" type="event">
+    The user proceeds to payment. The `items` parameter contains the product `item_id`.
+</ParamField>
+
+### Purchase
+
+<ParamField body="purchase" type="event">
+    A successful payment. Parameters: `value`, `currency` (ISO 4217), `items`, `transaction_id`
+    (the invoice uuid; GA4 itself ignores repeat purchases with the same `transaction_id`).
+    The event is not sent for payments in internal currencies (points).
+</ParamField>
+
+### Course completion
+
+<ParamField body="complete_course" type="event">
+    A course is completed. The `item_id` parameter. A custom event.
+</ParamField>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_

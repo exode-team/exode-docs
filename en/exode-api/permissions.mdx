@@ -1,0 +1,123 @@
+---
+title: 'API key permissions'
+description: 'Which checkboxes to enable for an API key in the account so the SaaS API methods you need work'
+---
+
+Each API key has a set of permissions — the checkboxes on the key's page in the account. SaaS API methods check these
+permissions: if a required checkbox is not enabled, the API returns `401` with `cause: "Forbidden"` and the message
+`Forbidden seller resource - permissions <Code>`. Only the permissions that SaaS API methods actually
+check are listed below. The other checkboxes on the key's page do not affect the API.
+
+## Where to enable permissions
+
+<Steps>
+    <Step title="Open the API keys page">
+        **Manage → School → For developers → API keys** (`/manage/school/api-keys`).
+    </Step>
+    <Step title="Open the key settings">
+        In the row of the key you need, select **"Edit"**.
+    </Step>
+    <Step title="Select checkboxes and save">
+        The checkboxes are grouped into sections: "School Management", "Course Management" and so on. Click
+        **"Save"**.
+    </Step>
+</Steps>
+
+<Info>
+    If a method lists several permissions, **any one** of them is enough.
+</Info>
+
+<Warning>
+    Exports check permissions not at launch but while the file is being built: without the required permission,
+    `query-export/generate` still responds with `201`, but the export ends with `status: Failed`.
+</Warning>
+
+## Permissions by task
+
+Choose what your integration should do and enable the corresponding checkboxes.
+
+| Integration task | What to enable in the account |
+|---|---|
+| Create, update, find and delete users | "School User Management" |
+| Read and write user states, issue a sign-in token | "School User Management" |
+| Read groups, add members to groups and remove them | "School User Management" |
+| Read courses and student progress | "School User Management" **or** "Course Curator" |
+| Read product accesses | "School User Management" **or** "Course Student Management" |
+| Read certificates | "Course Management" **or** "Course Student Management" |
+| Work with form layouts and custom fields | "Forms management" |
+| Read invoices | "School Sales" |
+| Read the org structure: departments, positions, employees, absences | "Staff browsing" |
+| Change the org structure (sync from HR/1C) | "Staff Management" |
+| Export reports | The permission for the exported data — see the [table by report type](/en/exode-api/school/query-export/generate#permission-requirements) |
+
+## Permission reference
+
+In the error text, the API refers to a permission by its technical code, for example
+`Forbidden seller resource - permissions FormManage`. Use the code in the right column to find which checkbox to enable.
+
+### School Management
+
+| Checkbox in the account | Methods | API code |
+|---|---|---|
+| School User Management | [Users](/en/exode-api/school/user/create): create, update, upsert, find, list, delete, [states](/en/exode-api/school/user/state), [sign-in token](/en/exode-api/school/user/session/auth-token). [Groups](/en/exode-api/school/group/list) and [group members](/en/exode-api/school/group-member/list). [Courses](/en/exode-api/school/course/list) and [progress](/en/exode-api/school/course/progresses). [Product accesses](/en/exode-api/school/product-access/list). [Exports](/en/exode-api/school/query-export/generate) of users, students, group members and accesses | `SchoolManageUsers` |
+
+### Course Management
+
+| Checkbox in the account | Methods | API code |
+|---|---|---|
+| Course Curator | [Courses](/en/exode-api/school/course/list) and [progress](/en/exode-api/school/course/progresses). Exports of group members and practice attempts | `CourseCurator` |
+| Course Student Management | [Product accesses](/en/exode-api/school/product-access/list), [certificates](/en/exode-api/school/certificate/list). Exports of students and accesses | `CourseStudentManage` |
+| Course Management | [Certificates](/en/exode-api/school/certificate/list). Exports of group members and practice attempts | `CourseManage` |
+
+### Forms management
+
+| Checkbox in the account | Methods | API code |
+|---|---|---|
+| Forms management | [Form layouts](/en/exode-api/school/form-layout/list): list, create, update, delete. [Custom fields](/en/exode-api/school/custom-field/get): reading and writing values | `FormManage` |
+
+### Organization Management
+
+| Checkbox in the account | Methods | API code |
+|---|---|---|
+| School Sales | [Invoices](/en/exode-api/school/invoice/list), invoice export | `SellerSales` |
+
+### Staff Management
+
+This section exists only in corporate schools.
+
+| Checkbox in the account | Methods | API code |
+|---|---|---|
+| Staff browsing | Read: [departments](/en/exode-api/school/staff/department), [positions](/en/exode-api/school/staff/position), [employments](/en/exode-api/school/staff/employment), [absences](/en/exode-api/school/staff/absence) | `StaffView` |
+| Staff Management | Create, update and delete departments, positions, employments, [department managers](/en/exode-api/school/staff/department-manager) and absences | `StaffManage` |
+
+## Default permissions
+
+A new key immediately receives all the permissions that SaaS API methods need for its school type:
+
+- **in any school** — "School User Management", "Forms management", "Course Curator", "Course Student
+  Management", "Course Management" and the other permissions in the "School Management" and "Course Management" sections;
+- **in a commercial school** — additionally "School Sales" and "School Refunds";
+- **in a corporate school** — additionally "Staff Management" and "Staff browsing".
+
+So a fresh key works with all methods without any setup. Change the checkboxes when you need to **restrict**
+the integration: for example, leave a key for employee sync with only the permissions of the "Staff Management" section.
+If, after such a setup, a method returns `401` `Forbidden seller resource - permissions <Code>`, find the checkbox it needs in the tables above.
+
+## Differences in corporate schools
+
+In corporate schools, some checkboxes are labeled differently: "Company User Management" instead of
+"School User Management". The permission code stays the same. The "School Sales" and "School Refunds" checkboxes are not
+shown in corporate schools.
+
+## System permissions
+
+The key's service user automatically receives the system API client flag (`UserIsApiClient`) — without
+it, SaaS methods do not work. It is not shown in the account, and you do not need to configure it. If a request with
+a valid token returns an access error even though all the required checkboxes are enabled, contact
+[support](https://t.me/exode_support_biz).
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-25 14:33 UTC_
