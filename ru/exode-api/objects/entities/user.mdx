@@ -78,6 +78,7 @@ description: "Структура объекта пользователя (user) 
 ### Платформа и геймификация
 
 <ResponseField name="starsBalance" type="integer" required>Баланс «звёзд» в системе геймификации.</ResponseField>
+
 ### Системные поля аудита
 
 <ResponseField name="createdAt" type="string" required>Дата создания (ISO 8601).</ResponseField>
@@ -106,7 +107,7 @@ description: "Структура объекта пользователя (user) 
     </Expandable>
 </ResponseField>
 <ResponseField name="bdate" type="string | null">Дата рождения (`YYYY-MM-DD`).</ResponseField>
-<ResponseField name="sex" type="enum">Пол: `Ufo`, `Women`, `Men`.</ResponseField>
+<ResponseField name="sex" type="enum">Пол: `Men` — мужской, `Women` — женский, `Ufo` — не указан (значение по умолчанию).</ResponseField>
 <ResponseField name="country" type="string | null">Страна.</ResponseField>
 <ResponseField name="city" type="string | null">Город.</ResponseField>
 <ResponseField name="role" type="enum">Роль: `Student`, `Tutor`, `Parent`.</ResponseField>
@@ -161,4 +162,4 @@ description: "Структура объекта пользователя (user) 
 
 ---
 
-_Обновлено: 2026-07-22 12:24 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

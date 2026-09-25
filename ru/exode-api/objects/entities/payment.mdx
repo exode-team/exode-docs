@@ -20,7 +20,10 @@ description: "Структуры объектов платежа, счёта, п
 <ResponseField name="status" type="enum | null">
     Статус: `Created`, `WaitingPay`, `WaitingForBinding`, `Processing`, `Completed`, `BindingCompleted`, `Canceled`.
 </ResponseField>
-<ResponseField name="released" type="boolean" required>Средства разблокированы (выплачены продавцу).</ResponseField>
+<ResponseField name="released" type="boolean" required>
+    Покупка выдана пользователю: после оплаты Exode обработал позиции счёта — выдал или продлил доступы к
+    продуктам.
+</ResponseField>
 <ResponseField name="checkoutPaymentId" type="string | null">ID платежа в платёжной системе.</ResponseField>
 <ResponseField name="checkoutUrl" type="string | null">URL оплаты.</ResponseField>
 <ResponseField name="paidAt" type="string | null">Дата оплаты (ISO 8601).</ResponseField>
@@ -87,4 +90,4 @@ description: "Структуры объектов платежа, счёта, п
 
 ---
 
-_Обновлено: 2026-07-22 12:24 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

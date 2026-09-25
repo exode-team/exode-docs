@@ -3,17 +3,29 @@ title: "Школа и продавец"
 description: "Структуры объектов школы, продавца и организации по shared zod-схемам"
 ---
 
-Публичные структуры: `school`, `seller`, `organization`. Дерево `school` с вложенным `seller` приходит в
-системном вебхуке `SchoolCreated`.
+Публичные структуры: `school`, `seller`, `organization`. Вложенный объект `school` приходит, например, в
+`invoice.user.school` вебхука `PaymentCompleted`. Полное дерево `school` с `seller` отправляется только в
+системном вебхуке `SchoolCreated` — подписаться на него из кабинета школы нельзя.
+
+У продавца (`seller`) ровно одна школа; их числовые ID — это значения заголовков `Seller-Id` и `School-Id`.
 
 ## `school`
 
 <ResponseField name="id" type="integer" required>ID школы.</ResponseField>
 <ResponseField name="name" type="string" required>Название школы.</ResponseField>
 <ResponseField name="description" type="string | null">Описание.</ResponseField>
-<ResponseField name="segment" type="enum" required>Сегмент: `Commerce`, `Corporate`.</ResponseField>
-<ResponseField name="accessType" type="enum" required>Тип доступа: `Public`, `Private`.</ResponseField>
-<ResponseField name="domainType" type="enum" required>Тип домена: `Base`, `Custom`.</ResponseField>
+<ResponseField name="segment" type="enum" required>
+    Сегмент: `Commerce` — коммерческая онлайн-школа, `Corporate` — корпоративное обучение сотрудников (только в
+    таких школах работают методы оргструктуры `staff/*`).
+</ResponseField>
+<ResponseField name="accessType" type="enum" required>
+    Тип доступа: `Public` — каталог и страницы школы открыты всем; `Private` — закрытая школа, содержимое
+    доступно только авторизованным пользователям этой школы.
+</ResponseField>
+<ResponseField name="domainType" type="enum" required>
+    Тип домена: `Base` — школа работает на поддомене Exode (`baseDomain`), `Custom` — на собственном домене
+    (`customDomain`).
+</ResponseField>
 <ResponseField name="baseDomain" type="string" required>Базовый домен (поддомен Exode).</ResponseField>
 <ResponseField name="customDomain" type="string | null">Кастомный домен.</ResponseField>
 <ResponseField name="domain" type="string | null">Текущий активный домен.</ResponseField>
@@ -61,4 +73,4 @@ description: "Структуры объектов школы, продавца �
 
 ---
 
-_Обновлено: 2026-07-22 12:24 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

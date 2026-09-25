@@ -15,7 +15,8 @@ flowchart TD
     Seller --> Product[Продукт / Product]
     Product --> Course[Курс / Course]
     Course --> Lesson[Урок / CourseLesson]
-    Lesson --> Practice[Практика / Attempt]
+    Lesson --> Practice[Практика / CourseLessonPractice]
+    Practice --> Attempt[Попытка / Attempt]
     Group --> GroupMember[Участник / GroupMember]
     User --> GroupMember
     Product --> Access[Доступ / ProductAccess]
@@ -29,17 +30,32 @@ flowchart TD
 
 <ResponseField name="Продавец (Seller)" type="">
     Владелец бизнеса в Exode: репетитор, школа, продюсер или университет. У продавца есть баланс, реквизиты и
-    одна или несколько школ. Запросы к API всегда выполняются в контексте продавца (заголовок `Seller-Id`).
+    школа — одна на продавца. SaaS API работает только с продавцами, у которых есть школа. Запросы к API всегда
+    выполняются в контексте продавца (заголовок `Seller-Id` — его числовой ID, см.
+    [«Как получить токен и идентификаторы»](/ru/exode-api/setup#как-получить-токен-и-идентификаторы)).
+    См. [`seller`](/ru/exode-api/objects/entities/school#seller).
 </ResponseField>
 
 <ResponseField name="Школа (School)" type="">
     Образовательная площадка продавца со своим доменом, пользователями, курсами и настройками. Контекст школы
-    задаётся заголовком `School-Id`. См. [`school`](/ru/exode-api/objects/entities/school).
+    задаётся заголовком `School-Id`; он должен совпадать со школой продавца из `Seller-Id`.
+    См. [`school`](/ru/exode-api/objects/entities/school).
+
+    **Сегмент школы** (`segment`) определяет доступные возможности: `Commerce` — коммерческая онлайн-школа
+    (продажи, счета, платежи), `Corporate` — корпоративное обучение сотрудников (только в таких школах работают методы
+    оргструктуры `staff/*`).
 </ResponseField>
 
 <ResponseField name="Пользователь (User)" type="">
     Учётная запись в школе (студент, куратор, родитель, а также сервисные пользователи-интеграции). Поле `extId`
-    связывает пользователя с записью в вашей CRM/LMS. См. [`user`](/ru/exode-api/objects/entities/user).
+    связывает пользователя с записью в вашей CRM/LMS: это ваш собственный идентификатор — строка до 50 символов
+    без `/` и пробелов, уникальная в пределах школы. См. [`user`](/ru/exode-api/objects/entities/user).
+</ResponseField>
+
+<ResponseField name="Сервисный пользователь (API-клиент)" type="">
+    Технический пользователь школы, от имени которого работает интеграция. Создаётся вместе с API-ключом на
+    странице **Управление → Школа → Для разработчиков → API-ключи**; его токен передаётся в `Authorization`, а набор прав
+    настраивается галочками на странице ключа (см. [«Права доступа»](/ru/exode-api/permissions)).
 </ResponseField>
 
 <ResponseField name="Группа (Group) и участник (GroupMember)" type="">
@@ -87,4 +103,4 @@ flowchart TD
 
 ---
 
-_Обновлено: 2026-06-19 09:56 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

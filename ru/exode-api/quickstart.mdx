@@ -10,7 +10,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <Steps>
 <Step title="Получите доступы">
-    Владелец школы может создать API-ключ самостоятельно: раздел **Управление → Школа → API-ключи**
+    Владелец школы может создать API-ключ самостоятельно: раздел **Управление → Школа → Для разработчиков → API-ключи**
     (`/manage/school/api-keys`) — там создаётся сервисный пользователь (API-клиент) и выпускается токен.
     Если удобнее, напишите в [поддержку](https://t.me/exode_support_biz) — поможем с настройкой.
 
@@ -18,8 +18,19 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
     - `Authorization` — API-токен (используется как `Bearer <TOKEN>`; показывается целиком только в момент
       создания или ротации — сохраните сразу);
-    - `Seller-Id` — идентификатор продавца;
-    - `School-Id` — идентификатор школы.
+    - `Seller-Id` — числовой ID продавца (аккаунта, которому принадлежит школа);
+    - `School-Id` — числовой ID школы.
+
+    Оба ID есть на той же странице **API-ключи** в карточке «Данные для интеграции → Идентификаторы» — по клику
+    копируется строка вида `Seller-Id: 123; School-Id: 456`.
+
+    Сохраните значения в переменные окружения — их используют примеры ниже:
+
+    ```bash
+    export EXODE_TOKEN='...'   # API token
+    export SELLER_ID=123       # Seller-Id
+    export SCHOOL_ID=456       # School-Id
+    ```
 
     <Warning>Храните токен в переменных окружения, не в коде и не в репозитории.</Warning>
 </Step>
@@ -36,9 +47,9 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
     <CodeGroup>
     ```bash cURL
     curl --location 'https://api.exode.biz/saas/v2/user/find?extId=crm_12345' \
-      --header 'Authorization: Bearer YOUR_TOKEN' \
-      --header 'Seller-Id: {{ sellerId }}' \
-      --header 'School-Id: {{ schoolId }}'
+      --header "Authorization: Bearer $EXODE_TOKEN" \
+      --header "Seller-Id: $SELLER_ID" \
+      --header "School-Id: $SCHOOL_ID"
     ```
 
     ```javascript Node.js
@@ -71,17 +82,27 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
     print(r.json()['payload']['user'])
     ```
     </CodeGroup>
+
+    `extId` — ваш собственный идентификатор пользователя (например, ID из CRM): строка до 50 символов без `/` и
+    пробелов, уникальная в пределах школы. Если пользователь не найден, метод вернёт `200` и `payload.user: null` —
+    это не ошибка.
+
+    <Tip>
+        На страницах методов в примерах cURL заголовки записаны как `{{ sellerId }}` и `{{ schoolId }}` — это
+        переменные Postman-коллекции. В терминале подставьте вместо них числовые ID или `$SELLER_ID` и `$SCHOOL_ID`.
+    </Tip>
 </Step>
 
 <Step title="Создайте пользователя">
     Если пользователя ещё нет — создайте его методом [`user/create`](/ru/exode-api/school/user/create).
-    Логин и пароль будут отправлены автоматически (при наличии контакта).
+    Логин и пароль будут отправлены пользователю автоматически, если есть канал доставки: `email`, `phone` (при
+    подключённом SMS-провайдере) или `tgId` — подробности на странице метода.
 
     ```bash cURL
     curl --location 'https://api.exode.biz/saas/v2/user/create' \
-      --header 'Authorization: Bearer YOUR_TOKEN' \
-      --header 'Seller-Id: {{ sellerId }}' \
-      --header 'School-Id: {{ schoolId }}' \
+      --header "Authorization: Bearer $EXODE_TOKEN" \
+      --header "Seller-Id: $SELLER_ID" \
+      --header "School-Id: $SCHOOL_ID" \
       --header 'Content-Type: application/json' \
       --data-raw '{
         "email": "user@example.com",
@@ -102,6 +123,10 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
     ```json Ошибка
     { "success": false, "code": 400, "cause": "EmailIsBusy", "message": "Email is busy", "error": "Email is busy" }
     ```
+
+    Здесь `EmailIsBusy` означает, что email уже занят другим пользователем школы. Обычно в этом случае ищут
+    существующего пользователя через `user/find?login=<email>` или используют
+    [`user/upsert`](/ru/exode-api/school/user/upsert), который создаёт или обновляет пользователя за один вызов.
 
     Подробно о заголовках, формате ответа, ошибках, rate-limit и пагинации — на странице
     [«Работа с API»](/ru/exode-api/setup).
@@ -129,4 +154,4 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 ---
 
-_Обновлено: 2026-07-14 22:58 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

@@ -41,7 +41,8 @@ description: "Структура объекта группы (group) в Exode AP
 
 <ResponseField name="isTgConnected" type="boolean | null">Есть ли активная связь группы с Telegram.</ResponseField>
 <ResponseField name="tgConnectionMode" type="enum | null">
-    Режим подключения Telegram: `Disconnected`, `Connected`, `Required`.
+    Режим подключения Telegram: `Disconnected` — к группе не привязаны ни Telegram-канал, ни чат; `Connected` —
+    канал или чат привязан; `Required` — привязан, и при записи в группу у пользователя обязателен Telegram.
 </ResponseField>
 
 ### Системные поля аудита
@@ -90,4 +91,4 @@ description: "Структура объекта группы (group) в Exode AP
 
 ---
 
-_Обновлено: 2026-07-22 12:19 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_
