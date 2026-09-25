@@ -24,6 +24,7 @@
               "ru/exode-api/quickstart",
               "ru/exode-api/concepts",
               "ru/exode-api/setup",
+              "ru/exode-api/permissions",
               "ru/exode-api/webhooks/about",
               "ru/exode-api/objects/entities/index"
             ]
