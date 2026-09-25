@@ -8,13 +8,28 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 <HeaderParamFields/>
 
 <Info>
-    Руководитель департамента привязывается к **активному трудоустройству** сотрудника. У департамента может быть
-    несколько руководителей, но только один из них — основной (`isPrimary`).
+    Руководитель департамента привязывается к **активному трудоустройству** сотрудника, а не к пользователю.
+    Трудоустройство руководителя может относиться к любому департаменту школы — например, руководитель отдела
+    может числиться в вышестоящем подразделении. У департамента может быть несколько руководителей, но только
+    один из них — основной (`isPrimary`).
 </Info>
+
+<Info>
+    Назначение следует за сотрудником: при [переводе или смене должности](/ru/exode-api/school/staff/employment)
+    оно автоматически переходит на новую запись трудоустройства, а при увольнении с этого трудоустройства —
+    снимается. Вызывать `remove` при увольнении не нужно.
+</Info>
+
+<Tip>
+    Списка руководителей в REST API нет, а `managerId` приходит только в ответе на `set`. Поэтому при назначении
+    передавайте собственный `extId` — по нему руководителя можно снять через `ext/{extId}/remove`, не храня
+    внутренние ID. Основного руководителя департамента также можно задать полем `primaryManagerEmploymentExtId`
+    при [создании или обновлении департамента](/ru/exode-api/school/staff/department).
+</Tip>
 
 <Warning>
     Все эндпоинты модуля staff доступны **только** для школ сегмента `Corporate`. Для остальных сегментов запрос
-    вернёт ошибку `403 Forbidden`.
+    вернёт `401` с `cause: "Forbidden"` и сообщением `Allowed only for Corporate school`.
 </Warning>
 
 ## Назначить руководителя
@@ -23,14 +38,14 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 POST /saas/v2/staff/department-manager/set
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право [**«Управление персоналом»**](/ru/exode-api/permissions) (`StaffManage`).
 
 Эндпоинт работает как upsert: если руководитель для пары департамент + трудоустройство уже назначен —
 обновляются флаг `isPrimary` и `extId`, иначе создаётся новая запись. У департамента может быть только один
 основной руководитель: при `isPrimary=true` предыдущий основной руководитель департамента автоматически
 понижается (флаг `isPrimary` у него сбрасывается в `false`). Департамент и трудоустройство должны принадлежать
-школе, трудоустройство должно быть активным — иначе вернутся ошибки `StaffDepartmentNotFound` /
-`StaffEmploymentNotFound`.
+школе, трудоустройство должно быть активным и уже начавшимся (наём с будущей `startAt` назначить руководителем
+до этой даты нельзя) — иначе вернутся ошибки `StaffDepartmentNotFound` / `StaffEmploymentNotFound`.
 
 Департамент и трудоустройство можно указывать как по числовому ID, так и по внешнему идентификатору:
 в каждой из пар `departmentId`/`departmentExtId` и `employmentId`/`employmentExtId` передаётся ровно одно поле.
@@ -63,7 +78,9 @@ POST /saas/v2/staff/department-manager/set
 
 <ParamField body="isPrimary" type="boolean" required={false}>
     Назначить сотрудника основным руководителем департамента. По умолчанию `false`. При `true` предыдущий основной
-    руководитель автоматически перестаёт быть основным.
+    руководитель автоматически перестаёт быть основным. Значение по умолчанию применяется и к уже существующей
+    записи: повторный `set` без `isPrimary` сделает основного руководителя обычным. При регулярной синхронизации
+    передавайте `isPrimary` явно.
 </ParamField>
 
 <RequestExample>
@@ -167,11 +184,11 @@ setManager();
 
 ```json Error - Forbidden
 {
-  "code": 403,
+  "code": 401,
   "success": false,
   "cause": "Forbidden",
-  "error": "Доступ к ресурсу ограничен",
-  "message": "Доступ к ресурсу ограничен"
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
 }
 ```
 </ResponseExample>
@@ -182,7 +199,7 @@ setManager();
 DELETE /saas/v2/staff/department-manager/{managerId}/remove
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 Удаляет запись руководителя департамента (мягкое удаление). После снятия основного руководителя департамент
 остаётся без основного руководителя, пока не будет назначен новый.
@@ -239,11 +256,11 @@ removeManager();
 
 ```json Error - Forbidden
 {
-  "code": 403,
+  "code": 401,
   "success": false,
   "cause": "Forbidden",
-  "error": "Доступ к ресурсу ограничен",
-  "message": "Доступ к ресурсу ограничен"
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
 }
 ```
 </ResponseExample>
@@ -254,7 +271,7 @@ removeManager();
 DELETE /saas/v2/staff/department-manager/ext/{extId}/remove
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 Аналог снятия по `managerId`, но запись руководителя ищется по внешнему идентификатору (`extId`) в рамках школы.
 Удаляет запись руководителя департамента (мягкое удаление). Если запись с указанным `extId` не найдена среди
@@ -324,11 +341,11 @@ removeManagerByExtId();
 
 ```json Error - Forbidden
 {
-  "code": 403,
+  "code": 401,
   "success": false,
   "cause": "Forbidden",
-  "error": "Доступ к ресурсу ограничен",
-  "message": "Доступ к ресурсу ограничен"
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
 }
 ```
 </ResponseExample>
@@ -337,7 +354,7 @@ removeManagerByExtId();
 
 <Check>
     Модуль staff доступен только для школ сегмента `Corporate`. Для назначения и снятия руководителей департаментов
-    требуется право `StaffManage`.
+    требуется право **«Управление персоналом»** (`StaffManage`).
 </Check>
 
 <Warning>
@@ -349,4 +366,4 @@ removeManagerByExtId();
 
 ---
 
-_Обновлено: 2026-07-08 04:48 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

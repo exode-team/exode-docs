@@ -21,7 +21,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 ## Требования к правам доступа
 
 <Check>
-  Чтение (`list`) требует права **`StaffView`**. Создание, обновление и удаление требуют права **`StaffManage`**.
+  Чтение (`list`) требует права [**«Просмотр персонала»**](/ru/exode-api/permissions) (`StaffView`). Создание, обновление и удаление требуют права **«Управление персоналом»** (`StaffManage`).
   Во всех случаях необходима аутентификация по токену и принадлежность школы к сегменту `Corporate`.
 </Check>
 
@@ -31,8 +31,9 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 </Warning>
 
 <Info>
-  Название должности **уникально в рамках школы** (уникальный индекс `school + name`). Попытка создать или
-  переименовать должность в уже существующее название в этой же школе вернёт ошибку.
+  Название должности **уникально в рамках школы** без учёта регистра («Менеджер» и «менеджер» — одно и то же
+  название). Попытка создать или переименовать должность в уже существующее название в этой же школе вернёт
+  ошибку `StaffPositionNameIsNotUniq`.
 </Info>
 
 <Info>
@@ -47,7 +48,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 GET /saas/v2/staff/position/list
 ```
 
-Требуется аутентификация и право `StaffView`.
+Требуется аутентификация и право **«Просмотр персонала»** (`StaffView`).
 
 <Info>
   Эндпоинт возвращает пагинированный список должностей. Параметры пагинации и фильтрации передаются как
@@ -68,8 +69,14 @@ GET /saas/v2/staff/position/list
   Номер страницы (альтернатива `skip`). Минимум `1`.
 </ParamField>
 
+<ParamField query="positionIds" type="integer[]" required={false}>
+  Фильтр по ID должностей. До 250 значений.
+</ParamField>
+
 <ParamField query="search" type="string" required={false}>
-  Поиск по названию должности. Максимум 50 символов.
+  Поиск по названию должности. Максимум 50 символов. Поиск нечёткий (находит и частичные совпадения), поэтому для
+  поиска конкретной должности по имени сравнивайте `name` найденных записей со своим значением без учёта
+  регистра, а надёжнее — ищите по `extIds`.
 </ParamField>
 
 <ParamField query="extIds" type="string[]" required={false}>
@@ -77,7 +84,8 @@ GET /saas/v2/staff/position/list
 </ParamField>
 
 <ParamField query="createdAt" type="enum" required={false}>
-  Направление сортировки по дате создания. Возможные значения: `ASC`, `DESC`.
+  Направление сортировки по дате создания. Возможные значения: `ASC`, `DESC`. Аналогично работают параметры `id`
+  и `updatedAt`.
 </ParamField>
 
 ### Ответ
@@ -173,7 +181,7 @@ getPositionList();
 POST /saas/v2/staff/position/create
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 ### Параметры запроса
 
@@ -260,11 +268,11 @@ createPosition();
 ```
 ```json Error - Forbidden
 {
-  "code": 403,
+  "code": 401,
   "success": false,
   "cause": "Forbidden",
-  "error": "Доступ к ресурсу ограничен",
-  "message": "Доступ к ресурсу ограничен"
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
 }
 ```
 </ResponseExample>
@@ -275,7 +283,7 @@ createPosition();
 PUT /saas/v2/staff/position/{positionId}/update
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 ### Параметры
 
@@ -372,7 +380,7 @@ updatePosition();
 PUT /saas/v2/staff/position/ext/{extId}/update
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 <Info>
   Эндпоинт-аналог обновления по ID: должность находится по внешнему идентификатору `extId` в рамках школы.
@@ -485,11 +493,12 @@ updatePositionByExtId();
 DELETE /saas/v2/staff/position/{positionId}/delete
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 <Warning>
-  Должность нельзя удалить, если на ней есть активные сотрудники. Сначала переведите сотрудников на другую
-  должность или уволите их.
+  Должность нельзя удалить, если на ней есть активные сотрудники (включая запланированный наём с будущей датой) —
+  вернётся `StaffPositionHasActiveEmployments`. Сначала смените сотрудникам должность через
+  [`promote`](/ru/exode-api/school/staff/employment#сменить-должность) или уволите их.
 </Warning>
 
 ### Параметры
@@ -554,11 +563,11 @@ deletePosition();
 ```
 ```json Error - Forbidden
 {
-  "code": 403,
+  "code": 401,
   "success": false,
   "cause": "Forbidden",
-  "error": "Доступ к ресурсу ограничен",
-  "message": "Доступ к ресурсу ограничен"
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
 }
 ```
 </ResponseExample>
@@ -569,11 +578,12 @@ deletePosition();
 DELETE /saas/v2/staff/position/ext/{extId}/delete
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 <Warning>
-  Должность нельзя удалить, если на ней есть активные сотрудники. Сначала переведите сотрудников на другую
-  должность или уволите их.
+  Должность нельзя удалить, если на ней есть активные сотрудники (включая запланированный наём с будущей датой) —
+  вернётся `StaffPositionHasActiveEmployments`. Сначала смените сотрудникам должность через
+  [`promote`](/ru/exode-api/school/staff/employment#сменить-должность) или уволите их.
 </Warning>
 
 <Info>
@@ -658,4 +668,4 @@ deletePositionByExtId();
 
 ---
 
-_Обновлено: 2026-07-08 04:48 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

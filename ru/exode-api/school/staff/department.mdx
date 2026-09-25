@@ -28,8 +28,8 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 ## Требования к правам доступа
 
 <Check>
-  Чтение (`tree`, `list`) требует права **`StaffView`**. Создание, обновление и удаление требуют права
-  **`StaffManage`**. Во всех случаях необходима аутентификация по токену и принадлежность школы к сегменту
+  Чтение (`tree`, `list`) требует права [**«Просмотр персонала»**](/ru/exode-api/permissions) (`StaffView`). Создание, обновление и удаление требуют права
+  **«Управление персоналом»** (`StaffManage`). Во всех случаях необходима аутентификация по токену и принадлежность школы к сегменту
   `Corporate`.
 </Check>
 
@@ -44,7 +44,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 GET /saas/v2/staff/department/tree
 ```
 
-Требуется аутентификация и право `StaffView`.
+Требуется аутентификация и право **«Просмотр персонала»** (`StaffView`).
 
 <Info>
   Эндпоинт возвращает **плоский массив** всех департаментов школы. Иерархия задаётся полем `parentId` каждого
@@ -118,11 +118,11 @@ getDepartmentTree();
 ```
 ```json Error - Forbidden
 {
-  "code": 403,
+  "code": 401,
   "success": false,
   "cause": "Forbidden",
-  "error": "Доступ к ресурсу ограничен",
-  "message": "Доступ к ресурсу ограничен"
+  "error": "Forbidden seller resource - permissions StaffView",
+  "message": "Forbidden seller resource - permissions StaffView"
 }
 ```
 </ResponseExample>
@@ -133,7 +133,7 @@ getDepartmentTree();
 GET /saas/v2/staff/department/list
 ```
 
-Требуется аутентификация и право `StaffView`.
+Требуется аутентификация и право **«Просмотр персонала»** (`StaffView`).
 
 <Info>
   В отличие от `tree`, эндпоинт возвращает пагинированный список департаментов. Параметры пагинации и фильтрации
@@ -154,6 +154,10 @@ GET /saas/v2/staff/department/list
   Номер страницы (альтернатива `skip`). Минимум `1`.
 </ParamField>
 
+<ParamField query="departmentIds" type="array" required={false}>
+  Массив ID департаментов для фильтрации (до 250 значений).
+</ParamField>
+
 <ParamField query="parentIds" type="array" required={false}>
   Массив ID родительских департаментов для фильтрации (до 250 значений). Возвращает только дочерние департаменты
   указанных родителей.
@@ -168,7 +172,8 @@ GET /saas/v2/staff/department/list
 </ParamField>
 
 <ParamField query="createdAt" type="enum" required={false}>
-  Направление сортировки по дате создания. Возможные значения: `ASC`, `DESC`.
+  Направление сортировки по дате создания. Возможные значения: `ASC`, `DESC`. Аналогично работают параметры `id`
+  и `updatedAt`.
 </ParamField>
 
 ### Ответ
@@ -267,7 +272,7 @@ getDepartmentList();
 POST /saas/v2/staff/department/create
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 ### Параметры запроса
 
@@ -282,20 +287,23 @@ POST /saas/v2/staff/department/create
 </ParamField>
 
 <ParamField body="parentId" type="integer" required={false}>
-  ID родительского департамента. Родитель указывается через `parentId` **или** `parentExtId` — передаётся ровно
-  одно поле из пары. Если указан — должен принадлежать той же школе, иначе будет возвращена ошибка
+  ID родительского департамента. Родитель указывается через `parentId` **или** `parentExtId` — передаётся не более
+  одного поля из пары. Если указан — должен принадлежать той же школе, иначе будет возвращена ошибка
   `StaffDepartmentNotFound`. Если родитель не указан ни одним из полей — департамент создаётся корневым.
 </ParamField>
 
 <ParamField body="parentExtId" type="string" required={false}>
-  Внешний идентификатор (`extId`) родительского департамента — альтернатива `parentId` (передаётся ровно одно
-  поле из пары). От 1 до 50 символов. Родитель должен принадлежать той же школе, иначе будет возвращена ошибка
-  `StaffDepartmentNotFound`.
+  Внешний идентификатор (`extId`) родительского департамента — альтернатива `parentId` (передаётся не более одного
+  поля из пары). От 1 до 50 символов. Родитель должен быть создан раньше дочернего департамента и принадлежать
+  той же школе, иначе будет возвращена ошибка `StaffDepartmentNotFound`.
 </ParamField>
 
 <ParamField body="primaryManagerEmploymentId" type="integer" required={false}>
   Трудоустройство, назначаемое основным руководителем создаваемого департамента. Необязательно. Указывается
-  через `primaryManagerEmploymentId` **или** `primaryManagerEmploymentExtId`.
+  через `primaryManagerEmploymentId` **или** `primaryManagerEmploymentExtId`. Трудоустройство должно быть
+  активным и уже начавшимся (`startAt` не в будущем), иначе вернётся `StaffEmploymentNotFound`; департамент
+  трудоустройства при этом может быть любым. Результат тот же, что у
+  [`department-manager/set`](/ru/exode-api/school/staff/department-manager) с `isPrimary: true`.
 </ParamField>
 
 <ParamField body="primaryManagerEmploymentExtId" type="string" required={false}>
@@ -387,7 +395,7 @@ createDepartment();
 PUT /saas/v2/staff/department/{departmentId}/update
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 <Info>
   Тело запроса совпадает с созданием (все поля необязательны): `name`, `extId`, родитель
@@ -420,13 +428,16 @@ PUT /saas/v2/staff/department/{departmentId}/update
 
 <ParamField body="parentExtId" type="string" required={false}>
   Внешний идентификатор (`extId`) нового родителя — альтернатива `parentId` (передаётся не более одного поля из
-  пары). От 1 до 50 символов.
+  пары). От 1 до 50 символов. `null` делает департамент корневым. Если поле не передано, родитель не меняется —
+  поэтому при синхронизации передавайте его всегда, чтобы переподчинения из HR-системы попадали в Exode.
 </ParamField>
 
 <ParamField body="primaryManagerEmploymentId" type="integer" required={false}>
   Трудоустройство, назначаемое основным руководителем департамента. Указывается через
-  `primaryManagerEmploymentId` **или** `primaryManagerEmploymentExtId`. Передайте `null`, чтобы снять
-  назначение.
+  `primaryManagerEmploymentId` **или** `primaryManagerEmploymentExtId`. Передайте `null`, чтобы у департамента
+  не было основного руководителя: текущий основной руководитель станет обычным (запись руководителя
+  сохраняется; удалить её полностью можно через
+  [`department-manager/remove`](/ru/exode-api/school/staff/department-manager#снять-руководителя)).
 </ParamField>
 
 <ParamField body="primaryManagerEmploymentExtId" type="string" required={false}>
@@ -505,7 +516,7 @@ updateDepartment();
 PUT /saas/v2/staff/department/ext/{extId}/update
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 <Info>
   Аналог обычного обновления, но департамент ищется по внешнему идентификатору (`extId`) в рамках школы.
@@ -593,14 +604,15 @@ updateDepartmentByExtId();
 DELETE /saas/v2/staff/department/{departmentId}/delete
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 <Warning>
   Удалить можно только «листовой» департамент без активных сотрудников:
   - если у департамента есть дочерние подразделения — вернётся ошибка `StaffDepartmentHasChildren` (удаление узла
     в середине дерева осиротило бы его потомков). Сначала удалите или перенесите дочерние департаменты;
-  - если в департаменте есть активные сотрудники — вернётся ошибка `StaffDepartmentHasActiveEmployments`. Сначала
-    переведите или уволите сотрудников.
+  - если в департаменте есть активные сотрудники (включая запланированный наём с будущей датой) — вернётся
+    ошибка `StaffDepartmentHasActiveEmployments`. Сначала переведите или уволите сотрудников. Закрытые
+    (уволенные) трудоустройства удалению не мешают.
 </Warning>
 
 ### Параметры
@@ -674,11 +686,11 @@ deleteDepartment();
 ```
 ```json Error - Forbidden
 {
-  "code": 403,
+  "code": 401,
   "success": false,
   "cause": "Forbidden",
-  "error": "Доступ к ресурсу ограничен",
-  "message": "Доступ к ресурсу ограничен"
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
 }
 ```
 </ResponseExample>
@@ -689,7 +701,7 @@ deleteDepartment();
 DELETE /saas/v2/staff/department/ext/{extId}/delete
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 <Info>
   Аналог обычного удаления, но департамент ищется по внешнему идентификатору (`extId`) в рамках школы. Действуют
@@ -785,4 +797,4 @@ deleteDepartmentByExtId();
 
 ---
 
-_Обновлено: 2026-07-22 12:19 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

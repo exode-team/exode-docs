@@ -11,7 +11,17 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
     Отсутствие (`absence`) фиксирует период, когда сотрудник не работает: отсутствие без уточнения причины
     (`Absent`), отпуск (`Vacation`), отгул (`DayOff`), командировку (`BusinessTrip`), больничный (`SickLeave`),
     отпуск по уходу за ребёнком (`ParentalLeave`) или учебный отпуск (`StudyLeave`). Отсутствие привязывается
-    к трудоустройству сотрудника.
+    к трудоустройству сотрудника, а не к пользователю: если у сотрудника несколько мест работы, укажите то, к
+    которому относится отсутствие (на статус пользователя это не влияет — учитываются отсутствия по всем его
+    трудоустройствам).
+</Info>
+
+<Info>
+    `startAt` и `finishAt` — моменты времени (ISO 8601, UTC), а не календарные дни. Отсутствие считается текущим,
+    пока `startAt` ≤ текущий момент ≤ `finishAt`. Отпуск «с 1 по 14 августа включительно» передавайте как
+    `startAt: "2026-08-01T00:00:00Z"`, `finishAt: "2026-08-14T23:59:59Z"` (с поправкой на часовой пояс компании):
+    значение `2026-08-14T00:00:00Z` завершит отсутствие в начале 14-го числа. Без `finishAt` отсутствие действует
+    бессрочно, пока вы не зададите дату окончания.
 </Info>
 
 <Info>
@@ -26,7 +36,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 <Warning>
     Все эндпоинты модуля staff доступны **только** для школ сегмента `Corporate`. Для остальных сегментов запрос
-    вернёт ошибку `403 Forbidden`.
+    вернёт `401` с `cause: "Forbidden"` и сообщением `Allowed only for Corporate school`.
 </Warning>
 
 ## Список отсутствий
@@ -35,7 +45,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 GET /saas/v2/staff/absence/list
 ```
 
-Требуется аутентификация и право `StaffView`.
+Требуется аутентификация и право [**«Просмотр персонала»**](/ru/exode-api/permissions) (`StaffView`).
 
 ### Параметры запроса
 
@@ -64,11 +74,14 @@ GET /saas/v2/staff/absence/list
 </ParamField>
 
 <ParamField query="employmentIds" type="integer[]" required={false}>
-    Фильтр по ID трудоустройств. До 250 значений.
+    Фильтр по ID трудоустройств. До 250 значений. При переводе и смене должности отсутствия остаются на закрытой
+    записи трудоустройства, поэтому для всей истории сотрудника передайте ID всех его записей — их можно получить
+    через [`employment/list?userIds=...`](/ru/exode-api/school/staff/employment#список-трудоустройств).
 </ParamField>
 
 <ParamField query="positionIds" type="integer[]" required={false}>
-    Фильтр по ID должностей. До 250 значений.
+    Фильтр по ID должностей (должность берётся из трудоустройства, к которому привязано отсутствие). До 250
+    значений.
 </ParamField>
 
 <ParamField query="types" type="enum[]" required={false}>
@@ -77,7 +90,8 @@ GET /saas/v2/staff/absence/list
 </ParamField>
 
 <ParamField query="currentOnly" type="boolean" required={false}>
-    Если `true` — вернуть только текущие (активные на данный момент) отсутствия.
+    Если `true` — вернуть только текущие отсутствия: `startAt` уже наступил, а `finishAt` не задан или ещё не
+    прошёл.
 </ParamField>
 
 ### Поля ответа
@@ -183,11 +197,11 @@ listAbsences();
 
 ```json Error - Forbidden
 {
-  "code": 403,
+  "code": 401,
   "success": false,
   "cause": "Forbidden",
-  "error": "Доступ к ресурсу ограничен",
-  "message": "Доступ к ресурсу ограничен"
+  "error": "Forbidden seller resource - permissions StaffView",
+  "message": "Forbidden seller resource - permissions StaffView"
 }
 ```
 </ResponseExample>
@@ -198,7 +212,7 @@ listAbsences();
 POST /saas/v2/staff/absence/create
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 ### Параметры запроса
 
@@ -213,11 +227,13 @@ POST /saas/v2/staff/absence/create
 
 <ParamField body="employmentId" type="integer" required={false}>
     ID трудоустройства сотрудника, к которому относится отсутствие. Обязателен, если не передан `employmentExtId`.
+    Можно указать и уже закрытую запись — например, при переносе истории отсутствий.
 </ParamField>
 
 <ParamField body="employmentExtId" type="string" required={false}>
-    Внешний идентификатор (`extId`) трудоустройства. Альтернатива `employmentId` — обязателен, если не передан
-    `employmentId`. Если трудоустройство не найдено в школе — вернётся ошибка `StaffEmploymentNotFound`.
+    Внешний идентификатор (`extId`) трудоустройства — тот, что вы передали при найме. Альтернатива `employmentId` —
+    обязателен, если не передан `employmentId`. Ищется только среди открытых (не уволенных) трудоустройств школы;
+    если такого нет — вернётся ошибка `StaffEmploymentNotFound`.
 </ParamField>
 
 <ParamField body="type" type="enum" required>
@@ -231,7 +247,8 @@ POST /saas/v2/staff/absence/create
 </ParamField>
 
 <ParamField body="finishAt" type="string" required={false}>
-    Дата окончания отсутствия в формате ISO 8601. Должна быть не раньше `startAt`.
+    Дата окончания отсутствия в формате ISO 8601. Должна быть не раньше `startAt`, иначе запрос будет отклонён.
+    Не передавайте, если дата окончания пока неизвестна.
 </ParamField>
 
 <ParamField body="note" type="string" required={false}>
@@ -340,7 +357,7 @@ createAbsence();
 PUT /saas/v2/staff/absence/{absenceId}/update
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 Обновляет поля отсутствия. Все поля тела необязательны — передавайте только те, которые нужно изменить.
 Привязку к трудоустройству (`employmentId`) изменить нельзя.
@@ -365,8 +382,10 @@ PUT /saas/v2/staff/absence/{absenceId}/update
     Дата начала отсутствия в формате ISO 8601. Должна быть не позже `finishAt`.
 </ParamField>
 
-<ParamField body="finishAt" type="string" required={false}>
-    Дата окончания отсутствия в формате ISO 8601. Должна быть не раньше `startAt`.
+<ParamField body="finishAt" type="string | null" required={false}>
+    Дата окончания отсутствия в формате ISO 8601. Должна быть не раньше `startAt` (с учётом уже сохранённого
+    значения, если `startAt` не передан), иначе вернётся `StaffAbsenceInvalidInterval`. `null` снимает дату
+    окончания — отсутствие становится бессрочным.
 </ParamField>
 
 <ParamField body="note" type="string" required={false}>
@@ -455,7 +474,7 @@ updateAbsence();
 PUT /saas/v2/staff/absence/ext/{extId}/update
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 Аналог обновления по `absenceId`, но отсутствие идентифицируется внешним идентификатором (`extId`) в рамках
 школы. Тело запроса такое же, как у `PUT /saas/v2/staff/absence/{absenceId}/update`.
@@ -480,8 +499,10 @@ PUT /saas/v2/staff/absence/ext/{extId}/update
     Дата начала отсутствия в формате ISO 8601. Должна быть не позже `finishAt`.
 </ParamField>
 
-<ParamField body="finishAt" type="string" required={false}>
-    Дата окончания отсутствия в формате ISO 8601. Должна быть не раньше `startAt`.
+<ParamField body="finishAt" type="string | null" required={false}>
+    Дата окончания отсутствия в формате ISO 8601. Должна быть не раньше `startAt` (с учётом уже сохранённого
+    значения, если `startAt` не передан), иначе вернётся `StaffAbsenceInvalidInterval`. `null` снимает дату
+    окончания — отсутствие становится бессрочным.
 </ParamField>
 
 <ParamField body="note" type="string" required={false}>
@@ -562,7 +583,7 @@ updateAbsenceByExtId();
 DELETE /saas/v2/staff/absence/{absenceId}/delete
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 ### Параметры запроса
 
@@ -616,11 +637,11 @@ deleteAbsence();
 
 ```json Error - Forbidden
 {
-  "code": 403,
+  "code": 401,
   "success": false,
   "cause": "Forbidden",
-  "error": "Доступ к ресурсу ограничен",
-  "message": "Доступ к ресурсу ограничен"
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
 }
 ```
 </ResponseExample>
@@ -631,7 +652,7 @@ deleteAbsence();
 DELETE /saas/v2/staff/absence/ext/{extId}/delete
 ```
 
-Требуется аутентификация и право `StaffManage`.
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 Аналог удаления по `absenceId`, но отсутствие идентифицируется внешним идентификатором (`extId`) в рамках школы.
 
@@ -701,8 +722,8 @@ deleteAbsenceByExtId();
 ## Требования к правам доступа
 
 <Check>
-    Модуль staff доступен только для школ сегмента `Corporate`. Для чтения списка требуется право `StaffView`, для
-    создания, обновления и удаления отсутствий — право `StaffManage`.
+    Модуль staff доступен только для школ сегмента `Corporate`. Для чтения списка требуется право **«Просмотр персонала»** (`StaffView`), для
+    создания, обновления и удаления отсутствий — право **«Управление персоналом»** (`StaffManage`).
 </Check>
 
 <Warning>
@@ -714,4 +735,4 @@ deleteAbsenceByExtId();
 
 ---
 
-_Обновлено: 2026-07-14 22:58 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_
