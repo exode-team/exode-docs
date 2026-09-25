@@ -11,16 +11,17 @@ description: "Выгрузка пользователей школы с проф
 в поле `type`, а описанные ниже поля — в `variables`.
 
 <Info>
-  Структура `variables` повторяет фильтр и сортировку соответствующего запроса поиска пользователей школы.
-  Итоговый набор допустимых полей валидирует сервис экспорта — при неизвестном поле оно игнорируется.
+  Структура `variables` повторяет фильтр и сортировку поиска пользователей школы.
+  Неизвестное поле или неверное значение не игнорируется: выгрузка завершится со
+  `status: Failed`.
 </Info>
 
 ---
 
 ### Переменные (`variables`)
 
-<ParamField body="filter" type="object">
-  Параметры фильтрации.
+<ParamField body="filter" type="object" required>
+  Параметры фильтрации. Обязателен: чтобы выгрузить все записи без фильтрации, передайте пустой объект `{}`.
 
   <Expandable title="Свойства filter">
     <ParamField body="userIds" type="integer[]">
@@ -45,8 +46,9 @@ description: "Выгрузка пользователей школы с проф
 
     <ParamField body="statuses" type="string[]">
       Фильтр по статусам учётной записи. Массив из значений: `Active`, `OnLeave`, `Banned`, `Blocked`,
-      `Terminated`, `Deleted`. Поля `active`/`banned` из фильтра **удалены** — используйте `statuses`
-      (например, заблокированные — `["Banned", "Blocked"]`).
+      `Terminated`, `Deleted`. Полей `active`/`banned` в фильтре нет — используйте `statuses`
+      (например, заблокированные — `["Banned", "Blocked"]`). Запрос с `active` или `banned` завершится
+      со `status: Failed`.
     </ParamField>
 
     <ParamField body="createdAtDateRange" type="object">
@@ -74,9 +76,12 @@ description: "Выгрузка пользователей школы с проф
 
 ### Колонки отчёта
 
-ID пользователя, Имя, Фамилия, Способ входа, Номер телефона, Почта, Telegram, Кол-во курсов, Дата регистрации,
-Тип регистрации, Кем создан, Дата рождения, Дата последнего входа. При фильтре `archived` добавляются «Дата
-удаления» и «Кто удалил».
+Лист **SchoolUsers**: ID пользователя, Имя, Фамилия, Способ входа, Номер телефона, Почта, Telegram, Кол-во курсов,
+Дата регистрации, Тип регистрации, Кем создан, Дата рождения, Дата последнего входа. При `filter.archived: true`
+добавляются «Дата удаления» и «Кто удалил».
+
+Названия колонок приведены для заголовка `Ux-Language: ru`; без него колонки называются по-английски
+(подробнее — в описании [`generate`](/ru/exode-api/school/query-export/generate)).
 
 <RequestExample>
 ```bash cURL
@@ -89,8 +94,7 @@ curl --location 'https://api.exode.biz/saas/v2/query-export/generate' \
     "type": "QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY",
     "variables": {
       "filter": {
-        "statuses": ["Active"],
-        "active": true
+        "statuses": ["Active"]
       },
       "sort": {
         "createdAt": "DESC"
@@ -108,8 +112,7 @@ const exportSchoolUsers = async () => {
       type: 'QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY',
       variables: {
         filter: {
-          statuses: ['Active'],
-          active: true
+          statuses: ['Active']
         },
         sort: {
           createdAt: 'DESC'
@@ -142,8 +145,7 @@ $data = [
   'type' => 'QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY',
   'variables' => [
     'filter' => [
-      'statuses' => ['Active'],
-      'active' => true
+      'statuses' => ['Active']
     ],
     'sort' => [
       'createdAt' => 'DESC'
@@ -188,8 +190,7 @@ data = {
   'type': 'QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY',
   'variables': {
     'filter': {
-      'statuses': ['Active'],
-      'active': True
+      'statuses': ['Active']
     },
     'sort': {
       'createdAt': 'DESC'
@@ -221,7 +222,6 @@ except requests.exceptions.RequestException as e:
 
 Фильтр = Новый Структура;
 Фильтр.Вставить("statuses", Статусы);
-Фильтр.Вставить("active", Истина);
 
 Сортировка = Новый Структура;
 Сортировка.Вставить("createdAt", "DESC");
@@ -251,7 +251,7 @@ except requests.exceptions.RequestException as e:
 
 Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
 
-Если Ответ.КодСостояния = 200 Тогда
+Если Ответ.КодСостояния = 200 ИЛИ Ответ.КодСостояния = 201 Тогда
     ЧтениеJSON = Новый ЧтениеJSON;
     ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
     Результат = ПрочитатьJSON(ЧтениеJSON);
@@ -267,23 +267,32 @@ except requests.exceptions.RequestException as e:
 ```json Success
 {
   "success": true,
-  "code": 200,
+  "code": 201,
   "payload": {
-    "total": 100,
-    "completed": 100,
-    "status": "Completed",
-    "result": {
-      "fileUrl": "https://static.exode.biz/generated/reports/79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
-      "fileName": "79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
-      "fileSize": 6748
-    }
+    "uuid": "ac4140c9-12d3-4c1f-a7aa-d12f16c7bbdd",
+    "flow": "QueryExport",
+    "status": "Processing",
+    "isCompleted": false,
+    "userId": 5562,
+    "createdAt": "2025-01-18T12:44:55.812Z",
+    "updatedAt": "2025-01-18T12:44:55.812Z"
   }
 }
 ```
 </ResponseExample>
 
+Ответ метода — задача на генерацию с `uuid`. Файл получите через
+[получение результата](/ru/exode-api/school/query-export/result).
+
+## Требования к правам доступа
+
+<Check>
+  Требуется аутентификация по токену и право [**«Управление пользователями школы»**](/ru/exode-api/permissions) (`SchoolManageUsers`). Без права
+  запрос на генерацию выполнится, но выгрузка завершится со `status: Failed`.
+</Check>
+
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-07-22 12:19 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

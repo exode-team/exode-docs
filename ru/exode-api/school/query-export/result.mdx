@@ -13,7 +13,16 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 GET /saas/v2/workflow-execution/:executionUuid/result
 ```
 
-Используйте `uuid`, полученный при [создании задачи на генерацию](/ru/exode-api/school/query-export/generate). Отправляйте запрос периодически (polling), пока `status` не станет `Completed`.
+Используйте `uuid`, полученный при [создании задачи на генерацию](/ru/exode-api/school/query-export/generate).
+Отправляйте запрос периодически (polling) с интервалом 2–5 секунд, пока `status` не станет `Completed` или
+`Failed`. Этот метод не ограничен rate limit генерации, но частый опрос не ускоряет выгрузку.
+
+<Note>
+  Сразу после создания задачи `payload` может быть `null`: задача стоит в очереди и еще не сообщила о прогрессе.
+  Продолжайте опрос. Если `payload` остается `null` для `uuid`, по которому вы уже получали статус, — срок хранения
+  результата истек; запустите генерацию заново. Предусмотрите в коде общий таймаут опроса, чтобы не опрашивать
+  неизвестный `uuid` бесконечно.
+</Note>
 
 ### Параметры пути
 
@@ -32,8 +41,8 @@ GET /saas/v2/workflow-execution/:executionUuid/result
 </ResponseField>
 
 <ResponseField name="payload" type="object | null">
-  Данные о прогрессе и результате генерации. Может быть `null`, если задача с таким `executionUuid` не найдена
-  (например, срок хранения истёк).
+  Данные о прогрессе и результате генерации. `null`, если задача еще не начала выполняться, если задача с таким
+  `executionUuid` не найдена или срок хранения результата истек.
 
   <Expandable title="Свойства payload">
     <ResponseField name="total" type="number">
@@ -41,25 +50,31 @@ GET /saas/v2/workflow-execution/:executionUuid/result
     </ResponseField>
 
     <ResponseField name="completed" type="number">
-      Текущий прогресс от `0` до `100`.
+      Текущий прогресс от `0` до `100`. Растет неравномерно: большая часть времени уходит на выборку данных, затем
+      прогресс скачком доходит до `100`. При `Failed` может быть `0`.
     </ResponseField>
 
     <ResponseField name="status" type="string">
       Статус выполнения:
 
       - `Waiting` — задача поставлена в очередь, ожидает выполнения
-      - `Processing` — отчет генерируется
+      - `Processing` — отчет генерируется, продолжайте опрос
       - `Completed` — отчет готов, поле `result` содержит ссылку на файл
-      - `Failed` — ошибка при генерации
-      - `Canceled` — задача отменена
+      - `Failed` — ошибка при генерации. Причина в ответе не передается. Частые причины: в `variables` нет
+        `filter`, есть неизвестное поле или неверное значение enum, у токена нет права на выгружаемые данные
+        (см. [права по типам отчетов](/ru/exode-api/school/query-export/generate#требования-к-правам-доступа)).
+        Исправьте запрос и запустите генерацию заново
+      - `Canceled` — задача отменена. Через API отменить выгрузку нельзя, поэтому на практике этот статус
+        встречается редко; запустите генерацию заново
     </ResponseField>
 
     <ResponseField name="result" type="object | null">
-      Результат генерации (доступен только при `status: Completed`). `null` во время обработки.
+      Результат генерации (доступен только при `status: Completed`). В остальных статусах — `null` или отсутствует.
 
       <Expandable title="Свойства result">
         <ResponseField name="fileUrl" type="string">
-          URL для скачивания сгенерированного файла.
+          URL для скачивания сгенерированного файла. Для скачивания заголовки авторизации не нужны. Ссылка может
+          быть временной, поэтому скачивайте файл сразу после `Completed`, а не храните ссылку.
         </ResponseField>
 
         <ResponseField name="fileName" type="string">
@@ -69,13 +84,19 @@ GET /saas/v2/workflow-execution/:executionUuid/result
         <ResponseField name="fileSize" type="number">
           Размер файла в байтах.
         </ResponseField>
+
+        <ResponseField name="result" type="object">
+          Служебная информация о задаче в сервисе выгрузок. Для интеграции не нужна — опирайтесь на `status`
+          верхнего уровня и поля выше.
+        </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <Warning>
-  Результат хранится в кеше **24 часа** после генерации. После этого файл и данные о прогрессе становятся недоступны.
+  Результат хранится **24 часа** после завершения генерации. После этого метод возвращает `payload: null` —
+  чтобы получить данные снова, запустите генерацию заново.
 </Warning>
 
 <RequestExample>
@@ -98,9 +119,17 @@ const pollResult = async (executionUuid) => {
     'Authorization': 'Bearer YOUR_TOKEN'
   };
 
-  while (true) {
+  const deadline = Date.now() + 30 * 60 * 1000; // общий таймаут опроса — 30 минут
+
+  while (Date.now() < deadline) {
     const { data } = await axios.get(url, { headers });
     const { payload } = data;
+
+    if (!payload) {
+      // Задача еще не начала выполняться (или uuid неизвестен) — ждем и повторяем
+      await new Promise((r) => setTimeout(r, 3000));
+      continue;
+    }
 
     console.log(`Progress: ${payload.completed}/${payload.total} — ${payload.status}`);
 
@@ -113,8 +142,10 @@ const pollResult = async (executionUuid) => {
       throw new Error(`Export ${payload.status}`);
     }
 
-    await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 3000));
   }
+
+  throw new Error('Export polling timed out');
 };
 
 pollResult('550e8400-e29b-41d4-a716-446655440000');
@@ -132,7 +163,9 @@ $headers = [
   'Authorization: Bearer YOUR_TOKEN'
 ];
 
-while (true) {
+$deadline = time() + 30 * 60; // общий таймаут опроса — 30 минут
+
+while (time() < $deadline) {
   $ch = curl_init();
   curl_setopt($ch, CURLOPT_URL, $url);
   curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
@@ -142,7 +175,14 @@ while (true) {
   curl_close($ch);
 
   $data = json_decode($response, true);
-  $payload = $data['payload'];
+  $payload = $data['payload'] ?? null;
+
+  if ($payload === null) {
+    // Задача еще не начала выполняться (или uuid неизвестен) — ждем и повторяем
+    sleep(3);
+    continue;
+  }
+
   echo "Progress: {$payload['completed']}/{$payload['total']} — {$payload['status']}\n";
 
   if ($payload['status'] === 'Completed') {
@@ -155,7 +195,7 @@ while (true) {
     break;
   }
 
-  sleep(2);
+  sleep(3);
 }
 ?>
 ```
@@ -173,10 +213,17 @@ headers = {
   'Authorization': 'Bearer YOUR_TOKEN'
 }
 
-while True:
+deadline = time.time() + 30 * 60  # общий таймаут опроса — 30 минут
+
+while time.time() < deadline:
   response = requests.get(url, headers=headers)
   data = response.json()
   payload = data['payload']
+
+  if payload is None:
+    # Задача еще не начала выполняться (или uuid неизвестен) — ждем и повторяем
+    time.sleep(3)
+    continue
 
   print(f"Progress: {payload['completed']}/{payload['total']} — {payload['status']}")
 
@@ -188,7 +235,7 @@ while True:
     print(f"Error: Export {payload['status']}")
     break
 
-  time.sleep(2)
+  time.sleep(3)
 ```
 
 ```bsl 1С
@@ -205,7 +252,12 @@ while True:
     ЧтениеJSON = Новый ЧтениеJSON;
     ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
     Результат = ПрочитатьJSON(ЧтениеJSON);
-    Сообщить("Результат получен");
+    // payload = Неопределено — задача еще не начала выполняться: повторите запрос через несколько секунд
+    Если Результат.payload <> Неопределено И Результат.payload.status = "Completed" Тогда
+        Сообщить("Файл: " + Результат.payload.result.fileUrl);
+    ИначеЕсли Результат.payload <> Неопределено Тогда
+        Сообщить("Статус: " + Результат.payload.status);
+    КонецЕсли;
 Иначе
     Сообщить("Ошибка: HTTP " + Ответ.КодСостояния);
     Сообщить(Ответ.ПолучитьТелоКакСтроку());
@@ -248,16 +300,30 @@ while True:
   "code": 200,
   "payload": {
     "total": 100,
-    "completed": 30,
+    "completed": 0,
     "status": "Failed",
     "result": null
   }
 }
 ```
+```json Not started
+{
+  "success": true,
+  "code": 200,
+  "payload": null
+}
+```
 </ResponseExample>
+
+## Требования к правам доступа
+
+<Check>
+  Требуется аутентификация по токену. Отдельных прав метод не требует: права на данные проверяются при генерации
+  (см. [права по типам отчетов](/ru/exode-api/school/query-export/generate#требования-к-правам-доступа)).
+</Check>
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-07-22 12:19 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

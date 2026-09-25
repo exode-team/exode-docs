@@ -9,22 +9,37 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 ## Как это работает
 
-Генерация отчета выполняется через асинхронный workflow. Процесс состоит из двух шагов:
+Генерация отчета выполняется через асинхронный workflow. Процесс состоит из трех шагов:
 
 <Steps>
     <Step title="Создание задачи на генерацию">
         Отправьте `POST` запрос на `/saas/v2/query-export/generate` с указанием типа отчета, переменных фильтрации и
         формата.
-        В ответ вы получите объект с полем `payload`, содержащим `uuid` — идентификатор для отслеживания результата.
+        В ответ (HTTP `201`) вы получите объект с полем `payload`, содержащим `uuid` — идентификатор для
+        отслеживания результата. Сам файл на этом шаге еще не создан.
     </Step>
 
     <Step title="Получение результата">
         Отправляйте `GET` запрос
         на <br/>[`/saas/v2/workflow-execution/:executionUuid/result`](/ru/exode-api/school/query-export/result), <br/>подставив
-        `uuid` из первого шага.
-        Повторяйте запрос до тех пор, пока `status` не станет `Completed` (или `Failed`).
+        `uuid` из первого шага, с интервалом 2–5 секунд.
+        Повторяйте запрос до тех пор, пока `status` не станет `Completed` (или `Failed`). Сразу после запуска
+        `payload` может быть `null` — задача еще не начала выполняться, продолжайте опрос.
+    </Step>
+
+    <Step title="Скачивание файла">
+        При `status: Completed` скачайте файл по ссылке `payload.result.fileUrl`. Скачивайте сразу: результат
+        хранится ограниченное время (подробнее — на странице [получения результата](/ru/exode-api/school/query-export/result)).
     </Step>
 </Steps>
+
+<Note>
+    Сразу, со статусом `400` и `cause: "validation"`, отклоняется только запрос с неизвестным `type`, `format`
+    или с `variables`, которое не является объектом. Ошибки внутри `variables` (неизвестное поле фильтра, неверное значение enum, отсутствующий `filter`) и нехватка прав
+    на данные не приводят к ошибке этого запроса: задача создается, а при опросе результата приходит
+    `status: Failed`. Причина ошибки в ответе не передается — сверьте запрос со страницей типа отчета и
+    [правами](#требования-к-правам-доступа) токена.
+</Note>
 
 ---
 
@@ -35,8 +50,14 @@ POST /saas/v2/query-export/generate
 ```
 
 <Info>
-  Rate limit: **100 запросов в час**.
+  Rate limit: **100 запросов в час** на сервисного пользователя (токен). При превышении возвращается HTTP `429` —
+  подробнее в разделе [Rate-limit](/ru/exode-api/setup#rate-limit). Опрос результата в этот лимит не входит.
 </Info>
+
+<ParamField header="Ux-Language" type="string">
+  Язык заголовков колонок и переводимых значений в файле: `ru`, `en`, `uz`, `qa`. Если заголовок не передан,
+  колонки называются по-английски. Названия колонок на страницах типов отчетов приведены для `ru`.
+</ParamField>
 
 ### Параметры запроса
 
@@ -52,16 +73,24 @@ POST /saas/v2/query-export/generate
 </ParamField>
 
 <ParamField body="variables" type="object" required>
-  Переменные для запроса: фильтры и сортировка. Структура зависит от выбранного `type`.
-  Подробнее — на странице конкретного [типа отчета](/ru/exode-api/school/query-export/group-member-find-many).
+  Переменные для запроса: `filter` (обязателен для всех типов; чтобы выгрузить все записи, передайте `{}`) и
+  `sort` (необязателен). Набор полей зависит от выбранного `type` и описан на странице типа отчета — ссылки
+  в списке выше.
+
+  Поля проверяются при генерации, а не при создании задачи: неизвестное поле или неверное значение приводит
+  к `status: Failed` на шаге получения результата. Даты в диапазонах (`...DateRange`) передаются в формате
+  ISO 8601, например `2025-01-01T00:00:00Z`.
 </ParamField>
 
 <ParamField body="format" type="string">
   Формат выходного файла. По умолчанию — `EXPORT_FORMAT_XLSX`.
 
-  - `EXPORT_FORMAT_XLSX` — Excel (.xlsx)
-  - `EXPORT_FORMAT_CSV` — CSV (.csv)
-  - `EXPORT_FORMAT_JSON` — JSON (.json)
+  - `EXPORT_FORMAT_XLSX` — Excel (.xlsx). Единственный формат с дополнительными листами (например, **Course
+    Progress** или **Billing Details** — см. страницу типа отчета).
+  - `EXPORT_FORMAT_CSV` — CSV (.csv): только основной лист, разделитель — запятая, кодировка UTF-8 с BOM
+    (открывается в Excel без проблем с кириллицей), первая строка — заголовки колонок.
+  - `EXPORT_FORMAT_JSON` — JSON (.json): массив объектов, по одному на строку отчета. Ключи — технические
+    имена колонок на английском (`userId`, `fullName`, …), они не зависят от `Ux-Language`.
 </ParamField>
 
 ### Поля ответа
@@ -87,7 +116,8 @@ POST /saas/v2/query-export/generate
     </ResponseField>
 
     <ResponseField name="status" type="string">
-      Статус задачи: `Waiting`, `Processing`, `Failed`, `Canceled`, `Completed`. При создании — `Processing`.
+      Статус задачи: `Waiting`, `Processing`, `Failed`, `Canceled`, `Completed` — расшифровка на странице
+      [получения результата](/ru/exode-api/school/query-export/result). При создании — `Processing`.
     </ResponseField>
 
     <ResponseField name="isCompleted" type="boolean">
@@ -95,7 +125,7 @@ POST /saas/v2/query-export/generate
     </ResponseField>
 
     <ResponseField name="userId" type="number | null">
-      ID инициатора задачи.
+      ID инициатора задачи — сервисного пользователя, которому принадлежит токен.
     </ResponseField>
 
     <ResponseField name="createdAt" type="string">
@@ -254,11 +284,11 @@ except requests.exceptions.RequestException as e:
 
 Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
 
-Если Ответ.КодСостояния = 200 Тогда
+Если Ответ.КодСостояния = 200 ИЛИ Ответ.КодСостояния = 201 Тогда
     ЧтениеJSON = Новый ЧтениеJSON;
     ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
     Результат = ПрочитатьJSON(ЧтениеJSON);
-    Сообщить("Экспорт запущен");
+    Сообщить("Экспорт запущен, uuid: " + Результат.payload.uuid);
 Иначе
     Сообщить("Ошибка: HTTP " + Ответ.КодСостояния);
     Сообщить(Ответ.ПолучитьТелоКакСтроку());
@@ -287,16 +317,26 @@ except requests.exceptions.RequestException as e:
 
 ## Требования к правам доступа
 
-<Check>
-  Для генерации отчетов требуется **авторизация** и **доступ к SaaS API** школы.
-</Check>
+Сам запрос на генерацию требует только аутентификации по токену сервисного пользователя школы. Данные для файла
+собираются от имени этого же пользователя, поэтому токену нужно право на выгружаемые данные — одно из
+перечисленных для типа отчета:
+
+| Тип отчета | Нужное право (любое из) |
+|---|---|
+| `QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY` | **«Управление пользователями школы»** (`SchoolManageUsers`) |
+| `QUERY_EXPORT_TYPE_SCHOOL_STUDENT_FIND_MANY` | **«Управление пользователями школы»** (`SchoolManageUsers`), **«Управление студентами курса»** (`CourseStudentManage`) |
+| `QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY` | **«Управление пользователями школы»** (`SchoolManageUsers`), **«Управление курсами»** (`CourseManage`), **«Куратор курсов»** (`CourseCurator`) |
+| `QUERY_EXPORT_TYPE_COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY` | **«Управление курсами»** (`CourseManage`), **«Куратор курсов»** (`CourseCurator`) |
+| `QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY` | **«Продажи школы»** (`SellerSales`) |
+| `QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY` | **«Управление пользователями школы»** (`SchoolManageUsers`), **«Управление студентами курса»** (`CourseStudentManage`) |
 
 <Warning>
-  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной школе.
+  Если права нет, запрос на генерацию все равно вернет `201`, а выгрузка завершится со `status: Failed`.
+  Где включить права — в [справочнике прав](/ru/exode-api/permissions).
 </Warning>
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-07-08 06:37 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

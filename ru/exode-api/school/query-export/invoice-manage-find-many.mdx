@@ -11,16 +11,17 @@ description: "Выгрузка счетов школы с суммами, тип
 в поле `type`, а описанные ниже поля — в `variables`.
 
 <Info>
-  Набор фильтров совпадает с методом [Список счетов](/ru/exode-api/school/invoice/list). Итоговый контракт
-  `variables` валидирует сервис экспорта — неизвестные поля игнорируются.
+  Набор фильтров совпадает с методом [Список счетов](/ru/exode-api/school/invoice/list) — там же описаны
+  вложенные фильтры `payment` и `utmParams`. Неизвестное поле или неверное значение не игнорируется: выгрузка
+  завершится со `status: Failed`.
 </Info>
 
 ---
 
 ### Переменные (`variables`)
 
-<ParamField body="filter" type="object">
-  Параметры фильтрации.
+<ParamField body="filter" type="object" required>
+  Параметры фильтрации. Обязателен: чтобы выгрузить все записи без фильтрации, передайте пустой объект `{}`.
 
   <Expandable title="Свойства filter">
     <ParamField body="invoiceIds" type="integer[]">
@@ -79,8 +80,12 @@ description: "Выгрузка счетов школы с суммами, тип
 
 ### Колонки отчёта
 
-ID пользователя, Фамилия Имя, Способ входа, Номер телефона, Почта, Telegram, ID платежа, Дата изменения платежа,
-ID курса, Название курса, ID тарифа, Тариф, Тип платежа, Способ оплаты, Статус, Сумма платежа, Валюта.
+Лист **Invoices**: ID пользователя, Фамилия Имя, Способ входа, Номер телефона, Почта, Telegram, ID платежа, Дата
+изменения платежа, ID курса, Название курса, ID тарифа, Тариф, Тип платежа, Способ оплаты, Статус, Сумма платежа,
+Валюта.
+
+Названия колонок приведены для заголовка `Ux-Language: ru`; без него колонки называются по-английски
+(подробнее — в описании [`generate`](/ru/exode-api/school/query-export/generate)).
 
 <RequestExample>
 ```bash cURL
@@ -259,7 +264,7 @@ except requests.exceptions.RequestException as e:
 
 Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
 
-Если Ответ.КодСостояния = 200 Тогда
+Если Ответ.КодСостояния = 200 ИЛИ Ответ.КодСостояния = 201 Тогда
     ЧтениеJSON = Новый ЧтениеJSON;
     ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
     Результат = ПрочитатьJSON(ЧтениеJSON);
@@ -275,23 +280,32 @@ except requests.exceptions.RequestException as e:
 ```json Success
 {
   "success": true,
-  "code": 200,
+  "code": 201,
   "payload": {
-    "total": 100,
-    "completed": 100,
-    "status": "Completed",
-    "result": {
-      "fileUrl": "https://static.exode.biz/generated/reports/79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
-      "fileName": "79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
-      "fileSize": 6748
-    }
+    "uuid": "ac4140c9-12d3-4c1f-a7aa-d12f16c7bbdd",
+    "flow": "QueryExport",
+    "status": "Processing",
+    "isCompleted": false,
+    "userId": 5562,
+    "createdAt": "2025-01-18T12:44:55.812Z",
+    "updatedAt": "2025-01-18T12:44:55.812Z"
   }
 }
 ```
 </ResponseExample>
 
+Ответ метода — задача на генерацию с `uuid`. Файл получите через
+[получение результата](/ru/exode-api/school/query-export/result).
+
+## Требования к правам доступа
+
+<Check>
+  Требуется аутентификация по токену и право [**«Продажи школы»**](/ru/exode-api/permissions) (`SellerSales`). Без права запрос на генерацию
+  выполнится, но выгрузка завершится со `status: Failed`.
+</Check>
+
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-07-22 12:24 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

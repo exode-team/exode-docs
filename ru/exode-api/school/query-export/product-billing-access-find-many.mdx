@@ -14,16 +14,19 @@ description: "Выгрузка биллинговых записей досту�
 <Info>
   Отчёт строится по доступам к продуктам (`productAccessManageFindMany`) с акцентом на биллинг (подписки и
   рассрочки). `variables` — фильтр и сортировка доступов (`FilterAccessProductInput` / `SortAccessProductInput`),
-  та же структура, что у отчёта [«Студенты школы»](/ru/exode-api/school/query-export/school-student-find-many).
-  Неизвестные поля сервис экспорта игнорирует.
+  та же структура, что у отчёта [«Студенты школы»](/ru/exode-api/school/query-export/school-student-find-many):
+  там описаны и остальные поля фильтра (`courseIds`, `groupIds`, `search`, диапазоны дат и т.д.).
+  Неизвестное поле или неверное значение не игнорируется: выгрузка завершится со
+  `status: Failed`.
 </Info>
 
 ---
 
 ### Переменные (`variables`)
 
-<ParamField body="filter" type="object">
-  Параметры фильтрации доступов (биллинговые поля — с префиксом `billing`).
+<ParamField body="filter" type="object" required>
+  Параметры фильтрации доступов (биллинговые поля — с префиксом `billing`). Обязателен: чтобы выгрузить все
+  записи без фильтрации, передайте пустой объект `{}`.
 
   <Expandable title="Свойства filter">
     <ParamField body="userIds" type="integer[]">Фильтр по ID пользователей.</ParamField>
@@ -51,8 +54,14 @@ description: "Выгрузка биллинговых записей досту�
     <ParamField body="billingNextPaymentAtDateRange" type="object">
       Диапазон дат следующего списания. Свойства `from` и `to` — даты ISO 8601.
     </ParamField>
-    <ParamField body="product" type="object">Вложенный фильтр по продукту (`productIds` и т.д.).</ParamField>
-    <ParamField body="price" type="object">Вложенный фильтр по тарифу.</ParamField>
+    <ParamField body="product" type="object">
+      Вложенный фильтр по продукту (например, `{ "productIds": [12] }`). Набор полей совпадает с фильтром
+      `product` метода [«Список доступов к продуктам»](/ru/exode-api/school/product-access/list).
+    </ParamField>
+    <ParamField body="price" type="object">
+      Вложенный фильтр по тарифу. Набор полей совпадает с фильтром `price` метода
+      [«Список доступов к продуктам»](/ru/exode-api/school/product-access/list).
+    </ParamField>
   </Expandable>
 </ParamField>
 
@@ -84,9 +93,12 @@ ID курса, Название курса, ID тарифа, Тариф, Спо�
     только при фильтре по подписке (`hasProductBillingTypes: ["Subscription"]`).
 </Info>
 
-Дополнительный лист **Billing Details** — построчная разбивка платежей: ID пользователя, ID доступа, ID биллинга,
+Только в формате XLSX формируется дополнительный лист **Billing Details** — построчная разбивка платежей: ID пользователя, ID доступа, ID биллинга,
 Номер, Дата платежа, Статус, Сумма, ID инвойса, Использованные попытки, Всего попыток, Дата следующей попытки,
 Дата отмены.
+
+Названия колонок приведены для заголовка `Ux-Language: ru`; без него колонки называются по-английски
+(подробнее — в описании [`generate`](/ru/exode-api/school/query-export/generate)).
 
 <RequestExample>
 ```bash cURL
@@ -257,7 +269,7 @@ except requests.exceptions.RequestException as e:
 
 Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
 
-Если Ответ.КодСостояния = 200 Тогда
+Если Ответ.КодСостояния = 200 ИЛИ Ответ.КодСостояния = 201 Тогда
     ЧтениеJSON = Новый ЧтениеJSON;
     ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
     Результат = ПрочитатьJSON(ЧтениеJSON);
@@ -273,23 +285,33 @@ except requests.exceptions.RequestException as e:
 ```json Success
 {
   "success": true,
-  "code": 200,
+  "code": 201,
   "payload": {
-    "total": 100,
-    "completed": 100,
-    "status": "Completed",
-    "result": {
-      "fileUrl": "https://static.exode.biz/generated/reports/79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
-      "fileName": "79d46a97-a149-432b-bac7-45f6732b9115.xlsx",
-      "fileSize": 6748
-    }
+    "uuid": "ac4140c9-12d3-4c1f-a7aa-d12f16c7bbdd",
+    "flow": "QueryExport",
+    "status": "Processing",
+    "isCompleted": false,
+    "userId": 5562,
+    "createdAt": "2025-01-18T12:44:55.812Z",
+    "updatedAt": "2025-01-18T12:44:55.812Z"
   }
 }
 ```
 </ResponseExample>
 
+Ответ метода — задача на генерацию с `uuid`. Файл получите через
+[получение результата](/ru/exode-api/school/query-export/result).
+
+## Требования к правам доступа
+
+<Check>
+  Требуется аутентификация по токену и одно из прав: [**«Управление пользователями школы»**](/ru/exode-api/permissions) (`SchoolManageUsers`)
+  или **«Управление студентами курса»** (`CourseStudentManage`). Без права запрос на генерацию выполнится, но
+  выгрузка завершится со `status: Failed`.
+</Check>
+
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-07-22 12:24 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_
