@@ -3,7 +3,9 @@ title: 'Введение в MiniApp'
 description: 'Концепция и архитектура встраиваемых мини-приложений в Exode'
 ---
 
-MiniApp — это внешнее веб-приложение, которое открывается в `iframe` внутри основного приложения Exode. SDK обеспечивает двустороннюю связь между мини-приложением и хостом через `postMessage`.
+MiniApp — это внешнее веб-приложение, которое открывается в `iframe` внутри основного приложения Exode. Школа подключает
+его через [кастомную страницу](/ru/customization/custom-pages). SDK обеспечивает двустороннюю связь между
+мини-приложением и хостом через `postMessage` и помогает проверить подпись данных пользователя на вашем сервере.
 
 ## Архитектура
 
@@ -22,11 +24,14 @@ Exode App (host)          ◄── postMessage ──►      MiniApp (iframe)
 
 <Steps>
   <Step title="Загрузка iframe">
-    Основное приложение открывает MiniApp по URL, передавая его в `iframe`.
+    Основное приложение открывает MiniApp по URL в `iframe` и добавляет к адресу подписанные данные пользователя —
+    `#exodeInitData=...` (см. [Init Data](/ru/exode-sdk/miniapp/init-data)).
   </Step>
 
   <Step title="Handshake">
-    MiniApp инициализируется, отправляет хосту свой `appId`. Хост валидирует origin и appId, возвращает контекст (пользователь, школа, тема, конфиг).
+    MiniApp вызывает `app.init()` и отправляет хосту свой `appId`. Хост проверяет origin сообщения (для кастомных
+    страниц — origin адреса из «URL приложения (iframe)»; `appId` при этом может быть любым) и возвращает контекст
+    (пользователь, школа, тема, конфиг).
   </Step>
 
   <Step title="Работа">
@@ -77,6 +82,10 @@ Exode App (host)          ◄── postMessage ──►      MiniApp (iframe)
     Provider и реактивные хуки для React-приложений.
   </Card>
 
+  <Card title="Init Data" icon="shield-check" href="/ru/exode-sdk/miniapp/init-data">
+    Подписанные данные пользователя и их проверка на вашем сервере.
+  </Card>
+
   <Card title="Telegram Mini App" icon="telegram" href="/ru/customization/tg-mini-app">
     Автоавторизация через параметр `___uat`.
   </Card>
@@ -86,4 +95,4 @@ Exode App (host)          ◄── postMessage ──►      MiniApp (iframe)
 
 ---
 
-_Обновлено: 2026-08-24 21:38 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

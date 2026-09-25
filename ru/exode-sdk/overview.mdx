@@ -3,12 +3,12 @@ title: 'Обзор'
 description: 'Exode SDK — пакет для интеграции с платформой Exode'
 ---
 
-`@exode-team/sdk` — официальный npm-пакет Exode, объединяющий два независимых модуля: серверный клиент для School API и клиентский bridge для встраиваемых мини-приложений (MiniApp).
+`@exode-team/sdk` — официальный npm-пакет Exode, объединяющий два независимых модуля: серверный клиент для School API и bridge для встраиваемых мини-приложений (MiniApp) — клиентскую часть для iframe и серверную для проверки подписей.
 
 <CardGroup cols={2}>
   <Card title="API Client" icon="plug" href="/ru/exode-sdk/api-client">
     Типизированный клиент для REST-эндпоинтов `/saas/v2/*`. Используется на сервере (Node.js) и покрывает
-    пользователей, группы, курсы, доступы, счета, формы и выгрузки.
+    пользователей, сотрудников (HR), группы, курсы, сертификаты, доступы, счета, формы и выгрузки.
   </Card>
 
   <Card title="MiniApp Bridge" icon="window-restore" href="/ru/exode-sdk/miniapp/introduction">
@@ -23,6 +23,7 @@ description: 'Exode SDK — пакет для интеграции с платф
 | `@exode-team/sdk/api` | Серверный клиент SaaS API | Node.js ≥18 |
 | `@exode-team/sdk/miniapp` | Bridge для iframe-миниприложений | Браузер |
 | `@exode-team/sdk/miniapp/react` | React-хуки поверх bridge | Браузер + React ≥17 |
+| `@exode-team/sdk/miniapp/server` | Проверка подписи [Init Data](/ru/exode-sdk/miniapp/init-data) и вебхуков (`verifyInitData`, `verifyWebhookSignature`) | Node.js ≥18 |
 
 <Info>
   Пакет разбит на независимые subpath-экспорты. Импортируйте только нужный модуль — tree-shaking уберёт остальное из бандла.
@@ -30,7 +31,7 @@ description: 'Exode SDK — пакет для интеграции с платф
 
 ## Текущая версия
 
-<Card title="npm: @exode-team/sdk@0.3.0" icon="box" href="https://www.npmjs.com/package/@exode-team/sdk">
+<Card title="npm: @exode-team/sdk@0.3.4" icon="box" href="https://www.npmjs.com/package/@exode-team/sdk">
   Актуальная опубликованная версия. Пакет находится в стадии активной разработки — следите за CHANGELOG.
 </Card>
 
@@ -55,7 +56,8 @@ description: 'Exode SDK — пакет для интеграции с платф
   </Step>
 
   <Step title="Выберите модуль">
-    - Серверная интеграция → [API Client](/ru/exode-sdk/api-client)
+    - Серверная интеграция → [API Client](/ru/exode-sdk/api-client). Токен, `Seller-Id` и `School-Id` берутся
+      в кабинете школы — см. [Работа с API](/ru/exode-api/setup)
     - Встраиваемое приложение внутри Exode → [MiniApp](/ru/exode-sdk/miniapp/introduction)
   </Step>
 
@@ -68,4 +70,4 @@ description: 'Exode SDK — пакет для интеграции с платф
 
 ---
 
-_Обновлено: 2026-08-14 09:48 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

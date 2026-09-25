@@ -3,7 +3,7 @@
 Self-contained reference for the `@exode-team/sdk` package. Feed it to an LLM so the model
 can write correct integration code for the Exode platform without extra context.
 
-Package version: **0.3.0**
+Package version: **0.3.4**
 Repository: https://github.com/exode-team/exode-sdk
 npm: https://www.npmjs.com/package/@exode-team/sdk
 
@@ -11,20 +11,27 @@ npm: https://www.npmjs.com/package/@exode-team/sdk
 
 ## 1. Package overview
 
-Official SDK for Exode (EdTech SaaS for online schools). Three independent subpath modules:
+Official SDK for Exode (EdTech SaaS for online schools). Four independent subpath modules:
 
 | Import | Purpose | Runtime |
 |--------|---------|---------|
 | `@exode-team/sdk/api` | Server-side REST client `ExodeAPI` for `/saas/v2/*` | Node.js >= 18 |
-| `@exode-team/sdk/miniapp` | Client-side bridge for iframe mini apps | Browser |
+| `@exode-team/sdk/miniapp` | Client-side bridge for iframe mini apps + `retrieveInitData()` | Browser |
 | `@exode-team/sdk/miniapp/react` | React hooks on top of the bridge | Browser + React >= 17 |
+| `@exode-team/sdk/miniapp/server` | `verifyInitData()`, `verifyWebhookSignature()` (uses Node `crypto`) | Node.js >= 18 |
 
 Requirements: Node.js >= 18; TypeScript >= 5.7 (optional, types ship with package);
 React >= 17 (optional peer dep, only for `miniapp/react`). Dependency: `zod@^4`.
 
-Install: `npm install @exode-team/sdk`. CDN (miniapp IIFE):
+Install: `npm install @exode-team/sdk`. CDN (miniapp IIFE, global `ExodeMiniAppSDK`):
+`<script src="https://static.exode.biz/sdk/v0.3.1/miniapp.global.js"></script>` (CDN versions may lag npm;
+`retrieveInitData` is in the CDN bundle since v0.3.1).
 
 No root export — always import from a specific subpath.
+
+Credentials for `ExodeAPI` (token, Seller-Id, School-Id) come from the school admin panel, API keys page
+(`/manage/school/api-keys`); every REST method requires a specific permission on the token — see
+https://docs.exode.biz/ru/exode-api/setup.
 
 ---
 
@@ -32,7 +39,8 @@ No root export — always import from a specific subpath.
 
 Server-side HTTP client for `/saas/v2/*` (server-only; never ship the token to the browser).
 Backend wraps every success response as `{ success, code, payload }` — the client unwraps `payload`
-automatically. All `/saas/v2/*` endpoints are mirrored 1:1 by the SDK.
+automatically. The `/saas/v2/*` endpoints are mirrored by typed methods (`exodeApi.request()` covers anything
+else). Known gap in 0.3.4 types: REST `user/create` also accepts `domain` and `password`, which `UserCreateInput` lacks.
 
 ### 2.1 Constructor
 
@@ -67,11 +75,13 @@ exodeApi.request<T>(method: string, path: string, options?: {
 ```ts
 import { UserStateKey } from '@exode-team/sdk/api'
 
-// create/update/find return the user object directly (or null)
+// create/update/find return the user object directly (or null/undefined)
 exodeApi.school.user.create(input: UserCreateInput): Promise<User | null>
 exodeApi.school.user.update(userId: number, input: UpdateUserInput): Promise<User | null>
+exodeApi.school.user.updateByExtId(extId: string, input: UpdateUserInput): Promise<User | null>
 exodeApi.school.user.upsert(input: UpdateUserInput): Promise<{ user: User; isCreated: boolean }>
 exodeApi.school.user.find(input: { login?: string; tgId?: number; extId?: string }): Promise<User | null>
+exodeApi.school.user.findMany(input: { logins?: string[]; tgIds?: number[]; extIds?: string[] }): Promise<User[]>  // max 250 per list; not found are omitted
 exodeApi.school.user.list(params?: FilterUserInput & SortUserInput & ListInput): Promise<PaginatedList<User>>
 exodeApi.school.user.deleteMany(userIds: number[], reason: string): Promise<{ deleted: number[]; skipped: number[] }>
 exodeApi.school.user.getState(userId: number, key: UserStateKey): Promise<unknown>
@@ -91,7 +101,9 @@ interface UserCreateInput {
     contact?: { phone?: string | null; email?: string | null; messengerUrl?: string | null }
   }
 }
-// UpdateUserInput = partial of the above (same shape, all optional).
+// UpdateUserInput = partial of the above (same shape, all optional) plus `domain?`, `extra?`.
+// Enum fields are TS string enums (UserStatus, ProfileRole, UserSexType, ...): in TypeScript pass
+// `UserStatus.Active` etc. — a plain string literal does not type-check. In JS strings are fine.
 // FilterUserInput: search?, statuses?[](Active|OnLeave|Banned|Blocked|Terminated|Deleted), activated?,
 //   archived?, userIds?[], extIds?[], createdAtDateRange?{from,to}, lastOnlineAtDateRange?{from,to}
 ```
@@ -104,6 +116,7 @@ for auto-login (canonical external sign-in, incl. Telegram Mini Apps).
 
 ```ts
 exodeApi.school.group.list(params?: FilterGroupInput & ListInput): Promise<PaginatedList<GroupSaasItem>>
+exodeApi.school.group.listMembers(params?: FilterMemberGroupInput & ListInput): Promise<PaginatedList<GroupMember>>
 exodeApi.school.group.addMembers(groupId: number, userIds: number[]):   // max 250
   Promise<{ exist: GroupMember[]; created: GroupMember[] }>
 exodeApi.school.group.removeMembers(groupId: number, userIds: number[]): Promise<{ affected: number }>  // max 250
@@ -118,9 +131,11 @@ exodeApi.school.course.progresses(courseId: number, params?: ListInput): Promise
 // CourseSaasItem: { courseId, name, type, groupIds[] }
 ```
 
-### 2.6 `school.invoice` and `school.productAccess`
+### 2.6 `school.invoice`, `school.productAccess`, `school.certificate`
 
 ```ts
+exodeApi.school.certificate.list(params?: FilterCertificateInput & ListInput): Promise<PaginatedList<Certificate>>
+// FilterCertificateInput: archived?, certificateIds?[], courseIds?[], groupIds?[], userIds?[], issuedAtDateRange?{from,to}
 exodeApi.school.invoice.list(params?: FilterInvoiceInput & ListInput): Promise<PaginatedList<InvoiceSaasItem>>
 exodeApi.school.productAccess.list(params?: FilterAccessProductInput & ListInput):
   Promise<PaginatedList<ProductAccessSaasItem>>
@@ -161,6 +176,20 @@ const { uuid } = await exodeApi.school.queryExport.generate({
 
 const result = await exodeApi.school.queryExport.getResult(uuid)
 // -> { total, completed, status, result? } | null ; result = { fileUrl, fileName, fileSize }
+// `result.result` is typed `unknown` — cast it; compare status with WorkflowExecutionStatus.Completed
+```
+
+### 2.8.1 `school.staff` (HR / org structure; Corporate-segment schools only)
+
+```ts
+exodeApi.school.staff.department.tree() / .list(params?) / .create(input) / .update(id, input)
+  / .updateByExtId(extId, input) / .delete(id) / .deleteByExtId(extId)
+exodeApi.school.staff.position.list(params?) / .create / .update / .updateByExtId / .delete / .deleteByExtId
+exodeApi.school.staff.employment.list(params?) / .hire(input) / .transfer(input) / .transferByExtId(extId, input)
+  / .promote(input) / .promoteByExtId(extId, input) / .terminate(input) / .terminateByExtId(extId, input?)
+exodeApi.school.staff.departmentManager.set(input) / .remove(managerId) / .removeByExtId(extId)
+exodeApi.school.staff.absence.list(params?) / .create / .update / .updateByExtId / .delete / .deleteByExtId
+// Input fields: https://docs.exode.biz/ru/exode-api/school/staff/department (and sibling pages)
 ```
 
 ```ts
@@ -237,28 +266,35 @@ export { ExodeAPI, ExodeAPIError }
 export type { ExodeAPIConfig, RequestOptions }
 // entity types (z.infer): User, UserBase, Profile, Session, Group, GroupMember, CourseProgress,
 //   FormLayout, FormFieldValue
-// output types (z.infer): UserOutput, UpsertUserOutput, SetUserStateOutput, GetUserStateOutput,
+// output types (z.infer): UserOutput, ListUserOutput, FindManyUserOutput, UpsertUserOutput, SetUserStateOutput, GetUserStateOutput,
 //   SessionAuthTokenOutput, DeleteManyUserOutput, GroupSaasOutput, ListGroupOutput,
 //   CreateManyMemberGroupOutput, CourseSaasOutput, ListCourseOutput, ListProgressCourseOutput,
 //   FormLayoutOutput, ListFormFieldValueOutput, FormFieldValuesOutput, InvoiceSaasOutput,
 //   ListInvoiceOutput, ProductAccessSaasOutput, ListProductAccessOutput, WorkflowExecutionOutput,
-//   ProgressWorkflowOutput, AffectedOutput
+//   ProgressWorkflowOutput, AffectedOutput, ListGroupMemberOutput, ListCertificateOutput, ListFormLayoutOutput,
+//   Staff*: StaffDepartmentOutput, StaffDepartmentTreeOutput, ListStaffDepartmentOutput, StaffPositionOutput,
+//   ListStaffPositionOutput, StaffEmploymentOutput, ListStaffEmploymentOutput, StaffDepartmentManagerOutput,
+//   StaffAbsenceOutput, ListStaffAbsenceOutput
 // input types (from shared codegen): ListInput, BaseSortInput, DateRangeInput, NumberRangeInput,
-//   UtmParamsInput, ProfileContactInput, UpdateProfileInput, UpdateUserInput, FilterGroupInput,
+//   UtmParamsInput, UtmParamsItemInput, ProfileContactInput, UpdateProfileInput, UpdateUserInput,
+//   FilterUserInput, SortUserInput, FilterGroupInput, FilterMemberGroupInput, FilterCertificateInput,
+//   FilterFormLayoutInput, staff Create*/Update*/Filter*/Hire*/Transfer*/Promote*/Terminate* inputs,
 //   FilterCourseInput, FilterProgressCourseInput, FilterInvoiceInput, FilterAccessProductInput,
 //   FilterFormFieldValueInput, CreateFormLayoutInput, UpdateFormLayoutInput, FormLayoutConfigInput,
 //   UpsertFormFieldValueInput
-// SDK-only input types: CreateProfileInput, UserCreateInput, UserFindInput, AuthTokenInput,
-//   GroupListParams, CourseListParams, FormFieldValueGetParams, SetCustomFieldValueInput,
+// SDK-only input types: CreateProfileInput, UserCreateInput, UserFindInput, UserFindManyInput, AuthTokenInput,
+//   UserListParams, GroupListParams, GroupMemberListParams, CourseListParams, CertificateListParams,
+//   FormLayoutListParams, Staff*ListParams, *ByExtIdEmploymentStaffInput, FormFieldValueGetParams, SetCustomFieldValueInput,
 //   UpsertFormFieldValueBySlugInput, SetCustomFieldValueBySlugInput, InvoiceListParams,
 //   ProductAccessListParams, QueryExportGenerateInput
 // NOTE: zod schemas themselves are NOT exported — there is no runtime validation in the client
 //   (the backend validates via @ZodResponse), so zod stays out of the runtime bundle.
-// enums: Language, ProfileRole, UserSexType, UserStateKey, AppServeDomain, AppServeProduct, CourseType,
+// enums: Language, ProfileRole, UserSexType, UserStateKey, UserStatus, AppServeDomain, AppServeProduct, CourseType,
 //   CourseParticipationType, CourseProgressLessonStatus, InvoiceType,
 //   InvoiceStatus, ProductCurrency, ProductBillingType, ProductAccessBillingStatus,
 //   ProductPriceBillingInterval, ProductParticipantStatus, FormLayoutMode, FormLayoutStatus,
 //   FormResubmitMode, GroupSpace, GroupTgConnectionMode, WorkflowExecutionStatus, WorkflowExecutionFlow,
+//   AbsenceType, EmploymentKind, EmploymentStatus, EmploymentType,
 //   SortDirection, QueryExportType, QueryExportFormat
 ```
 
@@ -277,9 +313,12 @@ class ExodeAPIError extends Error {
 ### 2.13 Typical scenario: auto-login a student
 
 ```ts
-const { user } = await exodeApi.school.user.upsert({ tgId: 123456789, profile: { firstName: 'Ivan', role: 'Student' } })
+import { ProfileRole } from '@exode-team/sdk/api'
+
+const { user } = await exodeApi.school.user.upsert({ tgId: 123456789, profile: { firstName: 'Ivan', role: ProfileRole.Student } })
 const { session } = await exodeApi.school.user.createAuthToken({ userId: user.id })
 const url = `https://my-school.exode.biz?___uat=${session.token}`
+// auth-token is refused for users holding any admin-panel permission (admins/managers) — students only
 ```
 
 ---
@@ -294,26 +333,30 @@ Client SDK for apps embedded in an iframe inside the Exode host app. Two-way `po
 import { ExodeMiniApp } from '@exode-team/sdk/miniapp'
 
 interface ExodeMiniAppConfig {
-  appId: string              // required; validated by the host during handshake
-  targetOrigin?: string      // default '*'; in production pin the exact Exode origin
+  appId: string              // required; any string for school custom pages (host trusts the iframe URL origin)
+  targetOrigin?: string      // origin of the school page, e.g. 'https://my-school.exode.biz'; default '*' (logs a warning)
   timeout?: number           // ms, default 10000
 }
 
-const app = new ExodeMiniApp({ appId: 'my-app' })
+const app = new ExodeMiniApp({ appId: 'my-app', targetOrigin: 'https://my-school.exode.biz' })
 const ctx: MiniAppContext = await app.init()   // must run inside an iframe; calling init() twice throws
+// ctx.user.id === 0 for an unauthenticated visitor; ctx is unsigned — for trusted identity use initData (3.5)
 ```
 
 ### 3.2 Commands (MiniApp -> Host)
 
 ```ts
 await app.route.navigate(path: string, params?: Record<string, string>)
+// path is a platform ROUTE TEMPLATE, not a URL: navigate('/course/:courseId([0-9_A-Za-z]+)', { courseId: '123' })
 await app.route.back()
 await app.ui.showSnackbar({ message: string, type?: 'success' | 'error' | 'info' })
 await app.ui.setTabbarVisible(visible: boolean)
-await app.ui.setHeaderVisible(visible: boolean)
+await app.ui.setHeaderVisible(visible: boolean)  // currently no effect on school custom pages
 await app.ui.minimize()  // window-type pages only ('Floating' | 'Panel'); no-op for 'Page'
 await app.ui.close()
 // throw 'ExodeMiniApp is not initialized' if called before init()
+// the host acks every command, so a resolved promise does not guarantee a visible effect;
+// navigate / back / setTabbarVisible are ignored while the app is hidden
 ```
 
 ### 3.3 Events (Host -> MiniApp)
@@ -321,7 +364,8 @@ await app.ui.close()
 ```ts
 const off = app.on('theme:changed', (theme) => { document.body.className = theme.scheme })
 off()  // unsubscribe
-app.getContext()  // MiniAppContext | null
+app.getContext()  // MiniAppContext | null — handshake context patched ONLY by 'context:updated';
+                  // theme/user/school/config events do NOT update it — track them via app.on()
 app.destroy()
 ```
 
@@ -331,14 +375,14 @@ app.destroy()
 | `user:updated` | `MiniAppUser` |
 | `school:updated` | `Record<string, unknown>` |
 | `config:updated` | `MiniAppConfig` |
-| `route:changed` | `{ path: string; params: Record<string, string> }` |
-| `context:updated` | `Partial<MiniAppContext>` (auto-merged into cache) |
+| `route:changed` | `{ path: string; params: Record<string, string> }` (path = route template) |
+| `context:updated` | `Partial<MiniAppContext>` (auto-merged into cache; current host does not emit it) |
 | `visibility:changed` | `{ visible: boolean }` |
 
 ### 3.4 Types
 
 ```ts
-type Platform = 'web' | 'native'
+type Platform = 'web' | 'native'   // not exported — use MiniAppContext['platform']
 interface MiniAppContext { user: MiniAppUser; school: Record<string, unknown>; theme: MiniAppTheme; platform: Platform; config: MiniAppConfig }
 interface MiniAppUser { id: number; uuid: string | null; firstName: string | null; lastName: string | null
   avatar: { id: number; small: string | null; medium: string | null; maximum: string | null } | null
@@ -346,6 +390,33 @@ interface MiniAppUser { id: number; uuid: string | null; firstName: string | nul
 interface MiniAppTheme { scheme: 'light' | 'dark' }
 interface MiniAppConfig { isDesktop: boolean; isMobile: boolean; language: string }
 ```
+
+### 3.5 Init Data (signed identity) and server helpers (`@exode-team/sdk/miniapp/server`)
+
+The host opens a school custom page iframe as `https://<app>/#exodeInitData=<urlencoded string>`.
+
+```ts
+// Browser
+import { retrieveInitData } from '@exode-team/sdk/miniapp'
+const initData = retrieveInitData()  // string | null; read once, removed from the address bar, cached
+
+// Server (Node.js)
+import { verifyInitData, verifyWebhookSignature } from '@exode-team/sdk/miniapp/server'
+
+const payload = verifyInitData(initData, { secret: process.env.EXODE_PAGE_SECRET!, maxAgeSec: 86_400 })
+// -> { pageId: number; schoolId: number | null; authDate: number;
+//      user: { id; firstName; lastName; avatar: string | null; language } | null }  // null = unauth visitor
+// throws Error on bad signature / missing hash / expired auth_date
+
+const ok: boolean = verifyWebhookSignature(rawBody, { secret: process.env.EXODE_WEBHOOK_SECRET!, signature: req.headers['signature'] })
+// rawBody = the RAW request body string; never throws
+```
+
+Signature: `data_check_string` = all fields except `hash`, sorted by key, `key=value` joined by `\n`
+(values URL-decoded, `+` = space); `secret_key = HMAC_SHA256(key='ExodeMiniApp', msg=pageSecret)`;
+`hash = hex(HMAC_SHA256(key=secret_key, msg=data_check_string))`. Fields: `page_id`, `school_id`, `auth_date`,
+plus `user` (JSON) and `session_uuid` for logged-in users; more may be added. Page secret: admin panel
+«Приложения и страницы» → page menu → «Показать секрет».
 
 ---
 
@@ -363,9 +434,9 @@ import { ExodeMiniAppProvider } from '@exode-team/sdk/miniapp/react'
 ```
 
 ```ts
-useExodeApp():        { app: ExodeMiniApp | null; isReady: boolean; error: Error | null }
-useExodeUser():       { user: MiniAppUser | null; isLoggedIn: boolean }
-useExodeTheme():      { scheme: 'light' | 'dark'; isDark: boolean }
+useExodeApp():        { app: ExodeMiniApp; isReady: boolean; error: Error | null }
+useExodeUser():       { user: MiniAppUser | null; isLoggedIn: boolean }   // isLoggedIn = user.id > 0
+useExodeTheme():      { scheme: 'light' | 'dark'; isDark: boolean; isReady: boolean }
 useExodeSchool():     { school: Record<string, unknown> | null }
 useExodeConfig():     { isDesktop: boolean; isMobile: boolean; language: string; platform: Platform }
 useExodeNavigation(): { navigate: (path, params?) => Promise<void>; back: () => Promise<void> }
@@ -375,7 +446,8 @@ useExodeInitData():   { initData: string | null }
 ```
 
 All hooks must be used inside `<ExodeMiniAppProvider>` — except `useExodeInitData`, which reads the
-address fragment and needs no provider. `user` is `null` until handshake — guard with `isLoggedIn`.
+address fragment and needs no provider. `user` is `null` until handshake (only visible with
+`renderMode: 'immediate'`); an unauthenticated visitor gets `user.id === 0` — guard with `isLoggedIn`.
 
 ---
 
@@ -391,10 +463,14 @@ address fragment and needs no provider. `user` is `null` until handshake — gua
 | Export data | `@exode-team/sdk/api` | `queryExport.generate` + `getResult` |
 | Widget embedded in Exode | `@exode-team/sdk/miniapp` | `new ExodeMiniApp({ appId })` |
 | Same, with React | `@exode-team/sdk/miniapp/react` | `<ExodeMiniAppProvider>` + hooks |
+| Trust the mini app user on your server | `@exode-team/sdk/miniapp/server` | `verifyInitData(initData, { secret })` |
+| Verify an Exode webhook | `@exode-team/sdk/miniapp/server` | `verifyWebhookSignature(rawBody, { secret, signature })` |
 
 ## 6. Pitfalls
 
-- Do not import `@exode-team/sdk/api` in browser code — the token will leak.
+- Do not import `@exode-team/sdk/api` or `@exode-team/sdk/miniapp/server` in browser code — the token/secret will leak.
+- Never trust `ctx.user` from the bridge on the backend — verify initData server-side.
+- TS enums: pass `UserStatus.Active`, `CourseType.VideoCourse`, ... — string literals do not type-check.
 - `create`/`update`/`find` return the user object directly (or `null`); `upsert` returns `{ user, isCreated }`.
 - `queryExport.generate` takes `{ type, variables, format? }` — filters go inside `variables` (e.g. `{ filter: {...} }`).
 - `QueryExportType` / `QueryExportFormat` are prefixed enums — do not pass raw strings without the prefix.

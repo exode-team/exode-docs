@@ -18,7 +18,7 @@ import { ExodeMiniAppProvider } from '@exode-team/sdk/miniapp/react'
 
 function App() {
   return (
-    <ExodeMiniAppProvider config={{ appId: 'my-app' }}>
+    <ExodeMiniAppProvider config={{ appId: 'my-app', targetOrigin: 'https://my-school.exode.biz' }}>
       <MyApp />
     </ExodeMiniAppProvider>
   )
@@ -28,11 +28,12 @@ function App() {
 ### Параметры
 
 <ResponseField name="config" type="ExodeMiniAppProviderConfig" required>
-  Конфигурация клиента: `appId`, `targetOrigin?`, `timeout?` плюс `renderMode?`.
+  Конфигурация клиента: `appId`, `targetOrigin?`, `timeout?` (см. [параметры `ExodeMiniApp`](/ru/exode-sdk/miniapp/client#параметры-конфигурации)) плюс `renderMode?`.
 
   <Expandable title="renderMode">
     Режим рендеринга детей:
-    - `'defer'` (по умолчанию) — дети монтируются только после handshake (обратная совместимость).
+    - `'defer'` (по умолчанию) — дети монтируются только после завершения handshake (успешного или с ошибкой);
+      до этого провайдер рендерит `null`.
     - `'immediate'` — дети монтируются с первого рендера (в т.ч. при SSR); до готовности хуки возвращают
       значения по умолчанию (`scheme: 'light'`, `user: null` и т.п.).
   </Expandable>
@@ -55,13 +56,20 @@ function Status() {
 
 | Поле | Тип | Описание |
 |------|-----|----------|
-| `app` | `ExodeMiniApp \| null` | Экземпляр клиента (или `null` до handshake) |
+| `app` | `ExodeMiniApp` | Экземпляр клиента (создаётся при первом рендере провайдера, до handshake) |
 | `isReady` | `boolean` | Handshake завершён |
-| `error` | `Error \| null` | Ошибка инициализации |
+| `error` | `Error \| null` | Ошибка инициализации (например, приложение открыто не в iframe или хост не ответил за `timeout`) |
+
+<Note>
+  В режиме `renderMode: 'defer'` (по умолчанию) дети провайдера не монтируются, пока идёт handshake, поэтому
+  ветка «Соединение с Exode...» из примера выше не отрисуется. Чтобы показывать состояние загрузки, используйте
+  `renderMode: 'immediate'`.
+</Note>
 
 ## useExodeUser
 
-Текущий пользователь. Обновляется на событии `user:updated`.
+Текущий пользователь. Обновляется на событии `user:updated`. `isLoggedIn` — `true`, если `user.id > 0`;
+для неавторизованного посетителя страницы хост передаёт `user.id === 0`.
 
 ```jsx
 function Greeting() {
@@ -69,13 +77,13 @@ function Greeting() {
 
   if (!isLoggedIn) return <div>Не авторизован</div>
 
-  return <div>Привет, {user.firstName}</div>
+  return <div>Привет, {user?.firstName}</div>
 }
 ```
 
 ## useExodeTheme
 
-Текущая тема. Обновляется на событии `theme:changed`.
+Текущая тема. Обновляется на событии `theme:changed`. Также возвращает `isReady` — получена ли тема от хоста.
 
 ```jsx
 function ThemedBox() {
@@ -97,7 +105,7 @@ function ThemedBox() {
 function SchoolInfo() {
   const { school } = useExodeSchool()
 
-  return <div>{school?.name as string}</div>
+  return <div>{String(school?.name ?? '')}</div>
 }
 ```
 
@@ -119,7 +127,8 @@ function Layout({ children }) {
 
 ## useExodeNavigation
 
-Команды навигации основного приложения.
+Команды навигации основного приложения. `navigate(path, params)` принимает шаблон маршрута и параметры —
+см. раздел «Навигация» в [Клиент ExodeMiniApp](/ru/exode-sdk/miniapp/client).
 
 ```jsx
 function NavButtons() {
@@ -127,7 +136,7 @@ function NavButtons() {
 
   return (
     <>
-      <button onClick={() => navigate('/course/123', { tab: 'lessons' })}>
+      <button onClick={() => navigate('/course/:courseId([0-9_A-Za-z]+)', { courseId: '123' })}>
         Открыть курс
       </button>
       <button onClick={() => back()}>Назад</button>
@@ -160,7 +169,7 @@ function Controls() {
 <Note>
   `minimize` работает только для страниц с типом окна «Плавающее окно» или «Панель справа»
   (см. [Кастомные страницы](/ru/customization/custom-pages)). Отследить сворачивание можно
-  хуком `useExodeVisibility`.
+  хуком `useExodeVisibility`. `setHeaderVisible` на кастомных страницах пока ничего не меняет.
 </Note>
 
 ## useExodeVisibility
@@ -170,6 +179,8 @@ function Controls() {
 хук, чтобы останавливать опросы, видео и анимации в фоне.
 
 ```jsx
+import { useEffect } from 'react'
+
 function Poller() {
   const { visible } = useExodeVisibility()
 
@@ -185,10 +196,34 @@ function Poller() {
 }
 ```
 
+## useExodeInitData
+
+Подписанная строка [Init Data](/ru/exode-sdk/miniapp/init-data) из адреса iframe (`#exodeInitData=...`).
+Значение читается один раз, удаляется из адресной строки и кэшируется. Провайдер для этого хука не нужен.
+Отправьте строку на свой бэкенд и проверьте её там функцией `verifyInitData` — в браузере ей доверять нельзя.
+
+```jsx
+import { useEffect } from 'react'
+import { useExodeInitData } from '@exode-team/sdk/miniapp/react'
+
+function Session() {
+  const { initData } = useExodeInitData() // string | null — null when opened outside Exode
+
+  useEffect(() => {
+    if (!initData) return
+
+    fetch('/api/session', { method: 'POST', headers: { 'X-Exode-Init-Data': initData } })
+  }, [ initData ])
+
+  return null
+}
+```
+
 ## Требования
 
 <Warning>
-  Все хуки работают только внутри `<ExodeMiniAppProvider>`. Вызов за его пределами выбросит ошибку.
+  Все хуки, кроме `useExodeInitData`, работают только внутри `<ExodeMiniAppProvider>`. Вызов за его пределами
+  выбросит ошибку.
 </Warning>
 
 ## Полный пример
@@ -213,7 +248,7 @@ function Content() {
 
   return (
     <div data-theme={isDark ? 'dark' : 'light'}>
-      <h1>Привет, {user.firstName}</h1>
+      <h1>Привет, {user?.firstName ?? 'гость'}</h1>
       <button onClick={() => showSnackbar({ message: 'Привет!', type: 'info' })}>
         Показать уведомление
       </button>
@@ -223,7 +258,7 @@ function Content() {
 
 export default function App() {
   return (
-    <ExodeMiniAppProvider config={{ appId: 'my-app' }}>
+    <ExodeMiniAppProvider config={{ appId: 'my-app', renderMode: 'immediate' }}>
       <Content />
     </ExodeMiniAppProvider>
   )
@@ -234,4 +269,4 @@ export default function App() {
 
 ---
 
-_Обновлено: 2026-08-24 16:34 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

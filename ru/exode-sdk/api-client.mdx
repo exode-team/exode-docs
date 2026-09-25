@@ -3,9 +3,9 @@ title: 'API Client'
 description: 'Серверный клиент ExodeAPI для работы с SaaS API'
 ---
 
-`ExodeAPI` — типизированный HTTP-клиент, покрывающий эндпоинты `/saas/v2/*`. Предназначен для сервера (Node.js),
-инкапсулирует аутентификацию, сериализацию query/тела, обработку ошибок и (опционально) валидацию ответов по
-zod-схемам.
+`ExodeAPI` — типизированный HTTP-клиент, покрывающий эндпоинты `/saas/v2/*`. Предназначен для сервера (Node.js ≥ 18,
+использует встроенный `fetch`), берёт на себя аутентификацию, сериализацию query и тела запроса, распаковку
+ответа (`payload`) и обработку ошибок.
 
 <Info>
   Полная REST-спецификация (request/response, коды ошибок) — в разделе [Exode API](/ru/exode-api/setup).
@@ -14,12 +14,16 @@ zod-схемам.
 
 ## Инициализация
 
+Для подключения нужны три значения: API-токен, `sellerId` и `schoolId`. Все три выдаются в кабинете школы на
+странице API-ключей — пошагово это описано в разделе [Работа с API](/ru/exode-api/setup). Там же настраиваются
+права токена: каждому методу нужно своё право (указано на странице метода в разделе Exode API).
+
 ```ts
 import { ExodeAPI } from '@exode-team/sdk/api'
 
 const exodeApi = new ExodeAPI({
-  sellerId: 1,
-  schoolId: 1,
+  sellerId: Number(process.env.EXODE_SELLER_ID),
+  schoolId: Number(process.env.EXODE_SCHOOL_ID),
   token: process.env.EXODE_TOKEN!,
   baseUrl: 'https://api.exode.biz/saas/v2', // default
   timeout: 30_000,                           // default 30s
@@ -55,12 +59,14 @@ const exodeApi = new ExodeAPI({
 
 ## Доступные ресурсы
 
-Клиент предоставляет namespace `school` с семью ресурсами:
+Клиент предоставляет namespace `school` с девятью ресурсами:
 
 <CardGroup cols={2}>
-  <Card title="school.user" icon="user">CRUD пользователей, состояние (state), удаление, токены авторизации.</Card>
-  <Card title="school.group" icon="users">Список групп, массовое добавление/удаление участников.</Card>
+  <Card title="school.user" icon="user">CRUD пользователей, поиск, состояние (state), удаление, токены авторизации.</Card>
+  <Card title="school.staff" icon="sitemap">Оргструктура (HR): подразделения, должности, трудоустройства, руководители, отсутствия.</Card>
+  <Card title="school.group" icon="users">Списки групп и участников, массовое добавление/удаление участников.</Card>
   <Card title="school.course" icon="graduation-cap">Список курсов и прогресс участников по курсу.</Card>
+  <Card title="school.certificate" icon="award">Список выданных сертификатов.</Card>
   <Card title="school.productAccess" icon="box">Список доступов к продуктам.</Card>
   <Card title="school.invoice" icon="receipt">Список счетов.</Card>
   <Card title="school.form" icon="list-check">Макеты форм и значения кастомных полей.</Card>
@@ -70,16 +76,21 @@ const exodeApi = new ExodeAPI({
 ## Пользователи (`school.user`)
 
 ```ts
-import { UserStateKey } from '@exode-team/sdk/api'
+import { ProfileRole, UserStateKey, UserStatus } from '@exode-team/sdk/api'
 
 // Create — returns the user object (or null)
 const user = await exodeApi.school.user.create({
   email: 'student@example.com',
-  profile: { firstName: 'John', role: 'Student' },
+  profile: { firstName: 'John', role: ProfileRole.Student },
 })
+
+if (!user) throw new Error('User was not created')
 
 // Update — returns the user
 await exodeApi.school.user.update(user.id, { profile: { lastName: 'Smith' } })
+
+// Update by external id (extId from your CRM/LMS)
+await exodeApi.school.user.updateByExtId('crm_12345', { profile: { lastName: 'Smith' } })
 
 // Upsert (create or update by email/phone/tgId/extId)
 const { user: u, isCreated } = await exodeApi.school.user.upsert({
@@ -87,15 +98,21 @@ const { user: u, isCreated } = await exodeApi.school.user.upsert({
   profile: { firstName: 'John' },
 })
 
-// Find — exactly one of login | tgId | extId
+// Find — exactly one of login | tgId | extId; returns the user or null
 const found = await exodeApi.school.user.find({ login: 'student@example.com' })
 
+// Find many — lists of logins / tgIds / extIds (≤250 each); not found ones are omitted
+const users = await exodeApi.school.user.findMany({ extIds: ['crm_12345', 'crm_67890'] })
+
 // List — filter (statuses/search/extIds/date ranges) + sort + pagination
-const { items } = await exodeApi.school.user.list({ statuses: ['Active', 'OnLeave'], take: 50 })
+const { items } = await exodeApi.school.user.list({
+  statuses: [UserStatus.Active, UserStatus.OnLeave],
+  take: 50,
+})
 
 // Ban / unban — via status (the `banned` flag was removed from the API)
-await exodeApi.school.user.update(user.id, { status: 'Banned' })
-await exodeApi.school.user.update(user.id, { status: 'Active' }) // фактический статус пересчитается сам
+await exodeApi.school.user.update(user.id, { status: UserStatus.Banned })
+await exodeApi.school.user.update(user.id, { status: UserStatus.Active }) // фактический статус пересчитается сам
 
 // Delete (≤250 at a time) — { deleted, skipped }
 const { deleted, skipped } = await exodeApi.school.user.deleteMany([1, 2, 3], 'Access revocation')
@@ -114,11 +131,52 @@ const { session } = await exodeApi.school.user.createAuthToken({ userId: user.id
   [Интеграция с Telegram Mini App](/ru/customization/tg-mini-app).
 </Tip>
 
+<Info>
+  Enum-параметры (`UserStatus`, `ProfileRole`, `CourseType` и др.) в TypeScript передавайте через
+  экспортируемые enum'ы: это строковые enum'ы, и строковый литерал вроде `'Active'` типизацию не пройдёт.
+  В JavaScript можно передавать строки напрямую — значения совпадают с именами (`UserStatus.Active === 'Active'`).
+</Info>
+
+## Сотрудники (`school.staff`)
+
+Оргструктура для HR-интеграций (1С, HRM): подразделения, должности, трудоустройства, руководители подразделений
+и отсутствия. У большинства методов есть варианты `...ByExtId` — для синхронизации по вашему внешнему идентификатору.
+Методы доступны только школам корпоративного сегмента (`Corporate`).
+
+```ts
+import { AbsenceType, EmploymentType } from '@exode-team/sdk/api'
+
+const tree = await exodeApi.school.staff.department.tree()
+
+const department = await exodeApi.school.staff.department.create({ name: 'Engineering', extId: 'dep_engineering' })
+const position = await exodeApi.school.staff.position.create({ name: 'Backend Developer' })
+
+const employment = await exodeApi.school.staff.employment.hire({
+  userId: 123,
+  departmentId: department.id,
+  positionId: position.id,
+  type: EmploymentType.FullTime,
+})
+
+await exodeApi.school.staff.departmentManager.set({ departmentId: department.id, employmentId: employment.id })
+
+await exodeApi.school.staff.absence.create({
+  employmentId: employment.id,
+  type: AbsenceType.Vacation,
+  startAt: '2026-08-01',
+})
+```
+
+Полный список методов и полей — в разделе [Сотрудники](/ru/exode-api/school/staff/department) Exode API.
+
 ## Группы (`school.group`)
 
 ```ts
 // List groups (filter + pagination)
 const { items } = await exodeApi.school.group.list({ courseIds: [10], take: 50 })
+
+// List group members (filter + pagination)
+const members = await exodeApi.school.group.listMembers({ groupIds: [42], active: true, take: 100 })
 
 // Add members (≤250) — { exist, created }
 await exodeApi.school.group.addMembers(groupId, [1, 2, 3])
@@ -130,11 +188,23 @@ await exodeApi.school.group.removeMembers(groupId, [1])
 ## Курсы (`school.course`)
 
 ```ts
+import { CourseType } from '@exode-team/sdk/api'
+
 // List courses
-const { items } = await exodeApi.school.course.list({ types: ['VideoCourse'], take: 20 })
+const { items } = await exodeApi.school.course.list({ types: [CourseType.VideoCourse], take: 20 })
 
 // Course members' progress (pagination)
 const progress = await exodeApi.school.course.progresses(courseId, { take: 100 })
+```
+
+## Сертификаты (`school.certificate`)
+
+```ts
+const { items } = await exodeApi.school.certificate.list({
+  courseIds: [10],
+  issuedAtDateRange: { from: '2026-01-01' },
+  take: 50,
+})
 ```
 
 ## Доступы к продуктам (`school.productAccess`)
@@ -146,16 +216,20 @@ const { items } = await exodeApi.school.productAccess.list({ active: true, take:
 ## Счета (`school.invoice`)
 
 ```ts
-const { items } = await exodeApi.school.invoice.list({ types: ['Regular'], take: 50 })
+import { InvoiceType } from '@exode-team/sdk/api'
+
+const { items } = await exodeApi.school.invoice.list({ types: [InvoiceType.Regular], take: 50 })
 ```
 
 ## Формы (`school.form`)
 
 ```ts
+import { FormLayoutMode, FormLayoutStatus } from '@exode-team/sdk/api'
+
 // Form layouts
-const { items: layouts } = await exodeApi.school.form.layoutList({ modes: ['Signup'], take: 20 })
-const layout = await exodeApi.school.form.layoutCreate({ mode: 'Custom', name: 'Survey', internalName: 'survey' })
-await exodeApi.school.form.layoutUpdate(layout.id, { status: 'Published' })
+const { items: layouts } = await exodeApi.school.form.layoutList({ modes: [FormLayoutMode.Signup], take: 20 })
+const layout = await exodeApi.school.form.layoutCreate({ mode: FormLayoutMode.Custom, name: 'Survey', internalName: 'survey' })
+await exodeApi.school.form.layoutUpdate(layout.id, { status: FormLayoutStatus.Published })
 await exodeApi.school.form.layoutDelete(layout.id) // → { affected }
 
 // Custom field values
@@ -181,7 +255,7 @@ await exodeApi.school.form.customFieldValueSet({
 Выгрузки работают асинхронно: генерация запускает workflow, результат опрашивается по UUID.
 
 ```ts
-import { QueryExportType, QueryExportFormat } from '@exode-team/sdk/api'
+import { QueryExportType, QueryExportFormat, WorkflowExecutionStatus } from '@exode-team/sdk/api'
 
 // 1. Start — returns { uuid, status, ... }
 const { uuid } = await exodeApi.school.queryExport.generate({
@@ -190,11 +264,14 @@ const { uuid } = await exodeApi.school.queryExport.generate({
   variables: { filter: { groupIds: [42] } },
 })
 
-// 2. Poll for result (repeat until status becomes Completed/Failed)
+// 2. Poll for result (repeat until status becomes Completed/Failed; null — not found yet)
 const result = await exodeApi.school.queryExport.getResult(uuid)
 
-if (result?.status === 'Completed') {
-  console.log('File:', result.result?.fileUrl)
+if (result?.status === WorkflowExecutionStatus.Completed) {
+  // `result.result` is typed as unknown — cast it to the documented shape
+  const file = result.result as { fileUrl: string; fileName: string; fileSize: number }
+
+  console.log('File:', file.fileUrl)
 }
 ```
 
@@ -257,4 +334,4 @@ try {
 
 ---
 
-_Обновлено: 2026-08-15 16:55 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

@@ -39,13 +39,20 @@ pnpm add @exode-team/sdk
 
 ## Импорты
 
-У пакета три subpath-экспорта — импортируйте только нужный:
+У пакета четыре subpath-экспорта — импортируйте только нужный:
 
 ```ts
-import { ExodeAPI }        from '@exode-team/sdk/api'
-import { ExodeMiniApp }    from '@exode-team/sdk/miniapp'
-import { useExodeUser }    from '@exode-team/sdk/miniapp/react'
+import { ExodeAPI }        from '@exode-team/sdk/api'             // сервер (Node.js)
+import { ExodeMiniApp }    from '@exode-team/sdk/miniapp'         // браузер, внутри iframe
+import { useExodeUser }    from '@exode-team/sdk/miniapp/react'   // браузер + React
+import { verifyInitData }  from '@exode-team/sdk/miniapp/server'  // сервер (Node.js)
 ```
+
+<Warning>
+  `@exode-team/sdk/api` и `@exode-team/sdk/miniapp/server` предназначены только для сервера: первый работает
+  с API-токеном школы, второй — с секретом страницы и использует модуль `crypto` из Node.js. Не импортируйте их
+  в клиентский бандл.
+</Warning>
 
 <Warning>
   Не импортируйте из корня (`@exode-team/sdk`) — корневой экспорт не определён, чтобы избежать случайной загрузки серверного и клиентского кода в одном бандле.
@@ -53,13 +60,15 @@ import { useExodeUser }    from '@exode-team/sdk/miniapp/react'
 
 ## Подключение через CDN
 
-Для статических страниц без сборки доступен IIFE-бандл MiniApp-модуля:
+Для статических страниц без сборки доступен IIFE-бандл MiniApp-модуля (`ExodeMiniApp`, `retrieveInitData`).
+React-хуки и серверные функции через CDN не поставляются.
+
 
 <CodeGroup>
 
 ```html Конкретная версия (рекомендуется)
 
-<script src="https://static.exode.biz/sdk/v0.3.0/miniapp.global.js"></script>
+<script src="https://static.exode.biz/sdk/v0.3.1/miniapp.global.js"></script>
 
 ```
 
@@ -81,11 +90,16 @@ import { useExodeUser }    from '@exode-team/sdk/miniapp/react'
   app.init().then((ctx) => {
     console.log('User:', ctx.user.firstName)
   })
+
+  // Подписанные данные пользователя для вашего бэкенда (см. раздел Init Data)
+  const initData = ExodeMiniAppSDK.retrieveInitData()
 </script>
 ```
 
 <Info>
-  В продакшене всегда фиксируйте версию (`v0.2.0`, `v0.3.0` и т. д.). Тег `latest` обновляется автоматически и может внести ломающие изменения.
+  В продакшене всегда фиксируйте версию (`v0.3.0`, `v0.3.1` и т. д.). Тег `latest` обновляется автоматически и может внести ломающие изменения.
+  `retrieveInitData` есть в CDN-бандле начиная с `v0.3.1`. Номера версий на CDN могут отставать от npm — если нужной
+  версии нет на CDN, используйте установку через npm.
 </Info>
 
 ## TypeScript
@@ -93,17 +107,22 @@ import { useExodeUser }    from '@exode-team/sdk/miniapp/react'
 Типы поставляются вместе с пакетом, дополнительный `@types/...` не требуется.
 
 ```ts
+import type { ExodeAPIConfig, User } from '@exode-team/sdk/api'
+
 import type {
-  ExodeAPIConfig,
   ExodeMiniAppConfig,
   MiniAppContext,
   MiniAppUser,
-  Platform,
 } from '@exode-team/sdk/miniapp'
+
+import type { InitDataPayload } from '@exode-team/sdk/miniapp/server'
+
+// Тип Platform отдельно не экспортируется — берите его из контекста:
+type Platform = MiniAppContext['platform'] // 'web' | 'native'
 ```
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-08-14 09:48 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

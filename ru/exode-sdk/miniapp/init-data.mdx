@@ -20,7 +20,11 @@ description: 'Подписанные данные пользователя: по
 3. Бэкенд проверяет подпись секретом страницы (`verifyInitData`) и получает данные пользователя.
 
 Секрет страницы выдаётся в админке школы («Школа» → «Кастомизация» → «Приложения и страницы»,
-меню страницы → «Секрет страницы») и хранится **только на вашем сервере**.
+меню страницы «⋯» → «Показать секрет») и хранится **только на вашем сервере**. У каждой страницы свой секрет.
+
+<Info>
+  `retrieveInitData`, `useExodeInitData` и `verifyInitData` доступны в `@exode-team/sdk` начиная с версии `0.3.1`.
+</Info>
 
 ## В мини-приложении (браузер)
 
@@ -28,7 +32,8 @@ description: 'Подписанные данные пользователя: по
 import { retrieveInitData } from '@exode-team/sdk/miniapp'
 
 const initData = retrieveInitData()
-// строка вида "auth_date=…&page_id=…&school_id=…&user=…&hash=…"
+// строка вида "page_id=…&school_id=…&auth_date=…&user=…&session_uuid=…&hash=…"
+// null — если страница открыта не из Exode (во fragment нет exodeInitData)
 
 await fetch('/api/session', {
   method: 'POST',
@@ -38,12 +43,17 @@ await fetch('/api/session', {
 
 `retrieveInitData` читает fragment один раз, очищает его из адресной строки
 (чтобы подписанные данные не утекали при копировании ссылки) и кэширует значение.
+В React используйте хук [`useExodeInitData`](/ru/exode-sdk/miniapp/react#useexodeinitdata) — он работает так же и не требует провайдера.
+
+Поля `user` и `session_uuid` есть только у авторизованного пользователя. Набор полей может расширяться — при
+проверке подписи учитывайте все поля, кроме `hash`.
 
 ## На вашем сервере (Node.js)
 
 ```ts
 import { verifyInitData } from '@exode-team/sdk/miniapp/server'
 
+// initData — строка, которую прислал браузер (в примере выше — заголовок X-Exode-Init-Data)
 const payload = verifyInitData(initData, {
   secret: process.env.EXODE_PAGE_SECRET!,
   maxAgeSec: 86_400, // окно валидности auth_date, по умолчанию 24 часа
@@ -52,10 +62,11 @@ const payload = verifyInitData(initData, {
 payload.pageId    // id страницы
 payload.schoolId  // id школы
 payload.authDate  // unix-секунды выпуска
-payload.user      // { id, firstName, lastName, avatar, language } | null для гостя
+payload.user      // { id, firstName, lastName, avatar, language } | null для гостя; avatar — URL или null
 ```
 
-При невалидной подписи, чужом секрете или протухшей `auth_date` функция бросает исключение.
+При невалидной подписи, чужом секрете или протухшей `auth_date` функция бросает исключение (`Error`) —
+перехватите его и ответьте `401`.
 
 ## Формат подписи
 
@@ -68,14 +79,19 @@ secret_key = HMAC_SHA256(key = "ExodeMiniApp", message = секрет_стран
 hash       = hex( HMAC_SHA256(key = secret_key, message = data_check_string) )
 ```
 
+Строка initData закодирована как `application/x-www-form-urlencoded`: при декодировании `+` означает пробел.
+Используйте стандартный парсер query-строк своего языка, а не ручной `split`. Секрет страницы используется
+как есть — это строка, декодировать её (hex/base64) не нужно. После проверки подписи сравните `auth_date`
+(unix-время в секундах) с текущим временем, чтобы отбросить устаревшие данные.
+
 Пример на Node.js без SDK:
 
 ```js
 const crypto = require('crypto')
 
-function verify(initData, secret) {
+function verify(initData, secret, maxAgeSec = 86400) {
   const params = new URLSearchParams(initData)
-  const hash = params.get('hash')
+  const hash = params.get('hash') ?? ''
 
   params.delete('hash')
 
@@ -86,7 +102,12 @@ function verify(initData, secret) {
   const secretKey = crypto.createHmac('sha256', 'ExodeMiniApp').update(secret).digest()
   const check = crypto.createHmac('sha256', secretKey).update(dcs).digest('hex')
 
-  return check === hash
+  const valid = hash.length === check.length
+    && crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(check))
+
+  const age = Math.floor(Date.now() / 1000) - Number(params.get('auth_date'))
+
+  return valid && age <= maxAgeSec
 }
 ```
 
@@ -98,10 +119,11 @@ function verify(initData, secret) {
   это гарантирует, что приложение встроено именно в Exode.
 - Передавайте `targetOrigin` в конструктор `ExodeMiniApp` — origin страницы школы.
 - Никогда не проверяйте подпись в браузере: секрет не должен покидать ваш сервер.
-- При компрометации секрета перевыпустите его в админке — старые initData перестанут проходить проверку.
+- При компрометации секрета перевыпустите его в админке (меню страницы «⋯» → «Перевыпустить секрет») — старые
+  initData перестанут проходить проверку. Не забудьте обновить секрет на своём сервере.
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-08-24 16:34 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

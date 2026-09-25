@@ -12,9 +12,20 @@ description: "Как создать пользователя, получить �
 
 <Steps>
 <Step title="Создайте пользователя школы">
-  1. Вызовите POST <code>/saas/v2/user/create</code>.
+  1. Вызовите [POST <code>/saas/v2/user/create</code>](/ru/exode-api/school/user/create) (или
+     [<code>user/upsert</code>](/ru/exode-api/school/user/upsert), если пользователь мог быть создан раньше).
   2. Передайте один из логинов (email, phone или domain); для связи аккаунта с Telegram можно передать tgId. Профиль можно задать сразу.
   3. Сохраните <code>user.id</code> из ответа — он понадобится для выдачи токена.
+</Step>
+
+<Step title="Получите токен сессии">
+  1. Вызовите [POST <code>/saas/v2/user/session/auth-token</code>](/ru/exode-api/school/user/session/auth-token)
+     с телом `{ "userId": 123 }`, где `123` — <code>user.id</code> из предыдущего шага.
+  2. Возьмите <code>payload.session.token</code> из ответа — это и есть значение для <code>___uat</code>.
+
+  <Note>
+    Для пользователей с правами в кабинете (администраторы, менеджеры) токен не выдаётся — метод предназначен для учеников.
+  </Note>
 </Step>
 
 <Step title="Передайте ссылку в Telegram Mini App">
@@ -27,9 +38,16 @@ description: "Как создать пользователя, получить �
   ```
 
   <Tip>
-    Для deep-link из бота используйте <code>https://t.me/your_school_bot?startapp=</code> и закодируйте URL mini app в
-    <code>startapp</code> (base64 без знака равенства). Telegram передаст ссылку WebApp без изменений.
+    Удобнее всего открыть Mini App кнопкой бота: в Bot API передайте URL школы с <code>___uat</code> в поле
+    <code>web_app.url</code> кнопки (inline- или reply-клавиатуры). Параметр <code>startapp</code> прямых ссылок
+    (<code>https://t.me/your_school_bot/app?startapp=...</code>) Telegram передаёт в Mini App как
+    <code>start_param</code>, а не как адрес страницы, поэтому токен через него не передаётся.
   </Tip>
+
+  <Info>
+    Токен можно передать и во fragment: <code>https://my-school.exode.biz#___uat=&lt;token&gt;</code> — fragment
+    не отправляется на сервер и не попадает в логи веб-серверов. После входа платформа удаляет токен из адреса.
+  </Info>
 
   <Check>
     Если токен валиден и не истек, Mini App не покажет экран логина — пользователь попадет сразу в интерфейс школы.
@@ -41,7 +59,7 @@ description: "Как создать пользователя, получить �
 
 - Ошибка авторизации в Mini App: убедитесь, что токен передан в <code>___uat</code> и не истек.
 - Пользователь не найден при выдаче токена: используйте <code>user.id</code> из шага создания пользователя.
-- Telegram не открывает WebApp: проверьте, что бот включил <code>startapp</code> и домен школы разрешен в настройках Mini App.
+- Telegram не открывает WebApp: проверьте, что кнопка создана как <code>web_app</code>, а URL школы начинается с <code>https://</code>.
 
 <Warning>
   Не передавайте токен в открытых чатах или группах. Используйте персональные ссылки.
@@ -51,4 +69,4 @@ description: "Как создать пользователя, получить �
 
 ---
 
-_Обновлено: 2026-07-08 04:48 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

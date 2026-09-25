@@ -11,20 +11,25 @@ description: 'Ванильный JS API: init, route, ui, события'
 import { ExodeMiniApp } from '@exode-team/sdk/miniapp'
 
 const app = new ExodeMiniApp({
-  appId: 'my-app',        // required
-  targetOrigin: '*',      // default '*'
-  timeout: 10_000,        // ms, default 10000
+  appId: 'my-app',                             // required
+  targetOrigin: 'https://my-school.exode.biz', // origin of the school; default '*'
+  timeout: 10_000,                             // ms, default 10000
 })
 ```
 
 ### Параметры конфигурации
 
 <ResponseField name="appId" type="string" required>
-  Идентификатор мини-приложения. Передаётся в handshake для валидации на стороне хоста.
+  Идентификатор мини-приложения, передаётся хосту при handshake. Для [кастомных страниц](/ru/customization/custom-pages)
+  значение выбирается произвольно и нигде не регистрируется: хост доверяет приложению по origin адреса из поля
+  «URL приложения (iframe)».
 </ResponseField>
 
 <ResponseField name="targetOrigin" type="string">
-  Origin хост-окна. По умолчанию `*`. В проде рекомендуется указывать конкретный origin Exode для безопасности.
+  Origin страницы школы, внутри которой открыто приложение, — например `https://my-school.exode.biz` или ваш
+  собственный домен школы. SDK отправляет сообщения только на этот origin и принимает ответы только от него.
+  По умолчанию `*` (любой origin) — в этом случае SDK пишет предупреждение в консоль. В продакшене указывайте
+  origin явно.
 </ResponseField>
 
 <ResponseField name="timeout" type="number">
@@ -46,22 +51,37 @@ console.log(ctx.theme.scheme)
 
 Метод выполняет handshake с хостом и возвращает [`MiniAppContext`](/ru/exode-sdk/miniapp/context). Повторный вызов `init()` выбросит ошибку.
 
+Если страница открыта без входа (опция «Доступна без входа»), handshake всё равно проходит, но `ctx.user.id`
+равен `0`, а персональные поля пустые — проверяйте `ctx.user.id > 0`, прежде чем показывать данные пользователя.
+
+<Warning>
+  Контекст из `init()` не подписан и подходит только для отображения. Чтобы достоверно узнать пользователя на
+  своём бэкенде, используйте [Init Data](/ru/exode-sdk/miniapp/init-data).
+</Warning>
+
 <Info>
   Если handshake не успел завершиться за `timeout` мс — Promise отклоняется. Проверьте, что iframe открыт внутри Exode и `targetOrigin` корректен.
 </Info>
 
 ## Навигация (app.route)
 
-```ts
-// Open a route in the main app
-await app.route.navigate('/course/123')
+`path` — это шаблон маршрута платформы (а не готовый URL), значения подставляются из `params`:
 
-// With params
-await app.route.navigate('/course/123', { tab: 'lessons' })
+```ts
+// Open the course page: route template + params
+await app.route.navigate('/course/:courseId([0-9_A-Za-z]+)', { courseId: '123' })
 
 // Back through host history
 await app.route.back()
 ```
+
+Шаблоны маршрутов те же, что и в [deep link-ах мобильного приложения](/ru/customization/mobile-app#другие-экраны)
+(`pageId`). Текущий маршрут хоста в том же формате приходит в событии `route:changed`.
+
+<Note>
+  Когда приложение скрыто (пользователь ушёл на другую страницу или свернул окно), хост игнорирует команды
+  `navigate`, `navigate:back` и `setTabbarVisible`.
+</Note>
 
 ## UI-команды (app.ui)
 
@@ -75,7 +95,7 @@ await app.ui.showSnackbar({
 // Hide / show host bottom navigation
 await app.ui.setTabbarVisible(false)
 
-// Hide / show host header
+// Hide / show host header (see the note below)
 await app.ui.setHeaderVisible(false)
 
 // Minimize the window (window-type pages only)
@@ -89,7 +109,14 @@ await app.ui.close()
   `minimize()` работает только для страниц с типом окна «Плавающее окно» или «Панель справа»
   (см. [Кастомные страницы](/ru/customization/custom-pages)). Свёрнутое окно не выгружается —
   приложение получает событие `visibility:changed` с `visible: false` и продолжает жить.
+
+  На кастомных страницах школы команда `setHeaderVisible` сейчас не обрабатывается хостом и ничего не меняет.
 </Note>
+
+<Info>
+  Promise команды разрешается, когда хост подтвердил получение. Хост подтверждает и те команды, которые
+  в текущем контексте ничего не делают, поэтому успешное выполнение Promise не гарантирует видимого эффекта.
+</Info>
 
 ## События (app.on)
 
@@ -118,7 +145,15 @@ unsubscribe()
 
 ## Получение текущего контекста
 
-`init()` возвращает контекст один раз. Для последующего доступа используйте `getContext()` — он всегда актуален, так как bridge автоматически применяет события `context:updated`.
+`init()` возвращает контекст один раз. Для последующего доступа используйте `getContext()`: он возвращает
+контекст из handshake, к которому bridge применяет только события `context:updated`.
+
+<Warning>
+  События `theme:changed`, `user:updated`, `school:updated` и `config:updated` **не** обновляют объект из
+  `getContext()`. Если вам нужны актуальные тема, пользователь или конфиг, подпишитесь на эти события через
+  `app.on(...)` и храните значения у себя — или используйте [React-хуки](/ru/exode-sdk/miniapp/react), которые
+  делают это автоматически.
+</Warning>
 
 ```ts
 const ctx = app.getContext()
@@ -141,13 +176,18 @@ app.destroy()
 ```ts
 import { ExodeMiniApp } from '@exode-team/sdk/miniapp'
 
-const app = new ExodeMiniApp({ appId: 'my-app' })
+const app = new ExodeMiniApp({
+  appId: 'my-app',
+  targetOrigin: 'https://my-school.exode.biz',
+})
 
 async function start() {
   const ctx = await app.init()
 
   document.body.className = ctx.theme.scheme
-  document.getElementById('hello')!.textContent = `Привет, ${ctx.user.firstName}`
+  document.getElementById('hello')!.textContent = ctx.user.id > 0
+    ? `Привет, ${ctx.user.firstName ?? ''}`
+    : 'Привет, гость'
 
   app.on('theme:changed', (theme) => {
     document.body.className = theme.scheme
@@ -167,4 +207,4 @@ window.addEventListener('beforeunload', () => app.destroy())
 
 ---
 
-_Обновлено: 2026-08-24 21:38 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

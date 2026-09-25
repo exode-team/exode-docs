@@ -20,7 +20,8 @@ interface MiniAppContext {
 ### MiniAppUser
 
 <ResponseField name="id" type="number" required>
-  Внутренний идентификатор пользователя в Exode.
+  Внутренний идентификатор пользователя в Exode. Для неавторизованного посетителя (страница с опцией
+  «Доступна без входа») — `0`, остальные поля при этом пустые.
 </ResponseField>
 
 <ResponseField name="uuid" type="string | null">
@@ -36,7 +37,7 @@ interface MiniAppContext {
 </ResponseField>
 
 <ResponseField name="avatar" type="object | null">
-  Аватар в трёх размерах: `small`, `medium`, `maximum`.
+  Аватар: `id` и ссылки в трёх размерах — `small`, `medium`, `maximum` (каждая `string | null`).
 </ResponseField>
 
 <ResponseField name="email" type="string | null">
@@ -85,7 +86,9 @@ type Platform = 'web' | 'native'
 
 ### school
 
-Поле `school` — открытый объект `Record<string, unknown>` со всеми данными школы (название, домен, конфиг и т. п.). Структура зависит от конкретной школы; уточняйте нужные поля у хост-приложения.
+Поле `school` — публичные данные школы, которые использует само приложение Exode (например, `name`, `domain`,
+`preferenceSettings`). SDK типизирует его как `Record<string, unknown>`: состав полей не зафиксирован контрактом,
+поэтому проверяйте наличие нужного поля перед использованием.
 
 ## События хоста (MiniAppEventMap)
 
@@ -97,12 +100,13 @@ type Platform = 'web' | 'native'
 | `user:updated` | `MiniAppUser` | Изменился профиль или сменился аккаунт |
 | `school:updated` | `Record<string, unknown>` | Изменились данные школы |
 | `config:updated` | `MiniAppConfig` | Смена размера окна, языка |
-| `route:changed` | `{ path, params }` | Хост изменил маршрут |
-| `context:updated` | `Partial<MiniAppContext>` | Любое частичное обновление контекста |
+| `route:changed` | `{ path, params }` | Хост изменил маршрут; `path` — шаблон маршрута, например `/course/:courseId([0-9_A-Za-z]+)` |
+| `context:updated` | `Partial<MiniAppContext>` | Частичное обновление контекста (зарезервировано: текущая версия хоста это событие не отправляет) |
 | `visibility:changed` | `{ visible: boolean }` | Iframe стал видимым/невидимым |
 
 <Tip>
-  Событие `context:updated` применяется к внутреннему кэшу автоматически — `app.getContext()` всегда вернёт актуальные данные.
+  Событие `context:updated` применяется к внутреннему кэшу автоматически. Остальные события кэш `app.getContext()`
+  не обновляют — см. [Получение текущего контекста](/ru/exode-sdk/miniapp/client#получение-текущего-контекста).
 </Tip>
 
 ## Команды MiniApp → хост (MiniAppCommandMap)
@@ -111,11 +115,11 @@ type Platform = 'web' | 'native'
 
 | Команда | Payload | Метод SDK |
 |---------|---------|-----------|
-| `navigate` | `{ path, params? }` | `app.route.navigate()` |
+| `navigate` | `{ path, params? }` — `path` — шаблон маршрута | `app.route.navigate()` |
 | `navigate:back` | — | `app.route.back()` |
 | `showSnackbar` | `{ message, type? }` | `app.ui.showSnackbar()` |
 | `setTabbarVisible` | `{ visible }` | `app.ui.setTabbarVisible()` |
-| `setHeaderVisible` | `{ visible }` | `app.ui.setHeaderVisible()` |
+| `setHeaderVisible` | `{ visible }` | `app.ui.setHeaderVisible()` (на кастомных страницах пока без эффекта) |
 | `minimize` | — | `app.ui.minimize()` |
 | `close` | — | `app.ui.close()` |
 
@@ -154,12 +158,14 @@ import type {
   MiniAppEventMap,
   MiniAppCommandMap,
   BridgeMessage,
-  Platform,
 } from '@exode-team/sdk/miniapp'
+
+// Platform отдельно не экспортируется:
+type Platform = MiniAppContext['platform']
 ```
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-08-24 16:34 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_
