@@ -18,6 +18,14 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
     `statuses=Deleted`.
 </Info>
 
+<Note>
+    При удалении очищаются только `email`, `phone` и `tgId` — их можно сразу использовать для нового пользователя.
+    `extId` и `domain` остаются за удалённой записью: [`user/find`](/ru/exode-api/school/user/find) по `extId`
+    вернёт этого пользователя со статусом `Deleted`, а создание нового пользователя с тем же `extId` или `domain`
+    завершится ошибкой `ExtIdIsBusy` / `DomainIsBusy`. Если идентификатор нужно переиспользовать, сбросьте его
+    через [`user/update`](/ru/exode-api/school/user/update) (`"extId": null`) **до** удаления.
+</Note>
+
 ```
 DELETE /saas/v2/user/delete-many
 ```
@@ -30,7 +38,9 @@ DELETE /saas/v2/user/delete-many
 </Tip>
 
 <ParamField body="userIds" type="integer[]" required>
-    Массив идентификаторов пользователей для удаления. Максимум 250 за один запрос.
+    Массив числовых ID пользователей в Exode (поле `id` из [`user/find`](/ru/exode-api/school/user/find) или
+    [`user/list`](/ru/exode-api/school/user/list)). Максимум 250 за один запрос. Повторный вызов с теми же ID
+    безопасен: уже удалённые пользователи попадут в `skipped`.
 </ParamField>
 
 <ParamField body="reason" type="string" required>
@@ -200,11 +210,11 @@ print(response.json())
 ## Требования к правам доступа
 
 <Check>
-    Требуется аутентификация по токену и право управления пользователями школы (`SchoolManageUsers`).
+    Требуется аутентификация по токену и право [**«Управление пользователями школы»**](/ru/exode-api/permissions) (`SchoolManageUsers`).
 </Check>
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-07-14 22:58 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

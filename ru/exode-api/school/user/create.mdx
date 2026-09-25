@@ -11,7 +11,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 POST /saas/v2/user/create
 ```
 
-Требуется аутентификация и право `SchoolManageUsers`.
+Требуется аутентификация и право [**«Управление пользователями школы»**](/ru/exode-api/permissions) (`SchoolManageUsers`).
 
 ## Параметры запроса
 
@@ -26,20 +26,28 @@ POST /saas/v2/user/create
 </Warning>
 
 <Info>
-  Логин и пароль для входа отправляется **автоматически**.
-  Если не передать одно из полей ниже — то вам необходимо будет получить пароль и отправить его самостоятельно в
-  настройках пользователя
+  Логин и пароль для входа отправляются пользователю **автоматически** (через несколько секунд после создания): по
+  SMS — если передан `phone` и для его страны в школе подключён SMS-провайдер, иначе на `email`; дополнительно — в
+  Telegram, если передан `tgId`. Если ни одного канала нет (например, передан только `domain` или телефон без
+  подключённого SMS-провайдера), пароль нужно получить в настройках пользователя в кабинете и передать самостоятельно.
 </Info>
 
 <Info>
-  Если передать поле `password` — пользователю будет установлен указанный пароль, а автоматическая генерация и
-  отправка пароля выполняться **не будет**.
+  Если передать поле `password` — пользователю будет установлен указанный пароль вместо сгенерированного.
+  Отправка данных входа по каналам выше при этом **всё равно выполняется** — уже с вашим паролем.
 </Info>
 
 <Info>
   Для отправки логина и пароля в Telegram — пользователь должен дать разрешение писать боту или иметь активный чат с
-  этим ботом
+  этим ботом.
 </Info>
+
+<Tip>
+  **`create` или `upsert`?** `create` всегда создаёт нового пользователя и возвращает ошибку (`EmailIsBusy`,
+  `PhoneIsBusy`, `ExtIdIsBusy` и т.п.), если логин или идентификатор уже занят. Если при синхронизации из вашей
+  системы вы не знаете, есть ли пользователь в школе, используйте [`user/upsert`](/ru/exode-api/school/user/upsert) —
+  он найдёт существующего пользователя и обновит его.
+</Tip>
 
 <ParamField body="email" type="string" required={false}>
   Email адрес пользователя. Должен быть валидным email форматом. При передаче пустой строки — преобразуется в
@@ -95,9 +103,9 @@ POST /saas/v2/user/create
 </Info>
 
 <ParamField body="password" type="string" required={false}>
-  Пароль пользователя. От 6 до 100 символов. Если передан — устанавливается как пароль для входа, автоматическая
-  отправка сгенерированного пароля пропускается. При передаче пустой строки — преобразуется в `null`.
-  Доступно только при создании (в `update` поле не поддерживается).
+  Пароль пользователя. От 6 до 100 символов. Если передан — устанавливается как пароль для входа вместо
+  сгенерированного (данные входа всё равно отправляются пользователю, см. выше). При передаче пустой строки —
+  преобразуется в `null`. Доступно только при создании (в `update` и `upsert` поле не поддерживается).
 </ParamField>
 
 ### Параметры профиля
@@ -343,7 +351,7 @@ $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-if ($httpCode === 200) {
+if ($httpCode === 201) {
   $result = json_decode($response, true);
   echo "User created successfully\n";
   print_r($result['payload']);
@@ -431,7 +439,7 @@ except requests.exceptions.RequestException as e:
 
 Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
 
-Если Ответ.КодСостояния = 200 Тогда
+Если Ответ.КодСостояния = 201 Тогда
     ЧтениеJSON = Новый ЧтениеJSON;
     ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
     Результат = ПрочитатьJSON(ЧтениеJSON);
@@ -573,18 +581,22 @@ except requests.exceptions.RequestException as e:
 {
   "code": 400,
   "success": false,
-  "cause": "InvalidPhone",
-  "message": "Phone must be a valid phone number",
-  "error": "Phone must be a valid phone number"
+  "cause": "validation",
+  "message": [
+    "phone must be a valid phone number"
+  ],
+  "error": "Bad Request"
 }
 ```
 ```json Error - Invalid First Name
 {
   "code": 400,
   "success": false,
-  "cause": "InvalidFirstName",
-  "message": "First name must match required format",
-  "error": "First name must match required format"
+  "cause": "validation",
+  "message": [
+    "profile.firstName must be shorter than or equal to 15 characters"
+  ],
+  "error": "Bad Request"
 }
 ```
 ```json Error - Staff Is Required (Corporate)
@@ -628,7 +640,7 @@ except requests.exceptions.RequestException as e:
 ## Требования к правам доступа
 
 <Check>
-Для создания пользователя требуется  **право на управление пользователями школы**.
+Для создания пользователя требуется право **«Управление пользователями школы»** (`SchoolManageUsers`).
 </Check>
 
 <Warning>
@@ -640,4 +652,4 @@ except requests.exceptions.RequestException as e:
 
 ---
 
-_Обновлено: 2026-07-22 12:19 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

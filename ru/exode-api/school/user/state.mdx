@@ -114,7 +114,9 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 <Info>
   Запись (`SET`) разрешена только для ключей: `UtmSignupParams`, `PersonalInfoFilled`, `OnBoardingProgress`,
   `ContentCategoryIds`. Чтение (`GET`) дополнительно доступно для `VkToken` (возвращается **замаскированным**).
-  Запрос к любому другому ключу вернёт ошибку `Not allowed key`.
+  Запрос к ключу вне этого списка вернёт ошибку `400` с `cause: "Unauthorized"` и сообщением
+  `Not allowed key <ключ>` — это ограничение ключа, а не проблема с токеном. Несуществующее имя ключа
+  отклоняется валидацией (`400`).
 </Info>
 
 ## Получить состояние по ключу
@@ -124,17 +126,18 @@ GET /saas/v2/user/:userId/state/get?key=PersonalInfoFilled
 ### Параметры
 
 <ParamField path=":userId" type="integer" required>
-ID пользователя в рамках школы.
+Числовой ID пользователя в Exode (поле `id` из [`user/find`](/ru/exode-api/school/user/find) или
+[`user/list`](/ru/exode-api/school/user/list)). Пользователь должен принадлежать школе из заголовка `School-Id`.
 </ParamField>
 
 <ParamField query="key" type="string" required>
-Ключ состояния.
+Ключ состояния — одно из значений из [списка выше](#список-поддерживаемых-ключей), с учётом регистра.
 </ParamField>
 
 ### Ответ
 
 <ResponseField name="value" type="any" required>
-Значение состояния.
+Значение состояния. Если значение для ключа ещё не записано — `null`.
 </ResponseField>
 
 <RequestExample>
@@ -348,7 +351,7 @@ print(response.json())
 
 ```json Error (GET) - Not allowed key
 {
-  "code": 401,
+  "code": 400,
   "success": false,
   "cause": "Unauthorized",
   "message": "Not allowed key KeyName",
@@ -368,7 +371,7 @@ print(response.json())
 
 ```json Error (SET) - Not allowed key
 {
-  "code": 401,
+  "code": 400,
   "success": false,
   "cause": "Unauthorized",
   "message": "Not allowed key KeyName",
@@ -384,11 +387,12 @@ PUT /saas/v2/user/:userId/state/set?key=PersonalInfoFilled
 ### Параметры
 
 <ParamField path=":userId" type="integer" required>
-ID пользователя в рамках школы.
+Числовой ID пользователя в Exode (поле `id` из [`user/find`](/ru/exode-api/school/user/find) или
+[`user/list`](/ru/exode-api/school/user/list)). Пользователь должен принадлежать школе из заголовка `School-Id`.
 </ParamField>
 
 <ParamField query="key" type="string" required>
-Ключ состояния.
+Ключ состояния — одно из значений из [списка выше](#список-поддерживаемых-ключей), с учётом регистра.
 </ParamField>
 
 <ParamField body="value" type="any" required>
@@ -404,11 +408,11 @@ ID пользователя в рамках школы.
 ## Требования к правам доступа
 
 <Check>
-Требуется аутентификация по токену и право управления пользователями школы (SchoolManageUsers).
+Требуется аутентификация по токену и право [**«Управление пользователями школы»**](/ru/exode-api/permissions) (`SchoolManageUsers`).
 </Check>
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-07-02 23:44 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

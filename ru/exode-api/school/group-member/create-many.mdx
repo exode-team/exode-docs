@@ -21,7 +21,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 POST /saas/v2/group/:groupId/member/create-many
 ```
 
-Требуется аутентификация и право `SchoolManageUsers`.
+Требуется аутентификация и право [**«Управление пользователями школы»**](/ru/exode-api/permissions) (`SchoolManageUsers`).
 
 ## Параметры запроса
 
@@ -30,13 +30,28 @@ POST /saas/v2/group/:groupId/member/create-many
     количества пользователей используйте несколько запросов.
 </Tip>
 
-<ParamField body="userIds" type="array" required>
-    Массив идентификаторов пользователей для добавления в группу. Максимум 250 пользователей за один запрос.
+<ParamField path="groupId" type="integer" required>
+    ID группы — поле `groupId` из [списка групп](/ru/exode-api/school/group/list). Чтобы записать пользователя на
+    курс, найдите группу этого курса фильтром `courseIds` (подробнее — [Запись на курс](/ru/exode-api/school/course/enroll)).
+    Группа должна быть привязана к продукту, иначе вернётся ошибка `GroupNotBoundToProduct`.
+</ParamField>
+
+<ParamField body="userIds" type="integer[]" required>
+    Массив числовых ID пользователей в Exode (поле `id` из [`user/find`](/ru/exode-api/school/user/find) или
+    [`user/list`](/ru/exode-api/school/user/list)). Максимум 250 пользователей за один запрос.
 </ParamField>
 
 <Info>
     Если пользователь уже является участником группы, он не будет добавлен повторно. В ответе будет указано, какие
-    пользователи уже существуют в группе, а какие были добавлены.
+    пользователи уже существуют в группе, а какие были добавлены. ID, не найденные в школе из заголовка `School-Id`,
+    молча пропускаются и не попадают ни в `exist`, ни в `created` — сверяйте ответ с запросом. Повторный вызов с
+    теми же `userIds` безопасен.
+</Info>
+
+<Info>
+    Для каждого **нового** участника выдаётся (или повторно активируется, если был отключён) доступ к продукту группы,
+    и отправляется вебхук [`ProductEnrolledViaLms`](/ru/exode-api/webhooks/about). Для пользователей из `exist`
+    доступ и вебхуки не затрагиваются.
 </Info>
 
 <RequestExample>
@@ -179,7 +194,7 @@ except requests.exceptions.RequestException as e:
 
 Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
 
-Если Ответ.КодСостояния = 200 Тогда
+Если Ответ.КодСостояния = 201 Тогда
     ЧтениеJSON = Новый ЧтениеJSON;
     ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
     Результат = ПрочитатьJSON(ЧтениеJSON);
@@ -310,7 +325,7 @@ except requests.exceptions.RequestException as e:
 {
   "code": 400,
   "success": false,
-  "cause": "GroupNotBindToProduct",
+  "cause": "GroupNotBoundToProduct",
   "message": "Group not tied to product",
   "error": "Group not tied to product"
 }
@@ -445,7 +460,7 @@ except requests.exceptions.RequestException as e:
 ## Требования к правам доступа
 
 <Check>
-    Для добавления участников в группу требуется **право на управление пользователями школы**.
+    Для добавления участников в группу требуется право **«Управление пользователями школы»** (`SchoolManageUsers`).
 </Check>
 
 <Warning>
@@ -457,4 +472,4 @@ except requests.exceptions.RequestException as e:
 
 ---
 
-_Обновлено: 2026-08-03 00:05 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

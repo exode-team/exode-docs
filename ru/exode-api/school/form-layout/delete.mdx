@@ -11,7 +11,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 DELETE /saas/v2/form/layout/:layoutId/delete
 ```
 
-Требуется аутентификация и право `FormManage`.
+Требуется аутентификация и право [**«Управление формами»**](/ru/exode-api/permissions) (`FormManage`).
 
 ## Параметры пути
 
@@ -21,6 +21,9 @@ DELETE /saas/v2/form/layout/:layoutId/delete
 
 <Info>
   Удаление является **мягким** (soft delete) — макет помечается как удалённый, но не удаляется физически из базы данных. Связанные поля и значения остаются без изменений.
+  После удаления `slug` макета освобождается, и его можно использовать для нового макета (то же для
+  единственных макетов режимов `Signup` / `Welcome`). Восстановить удалённый макет через API нельзя. Повторный
+  вызов для уже удалённого макета вернёт `401` с сообщением `seller not entity owner`.
 </Info>
 
 <RequestExample>
@@ -170,7 +173,7 @@ except requests.exceptions.RequestException as e:
 ## Требования к правам доступа
 
 <Check>
-  Для удаления макета формы требуется **право FormManage** у сервисного пользователя.
+  Для удаления макета формы требуется право **«Управление формами»** (`FormManage`) у сервисного пользователя.
 </Check>
 
 <Check>
@@ -186,4 +189,4 @@ except requests.exceptions.RequestException as e:
 
 ---
 
-_Обновлено: 2026-07-08 06:09 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

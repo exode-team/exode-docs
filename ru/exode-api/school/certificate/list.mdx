@@ -13,8 +13,8 @@ GET /saas/v2/certificate/list/raw
 
 <Info>
     Возвращает сертификаты, выданные за курсы школы. Все параметры фильтрации необязательны — без них
-    метод отдаёт все сертификаты школы постранично. Параметры-массивы передаются повторением параметра:
-    `courseIds=1&courseIds=2`.
+    метод отдаёт все сертификаты школы постранично, от новых к старым (по убыванию `certificateId`).
+    Параметры-массивы передаются повторением параметра: `courseIds=1&courseIds=2`.
 </Info>
 
 ## Параметры запроса
@@ -62,7 +62,8 @@ GET /saas/v2/certificate/list/raw
 </ParamField>
 
 <ParamField query="archived" type="boolean" required={false}>
-    Включать архивные записи.
+    Фильтр по архивности сертификата: `true` — только архивные, `false` — только неархивные. Если не передан —
+    возвращаются и те, и другие.
 </ParamField>
 
 ## Поля ответа
@@ -89,7 +90,8 @@ GET /saas/v2/certificate/list/raw
                 </ResponseField>
                 <ResponseField name="user" type="object | null">
                     Получатель с профилем — объект [`user`](/ru/exode-api/objects/entities/user).
-                    `null`, если пользователь удалён.
+                    Пользователи, удалённые через [`user/delete-many`](/ru/exode-api/school/user/delete-many),
+                    возвращаются со `status: "Deleted"`; `null` — если запись пользователя недоступна.
                 </ResponseField>
             </Expandable>
         </ResponseField>
@@ -261,12 +263,12 @@ print(response.json())
 ## Требования к правам доступа
 
 <Check>
-    Требуется аутентификация по токену и одно из прав: управление курсами (`CourseManage`)
-    или управление студентами курса (`CourseStudentManage`).
+    Требуется аутентификация по токену и одно из прав: [**«Управление курсами»**](/ru/exode-api/permissions) (`CourseManage`)
+    или **«Управление студентами курса»** (`CourseStudentManage`).
 </Check>
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-08-03 10:28 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

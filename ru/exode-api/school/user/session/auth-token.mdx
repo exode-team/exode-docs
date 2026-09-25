@@ -11,12 +11,15 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 POST /saas/v2/user/session/auth-token
 ```
 
-Требуется аутентификация и право `SchoolManageUsers`.
+Требуется аутентификация и право [**«Управление пользователями школы»**](/ru/exode-api/permissions) (`SchoolManageUsers`).
 
 ## Параметры запроса
 
 <ParamField body="userId" type="integer" required>
-  ID пользователя в системе Exode. Целое число.
+  Числовой ID пользователя в Exode (поле `id` из [`user/find`](/ru/exode-api/school/user/find),
+  [`user/create`](/ru/exode-api/school/user/create) или [`user/upsert`](/ru/exode-api/school/user/upsert)).
+  Пользователь должен принадлежать школе из заголовка `School-Id`, иначе вернётся `401` с `cause: "Forbidden"`
+  и сообщением `seller not entity owner`.
 </ParamField>
 
 <ParamField body="forceCreate" type="boolean" required={false} default="false">
@@ -29,7 +32,15 @@ POST /saas/v2/user/session/auth-token
 </Info>
 
 <Warning>
-  Пользователи с правами администратора или менеджера школы не могут создавать сессии через этот метод.
+  Для пользователей, у которых есть хотя бы одно право в кабинете (администраторы, менеджеры, сотрудники
+  с доступом к управлению), токен через этот метод не выдаётся — вернётся ошибка `Forbidden` с сообщением
+  `User is school admin or manager`. Метод предназначен для учеников.
+</Warning>
+
+<Warning>
+  Токен даёт полный вход в аккаунт пользователя и действует долго (см. `expireAt`). Не сохраняйте его в логах,
+  передавайте только по HTTPS и не публикуйте ссылки с ним. `forceCreate: true` при каждом вызове создаёт
+  **новую** сессию, не завершая предыдущие, — без необходимости не используйте его на каждом входе.
 </Warning>
 
 <RequestExample>
@@ -163,7 +174,7 @@ except requests.exceptions.RequestException as e:
 
 Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
 
-Если Ответ.КодСостояния = 200 Тогда
+Если Ответ.КодСостояния = 201 Тогда
     ЧтениеJSON = Новый ЧтениеJSON;
     ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
     Результат = ПрочитатьJSON(ЧтениеJSON);
@@ -234,18 +245,18 @@ except requests.exceptions.RequestException as e:
   }
 }
 ```
-```json Error - User Not Found
+```json Error - User Not Found / Other School
 {
-  "code": 404,
+  "code": 401,
   "success": false,
-  "cause": "NotFound",
-  "message": "User not found",
-  "error": "User not found"
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
 }
 ```
 ```json Error - User Is Admin
 {
-  "code": 403,
+  "code": 400,
   "success": false,
   "cause": "Forbidden",
   "message": "User is school admin or manager",
@@ -256,9 +267,11 @@ except requests.exceptions.RequestException as e:
 {
   "code": 400,
   "success": false,
-  "cause": "InvalidUserId",
-  "message": "User ID must be a valid integer",
-  "error": "User ID must be a valid integer"
+  "cause": "validation",
+  "message": [
+    "userId must be an integer number"
+  ],
+  "error": "Bad Request"
 }
 ```
 </ResponseExample>
@@ -299,7 +312,7 @@ except requests.exceptions.RequestException as e:
 ## Требования к правам доступа
 
 <Check>
-Для создания токена сессии пользователя требуется **право на управление пользователями школы**.
+Для создания токена сессии пользователя требуется право **«Управление пользователями школы»** (`SchoolManageUsers`).
 </Check>
 
 <Warning>
@@ -331,4 +344,4 @@ except requests.exceptions.RequestException as e:
 
 ---
 
-_Обновлено: 2026-07-08 06:09 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

@@ -17,7 +17,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 PUT /saas/v2/user/upsert
 ```
 
-Требуется аутентификация и право `SchoolManageUsers`.
+Требуется аутентификация и право [**«Управление пользователями школы»**](/ru/exode-api/permissions) (`SchoolManageUsers`).
 
 ## Параметры запроса
 
@@ -25,13 +25,25 @@ PUT /saas/v2/user/upsert
 
 <Info>
   В случае если **пользователь найден** по указанным ниже полям — произойдет только его обновление.
-  **В случае создания** — логин и пароль для входа отправятся новому пользователю **автоматически**.
+  **В случае создания** — логин и пароль для входа отправятся новому пользователю **автоматически** (каналы
+  отправки — как в [`user/create`](/ru/exode-api/school/user/create)). Задать свой пароль через апсерт нельзя:
+  поле `password` поддерживается только в `user/create`.
 </Info>
 
 <Warning>
   Полями для входа (логином) являются только `email`, `phone` и `domain`. `extId` и `tgId` участвуют в поиске
   существующего пользователя, но **авторизоваться по ним нельзя**.
 </Warning>
+
+<Note>
+  **Как ищется существующий пользователь.** Из логинов в поиске участвует только **один** — первый непустой в
+  порядке `phone` → `email` → `domain`. Если он не найден, поиск продолжается по `tgId`, затем по `extId`; первое
+  совпадение и обновляется. Например, если переданы `phone` и `email`, а в школе есть пользователь только с таким
+  `email` (телефон у него другой или не задан), он не будет найден по `email` — апсерт попытается создать нового
+  пользователя и вернёт ошибку `EmailIsBusy`. Ошибки `EmailIsBusy` / `PhoneIsBusy` / `TgIdIsBusy` / `ExtIdIsBusy` при
+  обновлении также означают, что переданное значение уже принадлежит **другому** пользователю школы. Для стабильной
+  синхронизации передавайте `extId` — постоянный идентификатор из вашей системы.
+</Note>
 
 <ParamField body="email" type="string" required={false}>
   Email адрес пользователя. Должен быть валидным email форматом. При передаче пустой строки — преобразуется в `null`.
@@ -442,10 +454,10 @@ except requests.exceptions.RequestException as e:
         "archivedAt": null,
         "userId": 1684,
         "official": false,
-        "firstName": "UpdatedFirstname",
-        "lastName": "UpdatedLastname",
-        "fullName": "UpdatedFirstname UpdatedLastname",
-        "fullNameShort": "UpdatedFirstname U.",
+        "firstName": "Newfirstname",
+        "lastName": "Newlastname",
+        "fullName": "Newfirstname Newlastname",
+        "fullNameShort": "Newfirstname N.",
         "bdate": null,
         "sex": "Ufo",
         "country": null,
@@ -552,27 +564,33 @@ except requests.exceptions.RequestException as e:
 {
   "code": 400,
   "success": false,
-  "cause": "InvalidEmail",
-  "message": "Email must be a valid email address",
-  "error": "Email must be a valid email address"
+  "cause": "validation",
+  "message": [
+    "email must be an email"
+  ],
+  "error": "Bad Request"
 }
 ```
 ```json Error - Invalid Phone
 {
   "code": 400,
   "success": false,
-  "cause": "InvalidPhone",
-  "message": "Phone must be a valid phone number",
-  "error": "Phone must be a valid phone number"
+  "cause": "validation",
+  "message": [
+    "phone must be a valid phone number"
+  ],
+  "error": "Bad Request"
 }
 ```
 ```json Error - Invalid First Name
 {
   "code": 400,
   "success": false,
-  "cause": "InvalidFirstName",
-  "message": "First name must match required format",
-  "error": "First name must match required format"
+  "cause": "validation",
+  "message": [
+    "profile.firstName must be shorter than or equal to 15 characters"
+  ],
+  "error": "Bad Request"
 }
 ```
 </ResponseExample>
@@ -580,7 +598,8 @@ except requests.exceptions.RequestException as e:
 ## Требования к правам доступа
 
 <Check>
-Для создания или обновления пользователя требуется **право на управление пользователями школы**.
+Для создания или обновления пользователя требуется право **«Управление пользователями школы»**
+(`SchoolManageUsers`).
 </Check>
 
 <Warning>
@@ -598,4 +617,4 @@ except requests.exceptions.RequestException as e:
 
 ---
 
-_Обновлено: 2026-07-22 12:24 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

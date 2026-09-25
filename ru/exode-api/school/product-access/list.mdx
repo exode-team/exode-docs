@@ -16,6 +16,11 @@ GET /saas/v2/product-access/list/raw
     Параметры-массивы передаются повторением параметра: `userIds=1&userIds=2`.
 </Info>
 
+<Tip>
+    Проверить, есть ли у пользователя доступ к курсу: `userIds=<ID пользователя>&courseIds=<ID курса>&active=true`.
+    `productId` и `courseId` курса можно взять из [списка курсов](/ru/exode-api/school/course/list).
+</Tip>
+
 ## Параметры запроса
 
 ### Пагинация
@@ -43,7 +48,21 @@ GET /saas/v2/product-access/list/raw
 </ParamField>
 
 <ParamField query="active" type="boolean" required={false}>
-    Только активные (`true`) или неактивные (`false`) доступы.
+    Только активные (`true`) или неактивные (`false`) доступы. Доступ становится неактивным, например, когда
+    пользователя удаляют из всех групп продукта ([`member/delete-many`](/ru/exode-api/school/group-member/delete-many)).
+    Истечение срока (`expireAt`) проверяйте отдельно — фильтром `expiryStatuses` или `expireAtDateRange`.
+</ParamField>
+
+<ParamField query="groupIds" type="integer[]" required={false}>
+    Фильтр по ID групп: доступы пользователей, которые сейчас состоят хотя бы в одной из указанных групп.
+</ParamField>
+
+<ParamField query="expiryStatuses" type="enum[]" required={false}>
+    Статус срока действия доступа (значения объединяются через «ИЛИ»):
+    - `NoExpiry` — бессрочный доступ (`expireAt` = `null`);
+    - `Active` — истекает более чем через 14 дней;
+    - `Expiring` — истекает в ближайшие 14 дней;
+    - `Expired` — срок уже истёк.
 </ParamField>
 
 <ParamField query="search" type="string" required={false}>
@@ -210,7 +229,8 @@ GET /saas/v2/product-access/list/raw
                 <ResponseField name="active" type="boolean">Признак активности доступа.</ResponseField>
                 <ResponseField name="expireAt" type="string | null">Дата истечения доступа (ISO 8601).</ResponseField>
                 <ResponseField name="user" type="object">
-                    Пользователь: `id`, `extId`, `tgId`, `login`, `email`, `phone`, `fullName`.
+                    Пользователь: `id`, `extId`, `tgId`, `login`, `email`, `phone`, `fullName`. `login` — первый
+                    заполненный из `phone`, `email`, `domain`; `fullName` — имя и фамилия из профиля.
                 </ResponseField>
             </Expandable>
         </ResponseField>
@@ -355,12 +375,12 @@ print(response.json())
 ## Требования к правам доступа
 
 <Check>
-    Требуется аутентификация по токену и одно из прав: управление пользователями школы (`SchoolManageUsers`)
-    или управление студентами курса (`CourseStudentManage`).
+    Требуется аутентификация по токену и одно из прав: [**«Управление пользователями школы»**](/ru/exode-api/permissions) (`SchoolManageUsers`)
+    или **«Управление студентами курса»** (`CourseStudentManage`).
 </Check>
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-07-22 12:19 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

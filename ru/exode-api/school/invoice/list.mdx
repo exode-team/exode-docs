@@ -48,7 +48,10 @@ GET /saas/v2/invoice/list/raw
 </ParamField>
 
 <ParamField query="types" type="enum[]" required={false}>
-    Фильтр по типу счёта: `Regular`, `InstallmentPay`, `InstallmentInit`, `SubscriptionPay`, `SubscriptionInit`.
+    Фильтр по типу счёта:
+    - `Regular` — разовая оплата;
+    - `InstallmentInit` / `SubscriptionInit` — оформление рассрочки / подписки (первый платёж и привязка карты);
+    - `InstallmentPay` / `SubscriptionPay` — очередные автосписания по рассрочке / подписке.
 </ParamField>
 
 <ParamField query="search" type="string" required={false}>
@@ -92,10 +95,12 @@ GET /saas/v2/invoice/list/raw
         <ParamField query="acquiringIds" type="integer[]">ID эквайрингов.</ParamField>
         <ParamField query="statuses" type="enum[]">
             Статусы платежа: `Created`, `WaitingPay`, `WaitingForBinding`, `Processing`, `Completed`,
-            `BindingCompleted`, `Canceled`.
+            `BindingCompleted`, `Canceled`. Счёт попадает в выборку, если **хотя бы один** из его платежей
+            (попыток оплаты) имеет указанный статус.
         </ParamField>
         <ParamField query="actualStatuses" type="enum[]">
-            Актуальные (текущие) статусы платежа — те же значения, что и `statuses`.
+            Статус **последнего** платежа счёта — те же значения, что и `statuses`. Используйте его, чтобы
+            получить текущее состояние оплаты: например, `payment[actualStatuses]=Completed` — оплаченные счета.
         </ParamField>
     </Expandable>
 </ParamField>
@@ -114,7 +119,11 @@ GET /saas/v2/invoice/list/raw
                 <ResponseField name="invoiceId" type="integer">ID счёта.</ResponseField>
                 <ResponseField name="invoiceUuid" type="string">UUID счёта.</ResponseField>
                 <ResponseField name="type" type="enum">Тип счёта (см. фильтр `types`).</ResponseField>
-                <ResponseField name="status" type="enum">Статус счёта: `Active`, `Canceled`.</ResponseField>
+                <ResponseField name="status" type="enum">
+                    Статус счёта: `Active` или `Canceled`. Это статус самого счёта, а не оплаты: `Active` не
+                    означает, что счёт оплачен. Факт оплаты проверяйте фильтром `payment[actualStatuses]` или по
+                    вебхуку `PaymentCompleted`.
+                </ResponseField>
                 <ResponseField name="totalAmount" type="number">Итоговая сумма счёта.</ResponseField>
                 <ResponseField name="discountAmount" type="number">Сумма скидки.</ResponseField>
                 <ResponseField name="currency" type="enum">Валюта: `Free`, `Exes`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ResponseField>
@@ -280,11 +289,11 @@ print(response.json())
 ## Требования к правам доступа
 
 <Check>
-    Требуется аутентификация по токену и право на просмотр продаж (`SellerSales`).
+    Требуется аутентификация по токену и право [**«Продажи школы»**](/ru/exode-api/permissions) (`SellerSales`).
 </Check>
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-07-02 23:44 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

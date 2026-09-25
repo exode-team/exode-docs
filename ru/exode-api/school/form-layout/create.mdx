@@ -11,7 +11,15 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 POST /saas/v2/form/layout/create
 ```
 
-Требуется аутентификация и право `FormManage`.
+Требуется аутентификация и право [**«Управление формами»**](/ru/exode-api/permissions) (`FormManage`).
+
+<Tip>
+  **Макет и кастомные поля.** Макет формы — это контейнер для полей. Через API создаётся только сам макет;
+  поля в нём (их тип и `slug`) добавляются в кабинете школы. Значения полей для конкретных пользователей
+  читаются и записываются методами [получения](/ru/exode-api/school/custom-field/get) и
+  [установки значений](/ru/exode-api/school/custom-field/set), где макет передаётся как `layoutId` — это `id` из
+  ответа этого метода.
+</Tip>
 
 ## Параметры запроса
 
@@ -47,7 +55,8 @@ POST /saas/v2/form/layout/create
 </ParamField>
 
 <ParamField body="productIds" type="integer[]" required={false}>
-  Массив ID продуктов, к которым привязан макет.
+  Массив ID продуктов, к которым привязан макет, — поле `productId` из
+  [списка курсов](/ru/exode-api/school/course/list).
 </ParamField>
 
 <ParamField body="config" type="object" required={false}>
@@ -154,7 +163,7 @@ $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-if ($httpCode === 200) {
+if ($httpCode === 201) {
   $result = json_decode($response, true);
   echo "Layout created successfully\n";
   print_r($result['payload']);
@@ -234,7 +243,7 @@ except requests.exceptions.RequestException as e:
 
 Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
 
-Если Ответ.КодСостояния = 200 Тогда
+Если Ответ.КодСостояния = 201 Тогда
     ЧтениеJSON = Новый ЧтениеJSON;
     ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
     Результат = ПрочитатьJSON(ЧтениеJSON);
@@ -250,7 +259,7 @@ except requests.exceptions.RequestException as e:
 ```json Success
 {
   "success": true,
-  "code": 200,
+  "code": 201,
   "payload": {
     "id": 5,
     "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
@@ -301,7 +310,7 @@ except requests.exceptions.RequestException as e:
 ## Требования к правам доступа
 
 <Check>
-  Для создания макета формы требуется **право FormManage** у сервисного пользователя.
+  Для создания макета формы требуется право **«Управление формами»** (`FormManage`) у сервисного пользователя.
 </Check>
 
 <Warning>
@@ -313,4 +322,4 @@ except requests.exceptions.RequestException as e:
 
 ---
 
-_Обновлено: 2026-07-08 06:09 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

@@ -23,7 +23,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 DELETE /saas/v2/group/:groupId/member/delete-many
 ```
 
-Требуется аутентификация и право `SchoolManageUsers`.
+Требуется аутентификация и право [**«Управление пользователями школы»**](/ru/exode-api/permissions) (`SchoolManageUsers`).
 
 ## Параметры запроса
 
@@ -32,8 +32,14 @@ DELETE /saas/v2/group/:groupId/member/delete-many
   количества пользователей используйте несколько запросов.
 </Tip>
 
-<ParamField body="userIds" type="array" required>
-  Массив идентификаторов пользователей для удаления из группы. Максимум 250 пользователей за один запрос.
+<ParamField path="groupId" type="integer" required>
+  ID группы — поле `groupId` из [списка групп](/ru/exode-api/school/group/list).
+</ParamField>
+
+<ParamField body="userIds" type="integer[]" required>
+  Массив числовых ID пользователей в Exode (не ID записей участников `id` из
+  [списка участников](/ru/exode-api/school/group-member/list), а их `userId`). Максимум 250 пользователей за один
+  запрос.
 </ParamField>
 
 <Info>
@@ -275,7 +281,7 @@ except requests.exceptions.RequestException as e:
 ## Требования к правам доступа
 
 <Check>
-  Для удаления участников из группы требуется **право на управление пользователями школы**.
+  Для удаления участников из группы требуется право **«Управление пользователями школы»** (`SchoolManageUsers`).
 </Check>
 
 <Warning>
@@ -287,4 +293,4 @@ except requests.exceptions.RequestException as e:
 
 ---
 
-_Обновлено: 2026-08-03 00:05 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

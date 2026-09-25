@@ -11,7 +11,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 GET /saas/v2/form/custom-field/value/get
 ```
 
-Требуется аутентификация и право `FormManage`.
+Требуется аутентификация и право [**«Управление формами»**](/ru/exode-api/permissions) (`FormManage`).
 
 ## Параметры запроса
 
@@ -91,7 +91,16 @@ GET /saas/v2/form/custom-field/value/get
 
 <Warning>
   Значения полей, для которых в настройках RBAC установлено `api = false`, автоматически исключаются из ответа. Настройки видимости полей задаются в панели управления школы.
+  Исключение происходит уже после выборки страницы: `count` учитывает и скрытые значения, поэтому на странице может
+  оказаться меньше элементов, чем `take`. Для перебора страниц ориентируйтесь на `isLast` / `pages`, а не на
+  размер `items`.
 </Warning>
+
+<Tip>
+  `fieldId`, `slug` поля и `layoutId` можно взять из вложенного объекта `field` в ответе этого метода, а
+  список форм и их `id` — из [списка форм](/ru/exode-api/school/form-layout/list). Сами поля формы создаются и
+  настраиваются в кабинете школы — через API их создать нельзя.
+</Tip>
 
 <RequestExample>
 ```bash cURL
@@ -233,8 +242,8 @@ except requests.exceptions.RequestException as e:
     "pages": 1,
     "isFirst": true,
     "isLast": true,
-    "next": null,
-    "prev": null,
+    "next": { "skip": 0, "take": 100, "page": 1 },
+    "prev": { "skip": 0, "take": 100, "page": 1 },
     "items": [
       {
         "id": 1,
@@ -295,11 +304,11 @@ except requests.exceptions.RequestException as e:
   "payload": {
     "count": 0,
     "page": 1,
-    "pages": 0,
+    "pages": 1,
     "isFirst": true,
     "isLast": true,
-    "next": null,
-    "prev": null,
+    "next": { "skip": 0, "take": 100, "page": 1 },
+    "prev": { "skip": 0, "take": 100, "page": 1 },
     "items": []
   }
 }
@@ -337,7 +346,7 @@ except requests.exceptions.RequestException as e:
 ## Требования к правам доступа
 
 <Check>
-  Для получения значений кастомных полей требуется **право FormManage** у сервисного пользователя.
+  Для получения значений кастомных полей требуется право **«Управление формами»** (`FormManage`) у сервисного пользователя.
 </Check>
 
 <Warning>
@@ -353,4 +362,4 @@ except requests.exceptions.RequestException as e:
 
 ---
 
-_Обновлено: 2026-07-08 06:09 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

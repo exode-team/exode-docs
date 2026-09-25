@@ -11,11 +11,20 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 PUT /saas/v2/user/:userId/update
 ```
 
-Требуется аутентификация и право `SchoolManageUsers`.
+Требуется аутентификация и право [**«Управление пользователями школы»**](/ru/exode-api/permissions) (`SchoolManageUsers`).
 
 ## Параметры запроса
 
 ##### При обновлении все поля необязательны для заполнения. Если поле необходимо удалить и оно может быть пустым — передавайте `null`
+
+<Info>
+  `userId` — числовой ID пользователя в Exode (поле `id` в ответе [`user/create`](/ru/exode-api/school/user/create),
+  [`user/find`](/ru/exode-api/school/user/find) или [`user/list`](/ru/exode-api/school/user/list)). Если вы храните
+  у себя только свой идентификатор — используйте вариант
+  [по внешнему идентификатору](#обновление-пользователя-по-внешнему-идентификатору) `extId`.
+  Пароль этим методом изменить нельзя. Если пользователя с таким `userId` нет в школе из заголовка `School-Id`,
+  вернётся `401` с `cause: "Forbidden"` и сообщением `seller not entity owner`.
+</Info>
 
 <ParamField body="email" type="string" required={false}>
   Email адрес пользователя. Должен быть валидным email форматом. При передаче пустой строки — преобразуется в
@@ -130,8 +139,8 @@ curl --location --request PUT 'https://api.exode.biz/saas/v2/user/123/update' \
     "tgId": null,
     "status": "Active",
     "profile": {
-      "firstName": "UpdatedFirstname",
-      "lastName": "UpdatedLastname",
+      "firstName": "Newfirstname",
+      "lastName": "Newlastname",
       "bdate": "1990-01-01",
       "sex": "Men",
       "role": "Student"
@@ -151,8 +160,8 @@ const updateUser = async (userId) => {
       tgId: null,
       status: 'Active',
       profile: {
-        firstName: 'UpdatedFirstname',
-        lastName: 'UpdatedLastname',
+        firstName: 'Newfirstname',
+        lastName: 'Newlastname',
         bdate: '1990-01-01',
         sex: 'Men',
         role: 'Student'
@@ -187,8 +196,8 @@ $data = [
   'tgId' => null,
   'status' => 'Active',
   'profile' => [
-    'firstName' => 'UpdatedFirstname',
-    'lastName' => 'UpdatedLastname',
+    'firstName' => 'Newfirstname',
+    'lastName' => 'Newlastname',
     'bdate' => '1990-01-01',
     'sex' => 'Men',
     'role' => 'Student'
@@ -238,8 +247,8 @@ data = {
   'tgId': None,
   'status': 'Active',
   'profile': {
-    'firstName': 'UpdatedFirstname',
-    'lastName': 'UpdatedLastname',
+    'firstName': 'Newfirstname',
+    'lastName': 'Newlastname',
     'bdate': '1990-01-01',
     'sex': 'Men',
     'role': 'Student'
@@ -269,8 +278,8 @@ except requests.exceptions.RequestException as e:
 
 ```bsl 1С
 Профиль = Новый Структура;
-Профиль.Вставить("firstName", "UpdatedFirstname");
-Профиль.Вставить("lastName", "UpdatedLastname");
+Профиль.Вставить("firstName", "Newfirstname");
+Профиль.Вставить("lastName", "Newlastname");
 Профиль.Вставить("bdate", "1990-01-01");
 Профиль.Вставить("sex", "Men");
 Профиль.Вставить("role", "Student");
@@ -350,10 +359,10 @@ except requests.exceptions.RequestException as e:
         "archivedAt": null,
         "userId": 1683,
         "official": false,
-        "firstName": "UpdatedFirstname",
-        "lastName": "UpdatedLastname",
-        "fullName": "UpdatedFirstname UpdatedLastname",
-        "fullNameShort": "UpdatedFirstname U.",
+        "firstName": "Newfirstname",
+        "lastName": "Newlastname",
+        "fullName": "Newfirstname Newlastname",
+        "fullNameShort": "Newfirstname N.",
         "bdate": "1990-01-01",
         "sex": "Men",
         "country": null,
@@ -384,13 +393,13 @@ except requests.exceptions.RequestException as e:
   }
 }
 ```
-```json Error - User Not Found
+```json Error - User Not Found / Other School
 {
-  "code": 404,
+  "code": 401,
   "success": false,
-  "cause": "NotFound",
-  "message": "User not found",
-  "error": "User not found"
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
 }
 ```
 ```json Error - Email Is Busy
@@ -442,27 +451,33 @@ except requests.exceptions.RequestException as e:
 {
   "code": 400,
   "success": false,
-  "cause": "InvalidEmail",
-  "message": "Email must be a valid email address",
-  "error": "Email must be a valid email address"
+  "cause": "validation",
+  "message": [
+    "email must be an email"
+  ],
+  "error": "Bad Request"
 }
 ```
 ```json Error - Invalid Phone
 {
   "code": 400,
   "success": false,
-  "cause": "InvalidPhone",
-  "message": "Phone must be a valid phone number",
-  "error": "Phone must be a valid phone number"
+  "cause": "validation",
+  "message": [
+    "phone must be a valid phone number"
+  ],
+  "error": "Bad Request"
 }
 ```
 ```json Error - Invalid First Name
 {
   "code": 400,
   "success": false,
-  "cause": "InvalidFirstName",
-  "message": "First name must match required format",
-  "error": "First name must match required format"
+  "cause": "validation",
+  "message": [
+    "profile.firstName must be shorter than or equal to 15 characters"
+  ],
+  "error": "Bad Request"
 }
 ```
 ```json Error - Forbidden Modify School Owner
@@ -482,7 +497,7 @@ except requests.exceptions.RequestException as e:
 PUT /saas/v2/user/ext/{extId}/update
 ```
 
-Требуется аутентификация и право `SchoolManageUsers`.
+Требуется аутентификация и право **«Управление пользователями школы»** (`SchoolManageUsers`).
 
 <Info>
   То же самое, что и обновление по `userId`, но пользователь адресуется по внешнему идентификатору `extId`
@@ -507,7 +522,7 @@ curl --location --request PUT 'https://api.exode.biz/saas/v2/user/ext/i.ivanov.0
   --data-raw '{
     "email": "updated@example.com",
     "profile": {
-      "firstName": "UpdatedFirstname"
+      "firstName": "Newfirstname"
     }
   }'
 ```
@@ -521,7 +536,7 @@ const updateUserByExtId = async (extId) => {
     {
       email: 'updated@example.com',
       profile: {
-        firstName: 'UpdatedFirstname',
+        firstName: 'Newfirstname',
       },
     },
     {
@@ -543,7 +558,7 @@ updateUserByExtId('i.ivanov.01011990');
 <ResponseExample>
 ```json Error - User Not Found
 {
-  "code": 404,
+  "code": 400,
   "success": false,
   "cause": "NotFound",
   "message": "User not found",
@@ -555,7 +570,7 @@ updateUserByExtId('i.ivanov.01011990');
 ## Требования к правам доступа
 
 <Check>
-Для обновления пользователя требуется **право на управление пользователями школы**.
+Для обновления пользователя требуется право **«Управление пользователями школы»** (`SchoolManageUsers`).
 </Check>
 
 <Warning>
@@ -573,4 +588,4 @@ updateUserByExtId('i.ivanov.01011990');
 
 ---
 
-_Обновлено: 2026-07-22 12:24 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

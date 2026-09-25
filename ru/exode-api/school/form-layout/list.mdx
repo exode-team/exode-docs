@@ -11,7 +11,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 GET /saas/v2/form/layout/list
 ```
 
-Требуется аутентификация и право `FormManage`.
+Требуется аутентификация и право [**«Управление формами»**](/ru/exode-api/permissions) (`FormManage`).
 
 <Info>
     Все параметры фильтрации необязательны. Без фильтров метод вернёт все макеты форм школы с учётом пагинации.
@@ -221,11 +221,11 @@ print(response.json()['payload']['items'])
 ## Требования к правам доступа
 
 <Check>
-    Требуется аутентификация по токену и право управления формами (`FormManage`).
+    Требуется аутентификация по токену и право **«Управление формами»** (`FormManage`).
 </Check>
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-07-14 22:58 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

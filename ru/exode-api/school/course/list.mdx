@@ -67,21 +67,15 @@ GET /saas/v2/course/list/raw
 </ParamField>
 
 <ParamField query="archived" type="boolean" required={false}>
-    Включить архивные курсы.
+    Фильтр по архивности: `true` — только архивные курсы, `false` — только неархивные. Если не передан —
+    возвращаются и те, и другие.
 </ParamField>
 
-<ParamField query="participation" type="enum" required={false}>
-    Тип участия (относительно текущего сервисного пользователя): `All`, `Active`, `Completed`,
-    `NotParticipant`.
-</ParamField>
-
-<ParamField query="manage" type="boolean" required={false}>
-    Только курсы, доступные на управление.
-</ParamField>
-
-<ParamField query="administrate" type="boolean" required={false}>
-    Только курсы, доступные на администрирование.
-</ParamField>
+<Note>
+    Параметры `participation`, `manage` и `administrate` входят в общую схему фильтра курсов, но в этом методе
+    **не применяются** — ответ от них не зависит. Метод всегда возвращает курсы школы целиком (с учётом остальных
+    фильтров).
+</Note>
 
 <ParamField query="access" type="object" required={false}>
     Вложенный фильтр по доступам к продукту курса. Полный набор полей совпадает с фильтром метода
@@ -123,7 +117,10 @@ GET /saas/v2/course/list/raw
                 <ResponseField name="type" type="enum">
                     Тип курса: `Bundle`, `Webinar`, `TextCourse`, `Assessment`, `VideoCourse`, `PersonalLesson`.
                 </ResponseField>
-                <ResponseField name="groupIds" type="integer[]">ID связанных групп курса.</ResponseField>
+                <ResponseField name="groupIds" type="integer[]">
+                    ID групп курса. Чтобы записать пользователя на курс, добавьте его в одну из этих групп —
+                    см. [Запись на курс](/ru/exode-api/school/course/enroll).
+                </ResponseField>
             </Expandable>
         </ResponseField>
 
@@ -261,12 +258,11 @@ print(response.json())
 ## Требования к правам доступа
 
 <Check>
-    Требуется аутентификация по токену и одно из прав: куратор курса (`CourseCurator`) или управление
-    пользователями школы (`SchoolManageUsers`).
+    Требуется аутентификация по токену и одно из прав: [**«Куратор курсов»**](/ru/exode-api/permissions) (`CourseCurator`) или **«Управление пользователями школы»** (`SchoolManageUsers`).
 </Check>
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-08-24 16:34 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

@@ -11,13 +11,20 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 GET /saas/v2/user/list
 ```
 
-Требуется аутентификация и право `SchoolManageUsers`.
+Требуется аутентификация и право [**«Управление пользователями школы»**](/ru/exode-api/permissions) (`SchoolManageUsers`).
 
 <Info>
     Все параметры фильтрации необязательны. Без фильтров метод вернёт всех пользователей школы с учётом
     пагинации. Каждый элемент ответа — объект
     [`userWithProfile`](/ru/exode-api/objects/entities/user) (пользователь с вложенным профилем).
 </Info>
+
+<Tip>
+    **Какой метод выбрать.** Нужен один пользователь по точному логину, `tgId` или `extId` —
+    [`user/find`](/ru/exode-api/school/user/find). Нужно сопоставить пачку идентификаторов из вашей системы (до 250) —
+    [`user/find-many`](/ru/exode-api/school/user/find-many). `user/list` подходит для постраничной выгрузки и выборок
+    по фильтрам (статусы, даты, `search` — поиск по вхождению подстроки, а не точное совпадение).
+</Tip>
 
 <Info>
     Параметры-массивы передаются повторением параметра: `statuses=Active&statuses=OnLeave`. Диапазоны дат —
@@ -276,11 +283,11 @@ print(response.json()['payload']['items'])
 ## Требования к правам доступа
 
 <Check>
-    Требуется аутентификация по токену и право управления пользователями школы (`SchoolManageUsers`).
+    Требуется аутентификация по токену и право **«Управление пользователями школы»** (`SchoolManageUsers`).
 </Check>
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-07-22 12:19 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

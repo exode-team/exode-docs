@@ -12,7 +12,7 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 GET /saas/v2/user/find
 ```
 
-Требуется аутентификация и право `SchoolManageUsers`.
+Требуется аутентификация и право [**«Управление пользователями школы»**](/ru/exode-api/permissions) (`SchoolManageUsers`).
 
 <Tip>
     Нужно найти сразу несколько пользователей — используйте
@@ -24,13 +24,17 @@ GET /saas/v2/user/find
 ##### Для поиска пользователя передайте один из ниже перечисленных параметров
 
 <Info>
-  Поиск осуществляется по логину (email/телефон/домен), затем по Telegram ID, затем по внешнему идентификатору `extId`. Приоритет: `login` → `tgId` → `extId`. Если пользователь не найден — возвращается `null`.
-  Если переданы несколько параметров — используется параметр с наивысшим приоритетом.
+  Поиск осуществляется по логину (email/телефон/домен), затем по Telegram ID, затем по внешнему идентификатору
+  `extId`. Если передано несколько параметров, они проверяются по очереди `login` → `tgId` → `extId`, и
+  возвращается первый найденный пользователь: например, если по `login` никого нет, поиск продолжится по `tgId`.
+  Если пользователь не найден ни по одному параметру — возвращается `user: null` (это не ошибка, код ответа `200`).
 </Info>
 
 <ParamField query="login" type="string" required={false}>
-  Логин пользователя. Может быть email адресом, номером телефона в международном формате или доменным логином
-  (`domain`) — по умолчанию он имеет вид `id12345`, но может быть задан свой при создании/обновлении пользователя.
+  Логин пользователя, от 2 до 50 символов. Может быть email адресом, номером телефона в международном формате
+  или доменным логином (`domain`) — по умолчанию он имеет вид `id12345`, но может быть задан свой при
+  создании/обновлении пользователя. Значение передаётся в query-строке, поэтому кодируйте его
+  (`encodeURIComponent`): знак `+` в телефоне без кодирования превращается в пробел — передавайте `%2B9876543210`.
 </ParamField>
 
 <ParamField query="tgId" type="integer" required={false}>
@@ -38,7 +42,8 @@ GET /saas/v2/user/find
 </ParamField>
 
 <ParamField query="extId" type="string" required={false}>
-  Внешний идентификатор пользователя из вашей системы.
+  Внешний идентификатор пользователя из вашей системы (от 1 до 50 символов) — значение, переданное в `extId` при
+  [создании](/ru/exode-api/school/user/create) или [обновлении](/ru/exode-api/school/user/update) пользователя.
 </ParamField>
 
 <Info>
@@ -49,8 +54,8 @@ GET /saas/v2/user/find
 </Info>
 
 <Warning>
-  Необходимо передать **хотя бы один** из параметров. Приоритет выбора: `login` → `tgId` → `extId`.
-  Если указаны все три — будет использован `login`.
+  Необходимо передать **хотя бы один** из параметров. Порядок проверки: `login` → `tgId` → `extId` — возвращается
+  первый найденный пользователь.
 </Warning>
 
 <RequestExample>
@@ -258,18 +263,22 @@ except requests.exceptions.RequestException as e:
 {
   "code": 400,
   "success": false,
-  "cause": "InvalidLogin",
-  "message": "Login must be a valid email or phone number",
-  "error": "Login must be a valid email or phone number"
+  "cause": "validation",
+  "message": [
+    "login must be longer than or equal to 2 characters"
+  ],
+  "error": "Bad Request"
 }
 ```
 ```json Error - Invalid Telegram ID
 {
   "code": 400,
   "success": false,
-  "cause": "InvalidTgId",
-  "message": "Telegram ID must be a valid integer",
-  "error": "Telegram ID must be a valid integer"
+  "cause": "validation",
+  "message": [
+    "tgId must be an integer number"
+  ],
+  "error": "Bad Request"
 }
 ```
 </ResponseExample>
@@ -277,7 +286,7 @@ except requests.exceptions.RequestException as e:
 ## Требования к правам доступа
 
 <Check>
-Для поиска пользователя требуется **право на управление пользователями школы**.
+Для поиска пользователя требуется право **«Управление пользователями школы»** (`SchoolManageUsers`).
 </Check>
 
 <Warning>
@@ -293,4 +302,4 @@ except requests.exceptions.RequestException as e:
 
 ---
 
-_Обновлено: 2026-08-05 14:14 UTC_
+_Обновлено: 2026-09-25 13:43 UTC_

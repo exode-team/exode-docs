@@ -9754,7 +9754,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": 400,\n  \"success\": false,\n  \"cause\": \"GroupNotBindToProduct\",\n  \"message\": \"Group not tied to product\",\n  \"error\": \"Group not tied to product\"\n}"
+              "body": "{\n  \"code\": 400,\n  \"success\": false,\n  \"cause\": \"GroupNotBoundToProduct\",\n  \"message\": \"Group not tied to product\",\n  \"error\": \"Group not tied to product\"\n}"
             }
           ]
         },
