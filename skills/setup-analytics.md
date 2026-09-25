@@ -15,8 +15,14 @@ the default is "you paste what I write and tell me what you see".
 ## How it works on the platform
 
 All four supported systems connect the same way: paste the provider's standard
-snippet into **Custom Code (JS)** in the school settings. The platform detects the
-snippet and starts sending its target events automatically — no extra code needed.
+snippet into the school's **custom code** — admin panel → **«Для разработчиков» →
+«Кастомный код»**, tab **HTML** (field «Кастомный HTML»; EN UI: For developers → Custom
+code → Custom HTML). Editing it requires the **"School Settings Management"**
+(«Управление настройками школы», `SchoolManageSettings`) permission. The code is injected into `<head>` of every school
+page before the app loads; the platform detects the snippet and starts sending its target
+events automatically — no extra code needed. Changes apply after a page refresh. The field
+holds at most **3000 characters** in total — if several standard snippets do not fit,
+trim comments/whitespace from them.
 
 Every target event is also dispatched as a plain `CustomEvent` on `document`
 (payload in `event.detail`), so it is visible in the browser console and can be
@@ -49,9 +55,9 @@ Ask two questions, then do only the relevant sections:
    plus goals in Metrika; sales funnel → any system, the purchase/checkout events
    cover it.
 
-Also confirm they can open the school settings (**Custom Code (JS)** field) in the
-admin panel. If they cannot find it, walk the admin panel menus together — the
-field lives in the school settings.
+Also confirm they can open **«Для разработчиков» → «Кастомный код»** (HTML tab) in the
+admin panel. If the section is missing, their account lacks «Управление настройками
+школы» (`SchoolManageSettings`) — the school owner has to grant it or do the pasting.
 
 ## Step 2. Google Analytics 4
 
@@ -59,7 +65,7 @@ field lives in the school settings.
    (Admin → Create property → add a Web data stream with the school domain) and
    copy the **Measurement ID** (`G-XXXXXXXXXX`).
 2. Write the standard **Google tag (gtag.js)** snippet with their Measurement ID
-   and have them paste it into **Custom Code (JS)** in the school settings, then save.
+   and have them paste it into **«Кастомный код» → HTML**, then save.
 3. That is all — the platform detects `window.gtag` and sends automatically:
    - `sign_up` (param `method`), `generate_lead`, `view_item` (`items` with the
      course `item_id`), `begin_checkout` (`items`), `purchase` (`value`,
@@ -74,7 +80,7 @@ field lives in the school settings.
 
 1. **No counter yet?** Create one at https://metrika.yandex.ru for the school
    domain and copy the counter snippet and its number.
-2. Paste the standard counter snippet into **Custom Code (JS)** **and** add the
+2. Paste the standard counter snippet into **«Кастомный код» → HTML** **and** add the
    counter number to `window.YM_ID` — the platform needs it to call `reachGoal`:
 
    ```html
@@ -96,7 +102,7 @@ field lives in the school settings.
 1. **No pixel yet?** Create one in Meta Events Manager
    (https://business.facebook.com/events_manager) and copy the **Pixel ID**.
 2. Write the standard Meta Pixel snippet with their Pixel ID and have them paste
-   it into **Custom Code (JS)**. The platform detects `window.fbq` and sends:
+   it into **«Кастомный код» → HTML**. The platform detects `window.fbq` and sends:
    - standard events (usable for ad optimization): `CompleteRegistration`
      (`registration_method`), `Lead`, `ViewContent` (`content_type: 'product'`,
      `content_ids`), `StartTrial` (`content_ids`), `InitiateCheckout`
@@ -112,7 +118,7 @@ field lives in the school settings.
 
 1. **No pixel yet?** Create a pixel (top.mail.ru) in the VK Ads cabinet
    (https://ads.vk.com) and copy its ID.
-2. Paste the standard VK Ads pixel snippet into **Custom Code (JS)** **and** add
+2. Paste the standard VK Ads pixel snippet into **«Кастомный код» → HTML** **and** add
    the pixel ID to `window.VK_PIXEL_ID`:
 
    ```html
@@ -130,7 +136,7 @@ field lives in the school settings.
 ## Step 6. Custom analytics (any other system)
 
 When the built-in four are not enough, subscribe to the platform events with your
-own code in **Custom Code (JS)** and call the target system's JS API:
+own code in **«Кастомный код» → HTML** and call the target system's JS API:
 
 ```html
 <script>
@@ -170,7 +176,8 @@ and repeating it on the same device within 90 days sends nothing.
 
 | Symptom | Cause and fix |
 |---|---|
-| No events in GA4 / Meta | The platform did not find `window.gtag` / `window.fbq` — the snippet in Custom Code (JS) is missing, broken, or was saved without publishing. Re-paste the provider's standard snippet unmodified. |
+| No events in GA4 / Meta | The platform did not find `window.gtag` / `window.fbq` — the snippet in «Кастомный код» → HTML is missing, broken or not saved, or the page was not refreshed after saving. Re-paste the provider's standard snippet unmodified. |
+| Custom code does not save | Over the 3000-character limit, or no "School Settings Management" («Управление настройками школы», `SchoolManageSettings`) permission. |
 | Metrika / VK goals never fire | `window.YM_ID` / `window.VK_PIXEL_ID` is not set — the snippet alone is not enough for these two. Add the assignment next to the snippet. |
 | Goals fire in console but not in reports | Goal identifiers in the provider cabinet do not match exactly (`signup`, `lead`, `view_course`, ...) — they are case-sensitive; recreate them as JS goals with the exact ids. |
 | No `sign_up` for some registrations | Expected: social login (VK, Telegram) and OTP do not emit the signup event — only email/phone registration does. |
@@ -180,7 +187,7 @@ and repeating it on the same device within 90 days sends nothing.
 
 ## Final checklist
 
-1. The needed snippets are pasted into **Custom Code (JS)** and saved (plus
+1. The needed snippets are pasted into **«Кастомный код» → HTML** and saved (plus
    `window.YM_ID` / `window.VK_PIXEL_ID` where applicable).
 2. Metrika / VK Ads goals exist with the exact identifiers listed above.
 3. The console check logs a platform event (`analytics:course-viewed`).

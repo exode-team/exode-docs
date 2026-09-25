@@ -41,7 +41,7 @@ if not — Mode C.
 - **Do everything yourself** whenever you can execute commands. Ask the user only
   for things that can come from them alone: the credentials and the school domain.
 - **Speak the user's language** (the admin panel is in Russian — cite section names
-  as they appear: «Управление → Школа → API-ключи»). Avoid jargon.
+  as they appear: «Управление → Школа → Для разработчиков → API-ключи»). Avoid jargon.
 - **Never print the token back into the chat** once received — confirm you have it
   and move on. Ask the user to put it into the env file/variable themselves if you
   cannot do it without the value passing through chat.
@@ -58,7 +58,7 @@ Three values are required for every request:
 
 Guide the school owner click by click:
 
-1. Open the school admin panel and go to **Управление → Школа → API-ключи**
+1. Open the school admin panel and go to **Управление → Школа → Для разработчиков → API-ключи**
    (URL path: `/manage/school/api-keys`).
 2. Create an API key there — this creates a service user (API client) and issues
    a token. The page also shows Seller-Id and School-Id, the key list with a token
@@ -69,9 +69,11 @@ Guide the school owner click by click:
 4. The token is non-expiring but revocable. It must belong to a user flagged as an
    **API client** — otherwise SaaS endpoints return an access error even with
    correct permissions.
-5. The key's default permission set depends on the school segment: corporate
-   schools get org-structure rights (`StaffManage`, `StaffView`); commercial
-   schools get sales rights (`SellerSales`, `SellerRefunds`). The set is editable
+5. A new key gets a base set that covers all SaaS methods (users, groups, forms,
+   courses); on top of it, corporate
+   schools additionally get "Staff Management" and "Staff browsing" (`StaffManage`,
+   `StaffView`); commercial schools additionally get "School Sales" and "School Refunds"
+   (`SellerSales`, `SellerRefunds`). The set is editable
    on the key's page. If the user cannot self-serve, support helps at
    https://t.me/exode_support_biz.
 
@@ -106,7 +108,7 @@ SELLER_ID=<sellerId>
 SCHOOL_ID=<schoolId>
 ```
 
-Node.js (axios):
+Node.js (axios — install it first with `npm i axios`):
 
 ```javascript
 const axios = require('axios');
@@ -134,6 +136,25 @@ session.headers.update({
 })
 BASE = 'https://api.exode.biz/saas/v2'
 ```
+
+Node.js alternative — the official typed SDK `@exode-team/sdk` (`npm i @exode-team/sdk`,
+Node.js ≥ 18). It sets the three headers, unwraps `payload` and throws a typed
+`ExodeAPIError` (`code`, `errorCause`) on errors:
+
+```javascript
+import { ExodeAPI } from '@exode-team/sdk/api';
+
+const exodeApi = new ExodeAPI({
+  token: process.env.EXODE_TOKEN,
+  sellerId: Number(process.env.SELLER_ID),
+  schoolId: Number(process.env.SCHOOL_ID),
+});
+
+const user = await exodeApi.school.user.find({ extId: 'crm_12345' }); // user or null
+```
+
+SDK reference: https://docs.exode.biz/ru/exode-sdk/api-client. Server-side only — never
+bundle it (or the token) into browser code.
 
 ## Step 4. Smoke test — the first request
 
@@ -185,9 +206,24 @@ Method-specific causes (e.g. `UserAlreadyExist`, `EmailIsBusy`, `PhoneIsBusy`,
 `TgIdIsBusy` on `user/create`) are listed on each method's docs page.
 
 **RBAC.** Each method requires certain permissions on the token. When a method
-lists several permissions, **any one of them is enough (OR semantics)**. Example
-permissions: `SchoolManageUsers`, `SchoolManageSettings`, `CourseCurator`,
-`CourseStudentManage`, `SellerSales`, `FormManage`.
+lists several permissions, **any one of them is enough (OR semantics)**. The user
+enables them as checkboxes in **Управление → Школа → Для разработчиков → API-ключи → «Редактировать»**.
+The panel shows human labels, not codes — when telling the user what to enable,
+name the checkbox, and add the code only for reference (the API returns the code in
+`403` messages, e.g. `Forbidden seller resource - permissions FormManage`):
+
+| Code | Checkbox (EN UI) | Checkbox (RU UI) | Section (EN / RU) |
+|---|---|---|---|
+| `SchoolManageUsers` | School User Management | «Управление пользователями школы» | School Management / Управление школой |
+| `SchoolManageSettings` | School Settings Management | «Управление настройками школы» | School Management / Управление школой |
+| `FormManage` | Forms management | «Управление формами» | Forms management / Управление формами |
+| `CourseCurator` | Course Curator | «Куратор курсов» | Course Management / Управление курсами |
+| `CourseStudentManage` | Course Student Management | «Управление студентами курса» | Course Management / Управление курсами |
+| `CourseManage` | Course Management | «Управление курсами» | Course Management / Управление курсами |
+| `SellerSales` | School Sales | «Продажи школы» | Organization Management / Управление организацией |
+| `SellerRefunds` | School Refunds | «Возвраты школы» | Organization Management / Управление организацией |
+| `StaffView` | Staff browsing | «Просмотр персонала» | Staff Management / Управление персоналом |
+| `StaffManage` | Staff Management | «Управление персоналом» | Staff Management / Управление персоналом |
 
 **Rate limit.** Some methods are rate-limited per token. On excess you get HTTP
 `429`, `cause: "Rate"`, and `data.retryAfter` — an ISO timestamp for when to
@@ -236,7 +272,7 @@ https://docs.exode.biz/ru/exode-api/objects/entities/index.
 | `401` `Unauthorized` | Token missing, malformed (`Bearer ` prefix?), or revoked/rotated — re-check the env var; re-issue via **API-ключи** if rotated. |
 | `401` `Blocked` | The service user behind the token is inactive or banned — reactivate it in the admin panel. |
 | `401` `Forbidden` | Wrong `Seller-Id`/`School-Id` for this token, or the resource belongs to another school — re-copy both IDs from the API-keys page. |
-| `401` on all SaaS endpoints despite correct rights | The token's user is not flagged as an **API client** — issue the key via Управление → Школа → API-ключи, not from a regular staff account. |
+| `401` on all SaaS endpoints despite correct rights | The token's user is not flagged as an **API client** — issue the key via Управление → Школа → Для разработчиков → API-ключи, not from a regular staff account. |
 | `403` `Forbidden` | The key lacks the required permission — edit the permission set on the key's page (any one of the method's listed permissions suffices). |
 | `400` `validation` | Request body/params violate the method schema — compare field names, types and enums with the method's docs page; check array/range param encoding. |
 | `429` `Rate` | Rate limit hit — wait until `data.retryAfter`, add backoff; batch/paginate instead of hammering. |
@@ -245,7 +281,7 @@ https://docs.exode.biz/ru/exode-api/objects/entities/index.
 
 ## Final checklist
 
-1. Token, Seller-Id and School-Id obtained from Управление → Школа → API-ключи;
+1. Token, Seller-Id and School-Id obtained from Управление → Школа → Для разработчиков → API-ключи;
    the token was saved at creation time.
 2. All three values live in env vars only — not in code, repo or chat history.
 3. Smoke test `user/find` returns `success: true` (Mode B: run in sandbox; Mode C:

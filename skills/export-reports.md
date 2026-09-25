@@ -30,10 +30,11 @@ Unsure? Try `node -v` or `curl --version`: executable → Mode A/B, not → Mode
 
 - Base URL: `https://api.exode.biz/saas/v2`
 - Headers on every request: `Authorization: Bearer <TOKEN>`, `Seller-Id`, `School-Id`
-  (plus `Content-Type: application/json` on POST).
+  (plus `Content-Type: application/json` on POST). On `generate`, also send `Ux-Language: ru`
+  (or `en`/`uz`/`qa`) — it sets the language of the file's column headers; without it they are in English.
 - Every response uses the envelope `{ "success": bool, "code": number, "payload": ... }`;
   errors add `cause`, `message`, and optional `data`.
-- The token comes from the school admin panel: **Управление → Школа → API-ключи**
+- The token comes from the school admin panel: **Управление → Школа → Для разработчиков → API-ключи**
   (`/manage/school/api-keys`). Keep it in an env var (`EXODE_TOKEN`). Never print it
   back into the chat; in Mode C tell the user to paste it into the command themselves.
 
@@ -50,6 +51,17 @@ only by `type`. Map the user's request:
 | "все оплаты/счета за месяц", sales report | `QUERY_EXPORT_TYPE_INVOICE_MANAGE_FIND_MANY` |
 | "попытки по домашкам/практикам", grading report | `QUERY_EXPORT_TYPE_COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY` |
 | "подписки/рассрочки, кто не оплатил списание" | `QUERY_EXPORT_TYPE_PRODUCT_BILLING_ACCESS_FIND_MANY` |
+
+Each type needs a right on the token (any one from the list); without it `generate` still returns `201`, but the
+export ends with `status: Failed`:
+
+| `type` | Rights (any of) |
+|---|---|
+| `SCHOOL_USER_FIND_MANY` | "School User Management" («Управление пользователями школы», `SchoolManageUsers`) |
+| `SCHOOL_STUDENT_FIND_MANY`, `PRODUCT_BILLING_ACCESS_FIND_MANY` | `SchoolManageUsers`, "Course Student Management" («Управление студентами курса», `CourseStudentManage`) |
+| `GROUP_MEMBER_FIND_MANY` | `SchoolManageUsers`, "Course Management" («Управление курсами», `CourseManage`), "Course Curator" («Куратор курсов», `CourseCurator`) |
+| `COURSE_LESSON_PRACTICE_ATTEMPT_FIND_MANY` | `CourseManage`, `CourseCurator` |
+| `INVOICE_MANAGE_FIND_MANY` | "School Sales" («Продажи школы», `SellerSales`) |
 
 Notes that disambiguate:
 
@@ -89,8 +101,14 @@ POST https://api.exode.biz/saas/v2/query-export/generate
 Body: `type` (from the table), `variables` (`filter` + `sort`, structure depends on
 the type — see its doc page), optional `format`: `EXPORT_FORMAT_XLSX` (default),
 `EXPORT_FORMAT_CSV`, `EXPORT_FORMAT_JSON`. Prefer the default XLSX unless the user
-asked for CSV/JSON — the server does the formatting, including extra sheets
-(students/group-members get a **Course Progress** sheet, billing gets **Billing Details**).
+asked for CSV/JSON — the server does the formatting, and only XLSX gets extra sheets
+(students/group-members get a **Course Progress** sheet when bundles are present, billing gets
+**Billing Details**). CSV is comma-separated UTF-8 with BOM; JSON is an array of objects with
+English technical keys.
+
+`variables.filter` is **required for every type** — pass `"filter": {}` to export everything.
+Variables are validated only while the file is built: a missing `filter`, an unknown field or a wrong
+enum value does not fail `generate`, it turns into `status: Failed` on the result.
 
 Real filter examples from the docs:
 
@@ -109,7 +127,7 @@ Real filter examples from the docs:
 { "type": "QUERY_EXPORT_TYPE_GROUP_MEMBER_FIND_MANY",
   "variables": { "filter": { "groupIds": [10, 20], "active": true } } }
 
-// Active users (use statuses — the old active/banned filter fields are removed)
+// Active users (use statuses — there are no active/banned fields; sending them fails the export)
 { "type": "QUERY_EXPORT_TYPE_SCHOOL_USER_FIND_MANY",
   "variables": { "filter": { "statuses": ["Active"] } } }
 
@@ -134,11 +152,13 @@ timestamp — wait until then and retry; do not hammer the endpoint.
 GET https://api.exode.biz/saas/v2/workflow-execution/:executionUuid/result
 ```
 
-Poll every ~2 seconds. `payload`: `total` (always 100), `completed` (0–100),
+Poll every 2–5 seconds, with an overall timeout. `payload`: `total` (always 100), `completed` (0–100),
 `status` — `Waiting` → `Processing` → `Completed` (or `Failed` / `Canceled`).
 On `Completed`, `payload.result` holds `fileUrl`, `fileName`, `fileSize`.
-On `Failed`/`Canceled` — stop polling and regenerate (check the filters first).
-`payload: null` means the uuid is unknown or the 24-hour retention expired.
+On `Failed`/`Canceled` — stop polling; the response carries no reason, so check the filters against the
+type's doc page and the token's rights before regenerating.
+`payload: null` right after `generate` is normal — the task has not reported progress yet, keep polling.
+`payload: null` for a uuid that already had a status means the 24-hour retention expired.
 
 ```bash
 curl -s 'https://api.exode.biz/saas/v2/workflow-execution/<uuid>/result' \
@@ -147,13 +167,13 @@ curl -s 'https://api.exode.biz/saas/v2/workflow-execution/<uuid>/result' \
 curl -L -o report.xlsx '<payload.result.fileUrl>'
 ```
 
-**The result lives 24 hours.** Download the file immediately; if the user comes
-back later, regenerate.
+**The result lives 24 hours**, and `fileUrl` itself may be a short-lived link. Download the file
+immediately (no auth headers needed); if the user comes back later, regenerate.
 
 ## Step 4. Deliver a file that opens in Excel
 
-- **XLSX from query-export**: download `fileUrl` as-is, rename it to something
-  human (`students-2026-08.xlsx`), hand it over. Nothing to convert.
+- **XLSX or CSV from query-export**: download `fileUrl` as-is, rename it to something
+  human (`students-2026-08.xlsx`), hand it over. Nothing to convert — the CSV already has the BOM.
 - **JSON from query-export or a direct list endpoint**: build the CSV yourself.
   Flatten nested objects into dotted columns (`user.firstName` → `user_firstName`),
   join arrays with `; `. **Write a UTF-8 BOM (`\ufeff`) first** — without it,
@@ -195,13 +215,14 @@ Ask the user to open the file and confirm the columns and Cyrillic look right.
 | Symptom | Cause and fix |
 |---|---|
 | 401 `Unauthorized` | Token missing/invalid, or `Seller-Id`/`School-Id` absent — recheck all three headers. |
-| 401/403 `Forbidden` | Token lacks rights for this data (e.g. invoices need `SellerSales`) or is not an API-client user — adjust the key's rights in `/manage/school/api-keys`. |
+| 401/403 `Forbidden` on a list endpoint | Token lacks rights for this data (e.g. invoices need "School Sales" («Продажи школы», `SellerSales`)) or is not an API-client user — adjust the key's rights in `/manage/school/api-keys`. For query-export missing rights show up as `status: Failed` instead (see the rights table in Step 1). |
 | 429 `Rate` | 100 generations/hour exceeded — wait until `data.retryAfter`, reuse already-generated files. |
-| 400 `validation` | Malformed `variables` (wrong enum, `from` > `to` in a range) — fix against the type's doc page. Unknown filter fields are silently ignored, so a misspelled filter returns *unfiltered* data — verify row counts look plausible. |
-| `status: Failed` | Generation error — retry once; if it persists, narrow the filters and contact support. |
-| `payload: null` on result | Wrong uuid or the 24h retention expired — regenerate. |
+| 400 `validation` on `generate` | Unknown `type`/`format`, or `variables` is not an object. |
+| `status: Failed` | Most often: no `filter` in `variables`, an unknown/misspelled filter field, a wrong enum value, or the token lacks the right for this type. Fix and regenerate; if it persists with a valid request, retry once and contact support. |
+| `payload: null` on result | Right after `generate` — not started yet, keep polling. Otherwise wrong uuid or the 24h retention expired — regenerate. |
+| Column headers in English | `Ux-Language: ru` header was not sent on `generate`. |
 | Cyrillic garbled in Excel | CSV lacks the UTF-8 BOM — rewrite with `utf-8-sig` / prepend `\ufeff`, or ship XLSX instead. |
-| Export empty but data exists in the admin panel | Filters too narrow (e.g. `statuses` vs removed `active` field on the users export, timezone-shifted date range) — re-confirm filters with the user. |
+| Export empty but data exists in the admin panel | Filters too narrow (e.g. timezone-shifted date range) — re-confirm filters with the user. |
 
 ## Final checklist
 

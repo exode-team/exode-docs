@@ -444,6 +444,7 @@ function VerifiedIdentityCard() {
         <div className={`status status--${status}`}>
             <span className="status__dot" aria-hidden/>
             {status === 'ok' && user && `Server-verified: ${user.firstName ?? 'user'} (id ${user.id})`}
+            {status === 'ok' && !user && 'Server-verified: the visitor is not logged in to the school.'}
             {status === 'guest' && 'Guest mode — opened outside Exode.'}
             {status === 'error' && 'Could not verify the Exode signature.'}
         </div>
@@ -685,10 +686,13 @@ npm run dev
 Verify the pipeline yourself instead and show the results:
 
 ```bash
-curl -s http://localhost:3000 | grep -o "Guest mode"
+curl -s http://localhost:3000 | grep -o "My mini app"   # server-rendered HTML is served
 curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:3000/api/exode/verify \
   -H 'Content-Type: application/json' -d '{"initData":"broken"}'   # expect 401
 ```
+
+("Guest mode" is set on the client after hydration, so it is not in the curl output —
+check it in a browser on the preview deploy.)
 
 Then rely on the preview deploy in Step 4 for the user-visible check.
 
@@ -765,14 +769,16 @@ Any other Node hosting works the same way: build with `npm run build`, run with
 Ask the user to do this part in the browser — guide them click by click:
 
 1. Open the school admin panel: `https://<school-domain>/manage/school/pages`
-   (or: open the school, left menu **Company → Apps & pages**).
-2. Press **Create page**. Fill in:
-   - **Title** — the app name (what students will see in the header);
-   - **Page address** — a short latin slug, e.g. `my-app`;
-   - **Iframe URL** — the https URL from Step 4;
-   - layout and access ("available without login") — as the user prefers.
+   (or: admin panel → **School → Apps & pages**; RU UI: «Школа» → «Приложения и страницы»;
+   corporate schools show «Компания» / Company instead of «Школа»). Requires the
+   **"Apps & Pages Management"** («Управление приложениями и страницами», `SchoolManagePages`) permission.
+2. Press **Create app** («Создать приложение»). Fill in:
+   - **Title** («Название») — the app name (what students will see in the header);
+   - **App address (slug)** («Адрес приложения (slug)») — a short latin slug, e.g. `my-app`;
+   - **App URL (iframe)** («URL приложения (iframe)») — the https URL from Step 4;
+   - **Window type**, **Layout** and **Available without login** — as the user prefers.
    Save.
-3. In the new page's row menu (the "..." button) choose **Show secret** and copy it.
+3. In the new page's row menu (the "⋯" button) choose **Show secret** («Показать секрет») and copy it.
 4. Put the secret into the hosting env and redeploy. Path A (Vercel):
 
    ```bash
@@ -792,17 +798,21 @@ When the mini app needs to **read or write school data** (users, courses, groups
 custom fields, invoices...), its backend calls the Exode REST API. Everything is
 already wrapped in the SDK — same package, entrypoint `@exode-team/sdk/api`.
 
-### 7.1 Credentials
+### 6.1 Credentials
 
-Ask the user to open the school admin panel → **Company → For developers** and:
+Ask the user to open the school admin panel → **School → For developers → API keys**
+(RU UI: «Школа» → «Для разработчиков» → «API-ключи», `/manage/school/api-keys`) and:
 
-1. Create an **API key** — this is the Bearer token.
+1. Create an **API key** — this is the Bearer token (shown in full only once — copy it right away).
 2. Note the **Seller ID** and **School ID** shown there.
+3. Enable the permissions the calls need on the key («Редактировать»): e.g. writing custom
+   fields (6.3) needs **"Forms management"** («Управление формами», `FormManage`). Each method's required
+   permission is listed on its page at https://docs.exode.biz/ru/exode-api/setup.
 
 Put all three into the server env (never the client): `EXODE_API_TOKEN`,
 `EXODE_SELLER_ID`, `EXODE_SCHOOL_ID`.
 
-### 7.2 The API client
+### 6.2 The API client
 
 ```ts
 import { ExodeAPI } from '@exode-team/sdk/api';
@@ -819,7 +829,7 @@ Namespaces on `exodeApi.school`: `user`, `staff`, `group`, `course`, `certificat
 1:1 to a REST route (full reference: https://docs.exode.biz, SDK README on npm).
 Errors throw a typed `ExodeAPIError` with `code` and `errorCause`.
 
-### 7.3 Example: write a custom field from the mini app
+### 6.3 Example: write a custom field from the mini app
 
 The flagship scenario: the user answers something inside your mini app → your
 backend verifies who they are (Step 2.1) → stores the answer into an Exode
@@ -858,13 +868,16 @@ export async function POST(request: Request) {
 The custom field itself (and its `slug`) is created by the school in the admin
 panel form builder — or by your backend via `exodeApi.school.form.layoutCreate`.
 
-### 7.4 Receive webhooks from Exode
+### 6.4 Receive webhooks from Exode
 
-Exode pushes events (new user, enrollment, payment, ...) to your backend:
+Exode pushes events (new user, enrollment, payment, ...) to your backend (full guide:
+the `exode-setup-webhooks` skill):
 
-1. The user opens admin panel → **Company → For developers → Webhooks**, creates an
-   endpoint with your app's URL (e.g. `https://my-miniapp.vercel.app/api/exode/webhook`)
-   and copies its **secret key** → env `EXODE_WEBHOOK_SECRET`.
+1. The user opens admin panel → **School → For developers → Webhooks** («Для разработчиков» →
+   «Вебхуки»; needs "School Settings Management" («Управление настройками школы», `SchoolManageSettings`)), creates an
+   endpoint with your app's URL (e.g. `https://my-miniapp.vercel.app/api/exode/webhook`),
+   saves it and copies its secret key with **Copy signature** («Копировать подпись») → env
+   `EXODE_WEBHOOK_SECRET`.
 2. Every delivery is a POST signed with the endpoint's secret key. Verify it with
    the SDK against the **raw** body (`request.text()`, not `request.json()` — a
    re-serialized body will not match) before doing anything:
@@ -884,14 +897,14 @@ export async function POST(request: Request) {
     if (!valid) return new Response('Invalid signature', { status: 401 });
 
     const event = JSON.parse(rawBody);
-    // handle event.event / event payload here
+    // event = { event, timestamp, idempotencyKey, data } — handle event.event / event.data here
 
     return Response.json({ ok: true });
 }
 ```
 
 Failed deliveries are retried (5 attempts with growing backoff) — make the handler
-**idempotent** (dedupe by the event id) and answer 2xx fast; do slow work async.
+**idempotent** (dedupe by `idempotencyKey`) and answer 200/201/202 within 15 seconds; do slow work async.
 
 **Testing webhooks locally.** Exode can only deliver to a public HTTPS URL, so during
 development expose your local server with a tunnel — [ngrok](https://ngrok.com) is the
@@ -903,11 +916,11 @@ ngrok http 3000
 ```
 
 Register the tunnel URL as the endpoint (e.g. `https://a1b2c3.ngrok-free.app/api/exode/webhook`)
-in the admin panel, then use its **"send test webhook"** action to fire test events at
-your handler from the Exode UI — no real user activity needed. Watch the delivery log in
-the admin panel (status, response code, retries) and your server logs side by side.
-Remember the free ngrok URL changes on every restart — update the endpoint URL when it does,
-and switch it to the production URL before going live.
+in the admin panel and save it; then use the send icon next to each event in the endpoint
+form (tooltip **Send a test event** / «Отправить тестовое событие») to fire test events at
+your handler from the Exode UI — no real user activity needed. Watch your server logs for
+the result. Remember the free ngrok URL changes on every restart — update the endpoint URL
+when it does, and switch it to the production URL before going live.
 
 ## Security (mandatory — never skip)
 
@@ -924,21 +937,25 @@ and switch it to the production URL before going live.
 - The Exode API token and webhook secret live only in the server env, like the page
   secret. Always verify the webhook `signature` before trusting a delivery, and take
   the acting `userId` only from `verifyInitData` — never from the request body.
-- Do not add `X-Frame-Options` or a restrictive `frame-ancestors` CSP header — the
-  app must remain embeddable in an iframe. (Next.js and Vercel do not add them by
-  default; just do not add them yourself.)
+- Do not add `X-Frame-Options` — the app must remain embeddable in an iframe. A CSP
+  `frame-ancestors` header is fine (and recommended) only if it lists the school's origin,
+  e.g. `frame-ancestors https://my-school.exode.biz`. (Next.js and Vercel add neither by
+  default.)
+- Optionally pin the bridge to the school: pass `targetOrigin: 'https://<school-domain>'`
+  in the `ExodeMiniAppProvider` config — without it the SDK accepts messages from any
+  parent page and logs a console warning.
 
 ## Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|
 | "Could not verify the Exode signature" inside the school | The secret in the env does not match this page: re-copy it via **Show secret**, update the env, redeploy. Also happens right after **Regenerate secret**. |
-| Server responds 503 / "Secret is not configured" | `EXODE_PAGE_SECRET` is missing on the hosting — add it and redeploy. |
+| "Could not verify" everywhere, even right after deploy | `EXODE_PAGE_SECRET` is missing on the hosting — `verifyInitData` throws `secret is required` and the route answers 401. Add the env var and redeploy. |
 | 401 with a correct secret | `auth_date` is older than 24h (the school tab was open for a long time) — reopening the page issues a fresh signature. |
-| "Guest mode" inside the school | The page in the admin panel is created without login requirement and the visitor is not logged in — expected; or the iframe URL points to a different deployment. |
+| "Guest mode" inside the school | The `#exodeInitData` fragment did not reach the app: the iframe URL already contains its own `#...` fragment (Exode appends `#exodeInitData=` to the URL as is), or it redirects somewhere that drops the fragment, or it points to a different deployment. A not-logged-in visitor on an «Available without login» page is a different case — the starter shows "the visitor is not logged in". |
 | Blank page inside the school | The app URL is http (must be https), or a frame-blocking header was added — remove `X-Frame-Options`/`frame-ancestors`. |
 | Works locally, fails after deploy | The env var exists only in `.env.local`/`.dev.vars` — add it on the hosting (Step 5.4). |
-| Path B: secret set in shell env but server says 503 | Cloudflare Workers read `process.env` from Worker secrets/`.dev.vars`, not the shell — use `wrangler secret put` / `.dev.vars`. |
+| Path B: secret set in shell env but verification still fails | Cloudflare Workers read `process.env` from Worker secrets/`.dev.vars`, not the shell — use `wrangler secret put` / `.dev.vars`. |
 
 ## Final checklist
 

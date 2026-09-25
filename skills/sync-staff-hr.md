@@ -31,11 +31,11 @@ If unsure, try a harmless command (`node -v`): executes — Mode A/B; not — Mo
 ## Prerequisites
 
 1. **A corporate-segment school.** All `staff/*` endpoints work **only** for schools of
-   segment `Corporate` — other segments get `403 Forbidden`. Confirm this first.
+   segment `Corporate` — other segments get `401 Forbidden` (`Allowed only for Corporate school`). Confirm this first.
 2. **An API key (service user token).** The school owner creates it in the admin panel:
-   **Management → School → API keys** (`/manage/school/api-keys`). The token is shown in
+   **Manage → School → For developers → API keys** (`/manage/school/api-keys`). The token is shown in
    full only at creation/rotation — save it immediately.
-3. **Rights `StaffManage` + `StaffView`.** Keys for corporate schools ship with both out
+3. **Rights "Staff Management" («Управление персоналом», `StaffManage`) + "Staff browsing" («Просмотр персонала», `StaffView`).** Keys for corporate schools ship with both out
    of the box — HR sync works without extra setup. Reading uses `StaffView`, all writes
    use `StaffManage`.
 4. Never put the token in code, repos, or chat — environment variables only.
@@ -56,7 +56,10 @@ For the full credentials/auth walkthrough use the companion skill
 Entities link through **external IDs (`extId`)** — GUIDs/codes from the HR system. You
 never need to store internal Exode IDs: departments, positions, employments, absences
 and users are all addressed via `ext/{extId}` routes. `extId` rules: 1–50 chars, no `/`
-and no whitespace (URL-safe; URL-encode it in paths), unique per school.
+and no whitespace (URL-safe; URL-encode it in paths — Cyrillic is allowed), unique per
+school (for employments — among open ones; a terminated employment frees its `extId`).
+Store the employment `extId`, not its `id`: transfer/promote close the record and open a
+new one with a new `id`, while the `extId` moves to the new record.
 
 An **employment** is the central record: user + department + optional position, with
 `kind` (`Main` / `InternalSecondary` / `ExternalSecondary`), `type`
@@ -78,9 +81,12 @@ Violating the order fails loudly: creating an employee with an unknown
 
 ## Idempotency model (follow exactly)
 
-- **Everything upserts by extId.** The documented pattern for each entity:
+- **Departments, positions, absences and users upsert by extId:**
   `PUT .../ext/{extId}/update` → on `*NotFound` → `POST .../create` with the same
-  `extId`. Re-running the whole sync is safe — run it hourly if you like.
+  `extId`. Re-running the whole sync is safe — run it hourly if you like. Employments
+  have no update-by-extId: they are created via `extra.staff.employments`/`hire` and
+  changed only via transfer/promote/terminate. Note: department update also returns
+  `StaffDepartmentNotFound` when the `parentExtId` is unknown — keep the top-down order.
 - **Employees — pick the method by password policy:**
   - You do **not** set passwords → `PUT /user/upsert` (finds by login/`tgId`/`extId`;
     creates if missing; idempotent, simplest for recurring sync).
@@ -94,15 +100,19 @@ Violating the order fails loudly: creating an employee with an unknown
   endpoints, and in incremental updates of existing users you normally **omit
   `extra.staff`** — otherwise a transfer in HR becomes an extra secondary job in Exode.
 - **Full-sync deletions:** if HR exports the complete list (not deltas), fetch
-  `GET /staff/employment/list?activeOnly=true`, diff by employment `extId`, and
-  `terminate` the ones absent from the export.
+  `GET /staff/employment/list?activeOnly=true` (**all pages first**), diff by employment
+  `extId`, then `terminate` the ones absent from the export. Terminating while paging
+  shifts the pages and skips records. Skip the integration's own user and the school
+  owner. `terminate` takes effect immediately even with a future `finishAt` — call it on
+  the actual termination day.
 - **Status lifecycle is automatic — do not set it by hand:** terminating the last
   active employment sets `user.status = Terminated` (access closed, sessions ended);
   re-`hire` restores `Active`. Absences drive `OnLeave` ↔ `Active`, recalculated by the
   platform hourly against the calendar — no scheduler needed on your side. Map HR
   "Working" → `"status": "Active"` (also lifts a manual block); never map "Fired" to a
   status — call `terminate` instead. `Blocked` via `user/update` is for admin blocks
-  without termination.
+  without termination. Caution: `"status": "Active"` on a `Terminated` user reopens login
+  but does **not** restore an employment — rehire via a hire instead.
 
 ## Endpoints and request bodies
 
@@ -167,11 +177,16 @@ old record closes, a new one opens, and the `extId` moves to the new active reco
 | Position change (promotion) | `POST /staff/employment/ext/{extId}/promote` `{ "toPositionExtId": "<GUID>" }` (or `"toPositionId": null` to clear) |
 | Fired | `POST /staff/employment/ext/{extId}/terminate` `{}` (optional `finishAt`) |
 | New secondary job | `POST /staff/employment/hire` or another `employments` item |
-| Rehired | normal loop — create/`extra` hires again, status returns `Active` |
+| Transfer + position change at once | `transfer`, then `promote` on the same `extId` with the same `startAt` |
+| Rehired | `PUT /user/ext/{extId}/update` with `extra.staff.employments` (or `POST /staff/employment/hire`) — status returns `Active`. The normal loop does not rehire: it omits `extra` for existing users |
 
 **5. Managers** — `POST /staff/department-manager/set` (upsert per
 department+employment; `isPrimary: true` demotes the previous primary automatically);
-`DELETE /staff/department-manager/ext/{extId}/remove`.
+`DELETE /staff/department-manager/ext/{extId}/remove`. Always send `isPrimary`
+explicitly — a repeated `set` without it resets the flag to `false`. Always send your own
+`extId`: there is no manager list endpoint, so `ext/{extId}/remove` is the only way to
+remove without storing internal ids. The employment must be active and already started;
+managership follows transfer/promote and is removed on terminate automatically.
 
 ```json
 { "departmentExtId": "ПОДР-001", "employmentExtId": "i.ivanov.01011990:ПОДР-001", "extId": "dm-001", "isPrimary": true }
@@ -181,11 +196,14 @@ department+employment; `isPrimary: true` demotes the previous primary automatica
 `POST /staff/absence/create`, `PUT /staff/absence/ext/{extId}/update`,
 `DELETE /staff/absence/ext/{extId}/delete`. Types: `Absent`, `Vacation`, `DayOff`,
 `BusinessTrip`, `SickLeave`, `ParentalLeave`, `StudyLeave`. `OnLeave` is informational —
-login stays open.
+login stays open. `startAt`/`finishAt` are instants, not dates: an absence is current
+while `startAt ≤ now ≤ finishAt`, so for "through Aug 14 inclusive" send
+`finishAt: "2026-08-14T23:59:59Z"` (adjust for the company time zone). `employmentExtId`
+resolves only open employments.
 
 ```json
 { "extId": "1c-absence-2024-001", "employmentExtId": "i.ivanov.01011990:ПОДР-001",
-  "type": "Vacation", "startAt": "2026-08-01T00:00:00Z", "finishAt": "2026-08-15T00:00:00Z" }
+  "type": "Vacation", "startAt": "2026-08-01T00:00:00Z", "finishAt": "2026-08-14T23:59:59Z" }
 ```
 
 ## Sync script skeleton
@@ -215,7 +233,11 @@ const api = axios.create({
 const cause = (res) => (res.data && res.data.cause) || null;
 
 async function ensureDepartment(dep) { // parents before children
-  const upd = await api.put(`/staff/department/ext/${encodeURIComponent(dep.extId)}/update`, { name: dep.name });
+  // parentExtId is sent on update too (null for roots), so HR re-parenting reaches Exode
+  const upd = await api.put(`/staff/department/ext/${encodeURIComponent(dep.extId)}/update`, {
+    name: dep.name,
+    parentExtId: dep.parentExtId || null,
+  });
   if (upd.data.success) return;
   if (cause(upd) !== 'StaffDepartmentNotFound') throw new Error(cause(upd));
   const body = { name: dep.name, extId: dep.extId, ...(dep.parentExtId && { parentExtId: dep.parentExtId }) };
@@ -241,16 +263,20 @@ async function syncEmployee(emp) { // emp = mapped body from the HR export (see 
 }
 
 async function terminateMissing(exportEmploymentExtIds) { // full-sync mode only
-  let page = 1;
-  for (;;) {
+  // 1) collect every page first: terminated records drop out of activeOnly and would shift the pages
+  const missing = [];
+  for (let page = 1; ; page += 1) {
     const res = await api.get('/staff/employment/list', { params: { activeOnly: true, take: 1000, page } });
+    if (!res.data.success) throw new Error(cause(res));
     for (const e of res.data.payload.items) {
-      if (e.extId && !exportEmploymentExtIds.has(e.extId)) {
-        await api.post(`/staff/employment/ext/${encodeURIComponent(e.extId)}/terminate`, {});
-      }
+      if (e.extId && !exportEmploymentExtIds.has(e.extId)) missing.push(e.extId);
     }
     if (res.data.payload.isLast) break;
-    page += 1;
+  }
+  // 2) then terminate (exclude the integration user and the school owner from the diff)
+  for (const extId of missing) {
+    const res = await api.post(`/staff/employment/ext/${encodeURIComponent(extId)}/terminate`, {});
+    if (!res.data.success) throw new Error(`${extId}: ${cause(res)}`);
   }
 }
 ```
@@ -272,7 +298,7 @@ them from HR events or derive them from the full-sync diff.
 | Symptom | Cause and fix |
 |---|---|
 | `401 Unauthorized` on everything | Token missing/invalid, or `Seller-Id`/`School-Id` headers absent. Also check the key is an API-client service user. |
-| `403 Forbidden` on `staff/*` | School is not `Corporate` segment, or the key lacks `StaffManage`/`StaffView` — check the key page in the admin panel. |
+| `401 Forbidden` on `staff/*` | School is not `Corporate` segment, or the key lacks "Staff Management" / "Staff browsing" («Управление персоналом» / «Просмотр персонала», `StaffManage`/`StaffView`) — check the key page in the admin panel. |
 | `StaffDepartmentNotFound` on employee create | Departments not synced first, or `departmentExtId` typo. The user is **not** created — fix ordering, re-run. |
 | `StaffPositionNameIsNotUniq` | Same position name under two GUIDs (multi-org 1C). Converge GUIDs to one, or drop the GUID for the duplicate org. |
 | `StaffEmploymentInputRequired` on create | Corporate school requires ≥1 item in `extra.staff.employments` at user creation. |

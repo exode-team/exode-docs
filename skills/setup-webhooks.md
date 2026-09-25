@@ -132,6 +132,12 @@ export async function POST(request: Request) {
 }
 ```
 
+Alternatively, in Node.js use the official SDK helper instead of hand-written crypto:
+`npm i @exode-team/sdk`, then
+`import { verifyWebhookSignature } from '@exode-team/sdk/miniapp/server'` and
+`verifyWebhookSignature(rawBody, { secret: process.env.EXODE_WEBHOOK_SECRET!, signature: request.headers.get('signature') })`
+— it returns a boolean and never throws (same algorithm as above, raw body required).
+
 Rules baked into this handler — keep them if the user changes stacks:
 verify the raw body, compare with a timing-safe equal, answer 401 on a bad
 signature, dedupe by `idempotencyKey`, return `200` fast and process async.
@@ -148,26 +154,30 @@ Any other https hosting works — the URL just must be public https, ≤255 char
 
 ## Step 3. Register the endpoint and get the secret
 
-Webhook endpoints are configured **in the school admin panel** (settings section) —
+Webhook endpoints are configured **in the school admin panel** — school menu
+**«Для разработчиков» → «Вебхуки»** (For developers → Webhooks; `/manage/school/webhooks`) —
 the docs do not document a public API method for creating endpoints. Managing them
-requires the `SchoolManageSettings` right (or the school owner). If the user also
+requires the "School Settings Management" right («Управление настройками школы», `SchoolManageSettings`) or the school owner. If the user also
 needs API access for other tasks, use the sibling `exode-api-integration` skill —
 credentials/headers are covered there, not here.
 
 Guide the user click by click:
 
-1. Open the school admin panel → settings → webhooks section, create an endpoint:
-   the `url` from Step 2, the list of `events` to subscribe to, `active` on.
+1. Open **«Для разработчиков» → «Вебхуки»** and press **«Создать вебхук»** (Create a webhook):
+   the `url` from Step 2 in the link field, the events to subscribe to under
+   «Выбранные события» (Selected events), optionally a «Служебная заметка» (Service note).
 2. **Save the endpoint first** — the permanent `secretKey` is generated on save.
-3. Copy `secretKey` from the endpoint's settings (if it is not shown, ask
+3. Copy the `secretKey` with **«Копировать подпись»** (Copy signature) — in the endpoint's
+   row menu or above the link field of the saved endpoint (if it is not there, ask
    [support](https://t.me/exode_support_biz)). Never paste it back into the chat.
 4. Put it into the hosting env (`EXODE_WEBHOOK_SECRET`) and redeploy (Step 2).
 
 ## Step 4. Test
 
-1. **Test send from the admin panel**: the saved endpoint's form has a test-send
-   action, signed with the endpoint's own `secretKey` — same body format, algorithm
-   and header as real events, so the receiver needs no special test branch.
+1. **Test send from the admin panel**: in the saved endpoint's form every event row in
+   the list has a send icon (tooltip **«Отправить тестовое событие»** / Send a test event), signed with the
+   endpoint's own `secretKey` — same body format, algorithm and header as real events,
+   so the receiver needs no special test branch.
    **Important**: a test from an *unsaved* endpoint is signed with a temporary key
    and will fail verification against the permanent secret — save first, then test.
 2. **Real event**: trigger one, e.g. register a test student in the school
@@ -199,7 +209,7 @@ Guide the user click by click:
 | Retries keep coming for a handled event | The handler answered something other than `200/201/202`, or took >15s. Return 2xx immediately and process async. |
 | No `PaymentCompleted` on card binding | Expected: recurrent initialization (zero payment, `BindingCompleted`) does not fire the event — only real charges do. |
 | Cannot create a 6th endpoint | Documented limit: max 5 endpoints per seller. Delete/deactivate an unused one. |
-| Cannot find the webhooks section / secret | Requires `SchoolManageSettings` (or owner). If the secret is not displayed, request it from support: https://t.me/exode_support_biz. |
+| Cannot find the webhooks section / secret | Requires "School Settings Management" («Управление настройками школы», `SchoolManageSettings`) or the owner. If the secret is not displayed, request it from support: https://t.me/exode_support_biz. |
 | Events out of order | Documented: order is not guaranteed. Use `timestamp` in the payload, not arrival order. |
 
 ## Final checklist
@@ -209,4 +219,4 @@ Guide the user click by click:
 3. `EXODE_WEBHOOK_SECRET` set in the hosting env only; not present in chat or repo.
 4. Admin-panel test send (from the **saved** endpoint) verifies and returns `200`.
 5. A real event (test registration or access grant) shows up in the receiver logs.
-6. Handler dedupes by `idempotencyKey` in durable storage and responds in <15s.
+6. Handler dedupes by `idempotencyKey` in durable storage and responds within 15 seconds.

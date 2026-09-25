@@ -1,6 +1,6 @@
 ---
 name: exode-customize-school
-description: Customize an Exode school's look and behavior end-to-end for a non-technical owner — Custom Code (JS) tweaks, custom pages with embedded mini apps, auto-login into the school's Telegram Mini App, and deep links into the ExodeBiz mobile app. Use when a user wants to customize their Exode school's look and behavior — JS config tweaks, custom pages, a Telegram mini app for the school, or mobile app setup.
+description: Customize an Exode school's look and behavior end-to-end for a non-technical owner — custom code (JS) tweaks, custom pages with embedded mini apps, auto-login into the school's Telegram Mini App, and deep links into the ExodeBiz mobile app. Use when a user wants to customize their Exode school's look and behavior — JS config tweaks, custom pages, a Telegram mini app for the school, or mobile app setup.
 ---
 
 # Customize an Exode School
@@ -23,7 +23,7 @@ Match what the user wants to the right mechanism before doing anything:
 
 | User wants | Mechanism | Go to |
 |---|---|---|
-| Hide/tweak a built-in UI element or system banner on every platform page | **Custom Code (JS)** | §1 |
+| Hide/tweak a built-in UI element or system banner on every platform page | **Custom code** (HTML field) | §1 |
 | A new page at `https://<school>/<slug>` inside the school (landing, tool, service) | **Custom page** (embeds a mini app via iframe) | §2 |
 | Build the website/app that the custom page embeds | **Hand off to the `exode-create-miniapp` skill** — it covers scaffold, initData verification, deploy | §2 |
 | Students to open the school inside Telegram, logged in automatically | **Telegram Mini App auto-auth** (`___uat` token) | §3 |
@@ -32,11 +32,15 @@ Match what the user wants to the right mechanism before doing anything:
 If the request mixes several (common: "make a custom page" → also needs the mini app
 built), do the school-side steps here and delegate the app build to `exode-create-miniapp`.
 
-## §1. Custom Code (JS) — behavior tweaks on every page
+## §1. Custom code — behavior tweaks on every page
 
-School settings expose a **Custom Code (JS)** field. `<script>` tags placed there run on
-**every page of the platform**. Use only the documented options — do not invent config
-keys; anything else is unsupported and may break silently.
+Where: school admin panel → **«Для разработчиков» → «Кастомный код»**, tab **HTML**
+(field «Кастомный HTML»; EN UI: For developers → Custom code → Custom HTML). Requires the
+**"School Settings Management"** («Управление настройками школы», `SchoolManageSettings`) permission. The code is injected
+into `<head>` of **every school page** before the app loads, so `<script>` tags there run
+before the platform UI. Changes apply after a page refresh; the field holds at most
+**3000 characters**. Use only the documented options — do not invent config keys; anything
+else is unsupported and may break silently.
 
 **Hide the "Download the app" system banner:**
 
@@ -56,7 +60,8 @@ keys; anything else is unsupported and may break silently.
 ```
 
 Documented keys (the full current list):
-- `videoWatchProgress` — video watch progress in the student card (student management section).
+- `videoWatchProgress` — video watch progress: the watched-segments bar under the video player in
+  lessons and the video watch progress in the student card (student management section).
 
 All documented parameters: `window.exode.common.content.banners.system.hideDownloadAppBanner`
 (boolean, default `false`) and `window.exodeJsConfig.excludeElements` (string[], default `[]`).
@@ -75,17 +80,19 @@ receives signed user Init Data it can verify on its backend.
 
 Create one (user does this in the browser — guide click by click):
 
-1. Open **Control panel → School → Customization → "Apps & pages"** (`https://<school-domain>/manage/school/pages`).
-   Requires the **Manage pages** manager permission.
+1. Open **Control panel → School → Customization → "Apps & pages"** (RU UI: «Приложения и страницы»;
+   `https://<school-domain>/manage/school/pages`).
+   Requires the **"Apps & Pages Management"** («Управление приложениями и страницами», `SchoolManagePages`) manager permission.
 2. Press **Create app** and fill in:
    - **Title** — shown in the header and menu (per school language);
    - **App address (slug)** — lowercase latin letters, digits, hyphens, 2–64 chars; page opens at `/<slug>`; system platform addresses are reserved;
    - **App URL (iframe)** — the https address of the mini app (opens in the iframe);
-   - **Window type** — `Page` (a normal platform page), `Floating window` (overlay that can be minimized), `Panel` (side panel next to the content);
-   - **Display** — `Page` window type only: `Full width` or `Island` (a card with padding);
+   - **Window type** — `Page` (a normal platform page), `Floating window` (overlay that can be minimized), `Side panel` (panel next to the content);
+   - **Layout** — `Page` window type only: `Full width` or `Island` (a card with padding);
    - **Available without login** — whether unauthenticated visitors can see it.
-3. Page menu → **Page secret** — the mini app's server needs it to verify Init Data. Store it only on the server; never print it into chat.
-4. Add a left-menu item for the page in **Settings → Left menu** with link `/<slug>` — navigation stays internal, no reload.
+3. Page row menu «⋯» → **Show secret** («Показать секрет») — the mini app's server needs it to verify Init Data. Store it only on the server; never print it into chat. **Regenerate secret** («Перевыпустить секрет») invalidates the old one immediately.
+4. Add a left-menu item for the page in **Settings → Left menu of the site** («Настройки» → «Левое меню сайта») with link `/<slug>` — navigation stays internal, no reload.
+5. The embedded site must allow framing: no `X-Frame-Options` header; if it sends a CSP `frame-ancestors`, that list must include the school's domain.
 
 Extra abilities:
 - **Main page:** in the page list you can assign any page (system or custom) as the main one — it opens at `/`. A custom page set as main cannot be deleted or disabled until another main page is assigned.
@@ -106,16 +113,20 @@ login screens.
    or domain); pass `tgId` to link the account to Telegram; profile fields optional.
    Save `user.id` from the response — it is needed to issue the token.
 2. **Issue a session token** for that `user.id`: `POST /saas/v2/user/session/auth-token`
-   (docs: `/ru/exode-api/school/user/session/auth-token`); take `token` from the response.
+   with `{ "userId": <id> }` (docs: `/ru/exode-api/school/user/session/auth-token`); take
+   `payload.session.token` from the response. Tokens are not issued for users holding any
+   admin-panel permission (admins/managers) — the method is for students.
 3. **Build the URL** and hand it to Telegram:
 
    ```
    https://my-school.exode.biz?___uat=<token>
    ```
 
-   For a bot deep link use `https://t.me/your_school_bot?startapp=<payload>` where the
-   payload is the mini app URL encoded as **base64 without `=` padding** — Telegram
-   passes it to the WebApp unchanged. Or send the URL to the user as a plain link.
+   The token may also go into the fragment (`https://my-school.exode.biz#___uat=<token>`) —
+   it then never reaches server logs; the platform strips it from the address after login.
+   Open it from the bot with a `web_app` keyboard button whose `url` is this link, or send
+   it as a plain personal link. Do **not** try to pass it via a `startapp` direct link:
+   Telegram delivers `startapp` to the Mini App as `start_param`, and Exode does not read it.
 
 **Safety:** never post `___uat` links in open chats or groups — anyone with the link
 logs in as that user. Personal, short-lived links only.
@@ -168,13 +179,14 @@ Rules that actually bite:
 
 | Symptom | Cause and fix |
 |---|---|
-| JS snippet has no effect | Not saved in **Custom Code (JS)**, page not reloaded, or an undocumented key was used — stick to documented options. |
-| School UI broken after adding custom code | The snippet errors on every page — remove it from Custom Code (JS) to roll back, then re-add a corrected version. |
+| JS snippet has no effect | Not saved in **«Кастомный код» → HTML**, page not reloaded, or an undocumented key was used — stick to documented options. |
+| Custom code does not save | Longer than 3000 characters, or the manager lacks "School Settings Management" («Управление настройками школы», `SchoolManageSettings`). |
+| School UI broken after adding custom code | The snippet errors on every page — remove it from «Кастомный код» → HTML to roll back, then re-add a corrected version. |
 | Custom page slug rejected | Slug must be lowercase latin/digits/hyphen, 2–64 chars, and not a reserved system address — pick another. |
 | Cannot delete/disable a custom page | It is the main page — assign another main page first. |
 | Mini app on the page fails signature verification | Wrong or regenerated page secret — re-copy via **Show secret**; full pipeline debugging lives in the `exode-create-miniapp` skill. |
 | TG Mini App shows the login screen | `___uat` missing, malformed, or expired — issue a fresh token; also verify `user.id` came from the create-user step. |
-| Telegram does not open the WebApp | Bot's `startapp` not enabled, or the school domain is not allowed in the bot's Mini App settings. |
+| Telegram does not open the WebApp | The button is not a `web_app` button, or the URL is not https. |
 | Deep link does nothing | App not installed or the context ignores custom schemes — implement the fallback. |
 | Deep link opens the wrong lesson | `pageId` must match character-for-character; check `params` values and the double encoding of `data`. |
 | "School not found" in the app | Wrong `domain` — use the school's exact FQDN. |

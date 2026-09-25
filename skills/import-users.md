@@ -27,9 +27,10 @@ Unsure? Try `node -v`: runs → Mode A or B; doesn't → Mode C.
 ## Prerequisites — API credentials
 
 You need three values, all from the school admin panel, section
-**Manage → School → API keys** (`/manage/school/api-keys`): an API **token** (shown in full
+**Manage → School → For developers → API keys** (RU UI: «Управление → Школа → Для разработчиков → API-ключи»,
+`/manage/school/api-keys`): an API **token** (shown in full
 only at creation/rotation — save it immediately), plus the **Seller-Id** and **School-Id**.
-The token must belong to an API-client service user with the `SchoolManageUsers` permission.
+The token must belong to an API-client service user with the "School User Management" permission («Управление пользователями школы», `SchoolManageUsers`).
 Full setup details are in the sibling skill **exode-api-integration** and at
 https://docs.exode.biz/ru/exode-api/setup. Store all three as env vars
 (`EXODE_TOKEN`, `SELLER_ID`, `SCHOOL_ID`); **never print the token into the chat**.
@@ -77,16 +78,19 @@ Map source columns onto the `user/upsert` schema — confirm the mapping before 
 - **Anything else** (city, old-platform status, cohort tags): not in the user schema — goes
   to custom fields via `POST /form/custom-field/value/set-by-slug` with body
   `{ "userId": 27, "layoutId": 5, "values": [{ "slug": "city", "value": "Tashkent" }] }`
-  (needs `FormManage`; the layout and fields must already exist in the school — if the user
+  (needs "Forms management" («Управление формами», `FormManage`); the layout and fields must already exist in the school — if the user
   wants this, have them create the fields in the admin panel first).
 - **Enrollment columns**: which column names the course/group each student belongs to.
 
-**Ask about notifications now**: when `user/upsert` *creates* a user, the platform
-**automatically sends login + password** to the given email/phone (Telegram delivery needs
-an active bot chat). If the user does NOT want emails/SMS going out during migration, pass a
-`password` per row via `user/create` — an explicit password suppresses the automatic
-generate-and-send (note: `user/upsert` has no `password` field, so silent migration means
-`user/find` + `create`/`update` instead of plain upsert). Confirm the choice explicitly.
+**Ask about notifications now**: when `user/upsert` or `user/create` *creates* a user, the
+platform **automatically sends login + password** a few seconds later — by SMS if `phone` is
+given and the school has an SMS provider for that country, otherwise to `email`; additionally
+to Telegram if `tgId` is given (needs an active bot chat). Passing an explicit `password` to
+`user/create` does **not** stop the delivery — it only replaces the generated password (the
+credentials are still sent, with the given password; `user/upsert` has no `password` field).
+There is no documented API switch to create users silently: only a user without any delivery
+channel (e.g. only `domain`, or a phone without an SMS provider and no email) receives nothing.
+Tell the user this explicitly before the full run and confirm they accept it.
 
 ### Step 3. Dry-run on 1–2 records
 
@@ -235,11 +239,11 @@ Never abort the whole run on a row error — log it into the failed-rows report 
 | Symptom | Cause and fix |
 |---|---|
 | `401` `Unauthorized` on everything | Token missing/invalid, or `Seller-Id`/`School-Id` absent — re-check all three headers |
-| `401`/`403` `Forbidden` | Token's service user lacks `SchoolManageUsers` (or `FormManage` for custom fields) — adjust permissions on the API-key page |
+| `401`/`403` `Forbidden` | Token's service user lacks "School User Management" («Управление пользователями школы», `SchoolManageUsers`), or "Forms management" («Управление формами», `FormManage`) for custom fields — adjust permissions on the API-key page |
 | `429` `Rate` loops | You are ignoring `data.retryAfter` — wait until that timestamp; slow the pacing delay |
-| `GroupNotBindToProduct` on member/create-many | The group is not tied to a course product — pick a group from `group/list/raw?courseIds=...`, which guarantees the course binding |
+| `GroupNotBoundToProduct` on member/create-many | The group is not tied to a course product — pick a group from `group/list/raw?courseIds=...`, which guarantees the course binding |
 | `find-many` returns fewer users than sent | Not-found identifiers are silently omitted — diff the response against the request on your side |
-| Students report no login email/SMS | Row had no `email`/`phone`, an explicit `password` was passed (auto-send is skipped), or Telegram bot chat is missing — send credentials manually from user settings |
+| Students report no login email/SMS | Row had no `email`/`phone`, the phone's country has no SMS provider in the school (and no email was given), or the Telegram bot chat is missing — send credentials manually from user settings |
 | Upsert created a duplicate on re-run | Rows lacked any matching key (`email`/`phone`/`domain`/`tgId`/`extId`) — always send `extId`; merge duplicates with the user in the admin panel |
 | Excel file with `;` or broken characters | Wrong delimiter/encoding — re-export as UTF-8 CSV, or parse with an explicit delimiter |
 

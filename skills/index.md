@@ -22,7 +22,7 @@ https://docs.exode.biz/skills/<file>.md
 | `exode-export-reports` | [export-reports.md](https://docs.exode.biz/skills/export-reports.md) | Export school data — students, invoices, practice attempts, accesses — via the query-export API into a CSV/Excel file. |
 | `exode-setup-webhooks` | [setup-webhooks.md](https://docs.exode.biz/skills/setup-webhooks.md) | Receive platform events (registrations, payments, progress, accesses) in their own service: receiver endpoint, HMAC verification, dedupe, retries. |
 | `exode-setup-analytics` | [setup-analytics.md](https://docs.exode.biz/skills/setup-analytics.md) | Connect Google Analytics 4, Yandex Metrika, Meta Pixel or VK Ads to a school and verify events flow. |
-| `exode-customize-school` | [customize-school.md](https://docs.exode.biz/skills/customize-school.md) | Customize the school itself: Custom Code (JS), custom pages, Telegram Mini App auto-login, mobile deep links — with a decision guide per request. |
+| `exode-customize-school` | [customize-school.md](https://docs.exode.biz/skills/customize-school.md) | Customize the school itself: custom code (For developers → Custom code), custom pages, Telegram Mini App auto-login, mobile deep links — with a decision guide per request. |
 | `exode-create-miniapp` | [create-miniapp.md](https://docs.exode.biz/skills/create-miniapp.md) | Build and deploy their own mini app embedded into a school via iframe: scaffold, `exodeInitData` verification, deploy, connect to the school. |
 
 ## How to use a skill
