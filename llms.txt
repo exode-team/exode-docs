@@ -94,12 +94,12 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 
 ## Analytics
 
-- [Target events](https://docs.exode.biz/ru/analytics/events): platform events (signup, purchase, etc.) sent automatically to connected ad platforms; paste the platform snippet into Custom Code (JS).
+- [Target events](https://docs.exode.biz/ru/analytics/events): platform events (signup, purchase, etc.) sent automatically to connected ad platforms; paste the platform snippet into the school custom code (For developers → Custom code).
 - [Meta Pixel (Facebook)](https://docs.exode.biz/ru/analytics/meta-pixel): connecting Meta Pixel.
 - [Google Analytics (GA4)](https://docs.exode.biz/ru/analytics/google-analytics): connecting GA4.
 - [Yandex Metrika](https://docs.exode.biz/ru/analytics/yandex-metrika): connecting Yandex Metrika.
 - [VK Ads](https://docs.exode.biz/ru/analytics/vk-ads): connecting the VK Ads pixel.
-- [Other platforms](https://docs.exode.biz/ru/analytics/custom): any pixel via `document.addEventListener('analytics:*')` in Custom Code (JS).
+- [Other platforms](https://docs.exode.biz/ru/analytics/custom): any pixel via `document.addEventListener('analytics:*')` in the school custom code (For developers → Custom code).
 
 ## SDK (@exode-team/sdk)
 
