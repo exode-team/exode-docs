@@ -3535,7 +3535,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Доступ к ресурсу ограничен\",\n  \"message\": \"Доступ к ресурсу ограничен\"\n}"
+              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Access to the resource is restricted\",\n  \"message\": \"Access to the resource is restricted\"\n}"
             }
           ]
         },
@@ -4347,7 +4347,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Доступ к ресурсу ограничен\",\n  \"message\": \"Доступ к ресурсу ограничен\"\n}"
+              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Access to the resource is restricted\",\n  \"message\": \"Access to the resource is restricted\"\n}"
             }
           ]
         },
@@ -4906,7 +4906,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Доступ к ресурсу ограничен\",\n  \"message\": \"Доступ к ресурсу ограничен\"\n}"
+              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Access to the resource is restricted\",\n  \"message\": \"Access to the resource is restricted\"\n}"
             }
           ]
         },
@@ -5537,7 +5537,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Доступ к ресурсу ограничен\",\n  \"message\": \"Доступ к ресурсу ограничен\"\n}"
+              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Access to the resource is restricted\",\n  \"message\": \"Access to the resource is restricted\"\n}"
             }
           ]
         },
@@ -5839,7 +5839,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Доступ к ресурсу ограничен\",\n  \"message\": \"Доступ к ресурсу ограничен\"\n}"
+              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Access to the resource is restricted\",\n  \"message\": \"Access to the resource is restricted\"\n}"
             }
           ]
         },
@@ -7860,7 +7860,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Доступ к ресурсу ограничен\",\n  \"message\": \"Доступ к ресурсу ограничен\"\n}"
+              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Access to the resource is restricted\",\n  \"message\": \"Access to the resource is restricted\"\n}"
             }
           ]
         },
@@ -7975,7 +7975,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Доступ к ресурсу ограничен\",\n  \"message\": \"Доступ к ресурсу ограничен\"\n}"
+              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Access to the resource is restricted\",\n  \"message\": \"Access to the resource is restricted\"\n}"
             }
           ]
         },
@@ -8135,7 +8135,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Доступ к ресурсу ограничен\",\n  \"message\": \"Доступ к ресурсу ограничен\"\n}"
+              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Access to the resource is restricted\",\n  \"message\": \"Access to the resource is restricted\"\n}"
             }
           ]
         },
@@ -8277,7 +8277,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Доступ к ресурсу ограничен\",\n  \"message\": \"Доступ к ресурсу ограничен\"\n}"
+              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Access to the resource is restricted\",\n  \"message\": \"Access to the resource is restricted\"\n}"
             }
           ]
         },
@@ -9014,7 +9014,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Доступ к ресурсу ограничен\",\n  \"message\": \"Доступ к ресурсу ограничен\"\n}"
+              "body": "{\n  \"code\": 403,\n  \"success\": false,\n  \"cause\": \"Forbidden\",\n  \"error\": \"Access to the resource is restricted\",\n  \"message\": \"Access to the resource is restricted\"\n}"
             }
           ]
         },
@@ -10307,6 +10307,272 @@
                 }
               ],
               "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"page\": 1,\n    \"count\": 1,\n    \"pages\": 1,\n    \"isFirst\": true,\n    \"isLast\": true,\n    \"items\": [\n      {\n        \"id\": 9001,\n        \"courseId\": 10,\n        \"userId\": 123,\n        \"lessonId\": 55,\n        \"status\": \"Completed\",\n        \"isCompleted\": true,\n        \"completedAt\": \"2025-01-15T10:30:00Z\",\n        \"createdAt\": \"2025-01-10T09:00:00Z\",\n        \"updatedAt\": \"2025-01-15T10:30:00Z\"\n      }\n    ],\n    \"next\": {\n      \"skip\": 20,\n      \"take\": 20,\n      \"page\": 2\n    },\n    \"prev\": {\n      \"skip\": 0,\n      \"take\": 20,\n      \"page\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Создание курса",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Seller-Id",
+                "value": "{{sellerId}}"
+              },
+              {
+                "key": "School-Id",
+                "value": "{{schoolId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saas/v2/course/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "saas",
+                "v2",
+                "course",
+                "create"
+              ]
+            },
+            "description": "```\nPOST /saas/v2/course/create\n```\n\nСоздание курса школы — сразу с модулями, уроками и блоками контента. Право: `CourseManage`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"TextCourse\",\n  \"name\": \"Охрана труда для новых сотрудников\",\n  \"description\": \"Вводный курс по технике безопасности\",\n  \"tags\": [\n    \"охрана труда\"\n  ],\n  \"authors\": [],\n  \"modules\": [\n    {\n      \"name\": \"Модуль 1. Основы\",\n      \"description\": \"\",\n      \"status\": \"Published\",\n      \"lessons\": [\n        {\n          \"name\": \"Урок 1. Зачем нужна охрана труда\",\n          \"description\": \"\",\n          \"status\": \"Published\",\n          \"blocks\": [\n            {\n              \"type\": \"EditorJsBlock\",\n              \"content\": {\n                \"time\": 0,\n                \"version\": \"2.29.1\",\n                \"blocks\": [\n                  {\n                    \"id\": \"h-1\",\n                    \"type\": \"header\",\n                    \"data\": {\n                      \"text\": \"Зачем нужна охрана труда\",\n                      \"level\": 2\n                    }\n                  },\n                  {\n                    \"id\": \"p-1\",\n                    \"type\": \"paragraph\",\n                    \"data\": {\n                      \"text\": \"Правила защищают вас и коллег.\"\n                    }\n                  }\n                ]\n              }\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/course/create",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "course",
+                    "create"
+                  ]
+                },
+                "description": "```\nPOST /saas/v2/course/create\n```\n\nСоздание курса школы — сразу с модулями, уроками и блоками контента. Право: `CourseManage`.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"TextCourse\",\n  \"name\": \"Охрана труда для новых сотрудников\",\n  \"description\": \"Вводный курс по технике безопасности\",\n  \"tags\": [\n    \"охрана труда\"\n  ],\n  \"authors\": [],\n  \"modules\": [\n    {\n      \"name\": \"Модуль 1. Основы\",\n      \"description\": \"\",\n      \"status\": \"Published\",\n      \"lessons\": [\n        {\n          \"name\": \"Урок 1. Зачем нужна охрана труда\",\n          \"description\": \"\",\n          \"status\": \"Published\",\n          \"blocks\": [\n            {\n              \"type\": \"EditorJsBlock\",\n              \"content\": {\n                \"time\": 0,\n                \"version\": \"2.29.1\",\n                \"blocks\": [\n                  {\n                    \"id\": \"h-1\",\n                    \"type\": \"header\",\n                    \"data\": {\n                      \"text\": \"Зачем нужна охрана труда\",\n                      \"level\": 2\n                    }\n                  },\n                  {\n                    \"id\": \"p-1\",\n                    \"type\": \"paragraph\",\n                    \"data\": {\n                      \"text\": \"Правила защищают вас и коллег.\"\n                    }\n                  }\n                ]\n              }\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"code\": 201,\n  \"payload\": {\n    \"id\": 412,\n    \"createdAt\": \"2026-09-28T09:12:03.518Z\",\n    \"updatedAt\": \"2026-09-28T09:12:03.941Z\",\n    \"archivedAt\": null,\n    \"type\": \"TextCourse\",\n    \"productId\": 1290,\n    \"buildStatus\": \"Ready\",\n    \"name\": \"Охрана труда для новых сотрудников\",\n    \"description\": \"Вводный курс по технике безопасности\",\n    \"alias\": null,\n    \"tags\": [\n      \"охрана труда\"\n    ],\n    \"seoTags\": [],\n    \"image\": {\n      \"main\": \"\"\n    },\n    \"promoVideo\": null,\n    \"settings\": {\n      \"editorAccessMode\": \"All\",\n      \"curatorAccessMode\": \"All\"\n    },\n    \"order\": 0,\n    \"isBundle\": false\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Изменение курса",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Seller-Id",
+                "value": "{{sellerId}}"
+              },
+              {
+                "key": "School-Id",
+                "value": "{{schoolId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saas/v2/course/412/update",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "saas",
+                "v2",
+                "course",
+                "412",
+                "update"
+              ]
+            },
+            "description": "```\nPUT /saas/v2/course/:courseId/update\n```\n\nОбновление полей курса (без модулей и уроков). Право: `CourseManage`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Охрана труда: вводный курс\",\n  \"settings\": {\n    \"lessonProgressMode\": \"Sequence\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/course/412/update",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "course",
+                    "412",
+                    "update"
+                  ]
+                },
+                "description": "```\nPUT /saas/v2/course/:courseId/update\n```\n\nОбновление полей курса (без модулей и уроков). Право: `CourseManage`.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Охрана труда: вводный курс\",\n  \"settings\": {\n    \"lessonProgressMode\": \"Sequence\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"id\": 412,\n    \"createdAt\": \"2026-09-28T09:12:03.518Z\",\n    \"updatedAt\": \"2026-09-28T10:40:17.202Z\",\n    \"archivedAt\": null,\n    \"type\": \"TextCourse\",\n    \"productId\": 1290,\n    \"buildStatus\": \"Ready\",\n    \"name\": \"Охрана труда: вводный курс\",\n    \"description\": \"Вводный курс по технике безопасности\",\n    \"alias\": null,\n    \"tags\": [\n      \"охрана труда\"\n    ],\n    \"seoTags\": [],\n    \"image\": {\n      \"main\": \"\"\n    },\n    \"promoVideo\": null,\n    \"settings\": {\n      \"editorAccessMode\": \"All\",\n      \"curatorAccessMode\": \"All\",\n      \"lessonProgressMode\": \"Sequence\"\n    },\n    \"order\": 0,\n    \"isBundle\": false\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Получение курса",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Seller-Id",
+                "value": "{{sellerId}}"
+              },
+              {
+                "key": "School-Id",
+                "value": "{{schoolId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saas/v2/course/412/get",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "saas",
+                "v2",
+                "course",
+                "412",
+                "get"
+              ]
+            },
+            "description": "```\nGET /saas/v2/course/:courseId/get\n```\n\nПолный объект курса по ID. Права: `CourseManage` или `CourseCurator`."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/course/412/get",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "course",
+                    "412",
+                    "get"
+                  ]
+                },
+                "description": "```\nGET /saas/v2/course/:courseId/get\n```\n\nПолный объект курса по ID. Права: `CourseManage` или `CourseCurator`."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"id\": 412,\n    \"createdAt\": \"2026-09-28T09:12:03.518Z\",\n    \"updatedAt\": \"2026-09-28T10:40:17.202Z\",\n    \"archivedAt\": null,\n    \"type\": \"TextCourse\",\n    \"productId\": 1290,\n    \"buildStatus\": \"Ready\",\n    \"name\": \"Охрана труда: вводный курс\",\n    \"description\": \"Вводный курс по технике безопасности\",\n    \"alias\": null,\n    \"tags\": [\n      \"охрана труда\"\n    ],\n    \"seoTags\": [],\n    \"image\": {\n      \"main\": \"\"\n    },\n    \"promoVideo\": null,\n    \"settings\": {\n      \"editorAccessMode\": \"All\",\n      \"curatorAccessMode\": \"All\",\n      \"lessonProgressMode\": \"Sequence\"\n    },\n    \"order\": 0,\n    \"isBundle\": false\n  }\n}"
             }
           ]
         }

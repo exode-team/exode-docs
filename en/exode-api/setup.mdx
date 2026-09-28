@@ -159,6 +159,7 @@ Errors are returned in the same envelope plus the `cause`, `message`, `error` fi
 | 401 | `Blocked` | The token's user is inactive or banned (`User is not active or banned`) |
 | 401 | `Forbidden` | No access to the seller's data. The `message` shows the reason: `Forbidden seller resource - permissions <Code>` — the key does not have the required permission enabled (see [API key permissions](/en/exode-api/permissions#permission-reference)) or the `Seller-Id` is missing/belongs to someone else; `seller not entity owner` — the object (user, group, course…) belongs to another school; `Allowed only for school` / `Allowed only for Corporate school` — the method is available only to schools or only to corporate schools |
 | 403 | `Forbidden` | The token belongs to a user without the API client flag (`Access to the resource is restricted`) — use a token from the API keys page |
+| 402 | `SaasLimitReached` | The school plan limit is reached — for example, the number of active products on [`course/create`](/en/exode-api/school/course/create). `data` holds `{ feature, current, max }` |
 | 429 | `Rate` | Rate limit exceeded (see below) |
 
 <Tip>
@@ -327,4 +328,4 @@ print(r.json()['payload']['user'])
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-09-28 05:04 UTC_

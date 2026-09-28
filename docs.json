@@ -90,6 +90,9 @@
                 "group": "Courses",
                 "pages": [
                   "en/exode-api/school/course/list",
+                  "en/exode-api/school/course/get",
+                  "en/exode-api/school/course/create",
+                  "en/exode-api/school/course/update",
                   "en/exode-api/school/course/enroll",
                   "en/exode-api/school/course/progresses",
                   "en/exode-api/school/certificate/list"
@@ -291,6 +294,9 @@
                 "group": "Курсы",
                 "pages": [
                   "ru/exode-api/school/course/list",
+                  "ru/exode-api/school/course/get",
+                  "ru/exode-api/school/course/create",
+                  "ru/exode-api/school/course/update",
                   "ru/exode-api/school/course/enroll",
                   "ru/exode-api/school/course/progresses",
                   "ru/exode-api/school/certificate/list"

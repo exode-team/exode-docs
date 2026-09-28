@@ -1,0 +1,325 @@
+---
+title: "Update a course"
+description: "Update the fields of an existing school course"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+PUT /saas/v2/course/:courseId/update
+```
+
+Requires authentication and the [**"Course Management"**](/en/exode-api/permissions) permission (`CourseManage`). The
+method is available to schools only.
+
+The method changes the fields of the course itself — the same ones as on [creation](/en/exode-api/school/course/create).
+Modules, lessons and blocks are not changed by this method: the `modules` field in the body is ignored.
+
+<Warning>
+    **The "Assigned" access mode applies to the API too.** If the course has `settings.editorAccessMode` = `Assigned`,
+    only a key whose user is assigned to the course (or the school owner) can update it. Otherwise `Forbidden` is returned
+    with the message `Forbidden seller resource - product <product ID> permissions CourseManage`. Courses created via
+    [`course/create`](/en/exode-api/school/course/create) are available to the key that created them.
+</Warning>
+
+## Path parameters
+
+<ParamField path="courseId" type="integer" required>
+    Course ID.
+</ParamField>
+
+## Request parameters
+
+##### All fields are optional — pass only the ones you change
+
+<ParamField body="name" type="string" required={false}>
+    Course name. 1 to 130 characters.
+</ParamField>
+
+<ParamField body="description" type="string" required={false}>
+    Course description. Up to 500 characters.
+</ParamField>
+
+<ParamField body="type" type="enum" required={false}>
+    Course type: `TextCourse`, `VideoCourse`, `Webinar`, `Assessment`, `PersonalLesson`, `Bundle`.
+</ParamField>
+
+<ParamField body="tags" type="string[]" required={false}>
+    Course tags (each at least 2 characters). Replace the current list.
+</ParamField>
+
+<ParamField body="authors" type="integer[]" required={false}>
+    IDs of author users. **Replace** the whole current list of authors — pass the full list, including the ones to keep.
+</ParamField>
+
+<ParamField body="subjectCategoryIds" type="integer[]" required={false}>
+    Subject category IDs. Replace the current list.
+</ParamField>
+
+<ParamField body="contentCategoryId" type="integer" required={false}>
+    Content category ID.
+</ParamField>
+
+<ParamField body="alias" type="string" required={false}>
+    Course URL alias: Latin letters, digits and `_`, unique.
+</ParamField>
+
+<ParamField body="image" type="object" required={false}>
+    Course images: `main`, `card` (URLs).
+</ParamField>
+
+<ParamField body="promoVideo" type="string" required={false}>
+    Link to the promo video.
+</ParamField>
+
+<ParamField body="seoTags" type="string[]" required={false}>
+    SEO tags.
+</ParamField>
+
+<ParamField body="settings" type="object" required={false}>
+    Course settings — the same fields as on [creation](/en/exode-api/school/course/create#course). The passed fields are
+    merged into the current settings: fields you omit stay as they were. `certificate` fields are merged too.
+</ParamField>
+
+<ParamField body="bundleCourses" type="object[]" required={false}>
+    For `Bundle` courses only — the bundle composition (same format as on creation).
+</ParamField>
+
+<ParamField body="archivedAt" type="string" required={false}>
+    Archiving date (ISO 8601) — moves the course to the archive.
+</ParamField>
+
+<Note>
+    Product parameters (`product`) are not changed by this method — do not pass the `product` field. Price, currency and
+    catalog visibility are configured in the admin panel. Do not pass the internal `buildStatus` and `aiContext` fields
+    either.
+</Note>
+
+## Response fields
+
+<ResponseField name="payload" type="object">
+    The updated course — a [`course`](/en/exode-api/objects/entities/course) object.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/course/412/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Workplace safety: introductory course",
+    "settings": {
+      "lessonProgressMode": "Sequence"
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateCourse = async (courseId) => {
+  try {
+    const response = await axios.put(`https://api.exode.biz/saas/v2/course/${courseId}/update`, {
+      name: 'Workplace safety: introductory course',
+      settings: {
+        lessonProgressMode: 'Sequence'
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Course updated:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+updateCourse(412);
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/course/412/update';
+$data = [
+  'name' => 'Workplace safety: introductory course',
+  'settings' => [
+    'lessonProgressMode' => 'Sequence'
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data, JSON_UNESCAPED_UNICODE));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/course/412/update'
+
+data = {
+  'name': 'Workplace safety: introductory course',
+  'settings': {
+    'lessonProgressMode': 'Sequence'
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.put(url, json=data, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Настройки = Новый Структура;
+Настройки.Вставить("lessonProgressMode", "Sequence");
+
+Данные = Новый Структура;
+Данные.Вставить("name", "Workplace safety: introductory course");
+Данные.Вставить("settings", Настройки);
+
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/course/412/update");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("PUT", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    Сообщить("Course updated");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 412,
+    "createdAt": "2026-09-28T09:12:03.518Z",
+    "updatedAt": "2026-09-28T10:40:17.202Z",
+    "archivedAt": null,
+    "type": "TextCourse",
+    "productId": 1290,
+    "buildStatus": "Ready",
+    "name": "Workplace safety: introductory course",
+    "description": "An introductory safety course",
+    "alias": null,
+    "tags": [
+      "safety"
+    ],
+    "seoTags": [],
+    "image": {
+      "main": ""
+    },
+    "promoVideo": null,
+    "settings": {
+      "editorAccessMode": "All",
+      "curatorAccessMode": "All",
+      "lessonProgressMode": "Sequence"
+    },
+    "order": 0,
+    "isBundle": false
+  }
+}
+```
+```json Error - Course Not Found / Other School
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
+}
+```
+```json Error - Not Assigned To Course
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - product 1290 permissions CourseManage",
+  "error": "Forbidden seller resource - product 1290 permissions CourseManage"
+}
+```
+```json Error - Alias Already Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "AliasAlreadyBusy",
+  "message": "Этот адрес уже занят",
+  "error": "Этот адрес уже занят"
+}
+```
+</ResponseExample>
+
+## Errors
+
+| HTTP | `cause` | When it happens |
+|---|---|---|
+| 400 | `validation` | The body failed validation (type, length, enum) |
+| 400 | `InvalidAlias` / `AliasAlreadyBusy` | Invalid or taken `alias` |
+| 400 | `CertificateTemplateRequired` / `CertificateTemplateNotAvailable` | The certificate is enabled without a template, or the template is not available to the school |
+| 400 | `BundleGroupAlreadyUsed` / `BundleCourseSellerMismatch` | Invalid `bundleCourses` composition |
+| 401 | `Forbidden` | The course is not found or belongs to another school (`seller not entity owner`); the key lacks `CourseManage`; the course uses the "Assigned" mode and the key is not assigned to it (`product <ID> permissions CourseManage`) |
+
+## Related sections
+
+- [Create a course](/en/exode-api/school/course/create) — create a course with modules, lessons and blocks
+- [Get a course](/en/exode-api/school/course/get) — the current state of the course
+- [The `course` object](/en/exode-api/objects/entities/course) — response fields
+
+## Permission requirements
+
+<Check>
+    Requires token authentication and the [**"Course Management"**](/en/exode-api/permissions) permission
+    (`CourseManage`). The method is available to schools only.
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-28 05:04 UTC_

@@ -106,7 +106,7 @@ await app.ui.close()
 ```
 
 <Note>
-  `minimize()` works only for pages with the **Floating window** or **Side panel** window type
+  `minimize()` works only for pages with the **Floating window**, **Side panel** or **Fullscreen** window type
   (see [Custom pages](/en/customization/custom-pages)). A minimized window is not unloaded:
   the app receives the `visibility:changed` event with `visible: false` and keeps running.
 
@@ -207,4 +207,4 @@ window.addEventListener('beforeunload', () => app.destroy())
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-09-28 05:04 UTC_

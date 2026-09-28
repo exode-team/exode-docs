@@ -1,0 +1,775 @@
+---
+title: "Create a course"
+description: "Create a school course — together with its modules, lessons and content blocks"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+POST /saas/v2/course/create
+```
+
+Requires authentication and the [**"Course Management"**](/en/exode-api/permissions) permission (`CourseManage`). The
+method is available to schools only.
+
+The method creates a course with the same parameters as the "Create course" button in the admin panel. If you pass
+`modules`, the whole course tree is created in the same request: modules, lessons inside them and the content blocks of
+each lesson. Without `modules` an empty course is created — lessons can be added later in the admin panel.
+
+<Info>
+    Created automatically together with the course:
+    - the course **product** — published right away; its ID is returned in the `productId` field of the response;
+    - a **default group** ("Group 1") — you can [enroll users](/en/exode-api/school/course/enroll) into it.
+      [List groups](/en/exode-api/school/group/list) with the `courseIds` filter returns the group ID.
+
+    The API key's user becomes an author of the course and is assigned as its editor, so the created course is available
+    to this key in [`update`](/en/exode-api/school/course/update) and [`get`](/en/exode-api/school/course/get) even when
+    the course uses the "Assigned" access mode.
+</Info>
+
+<Warning>
+    **Creation is not atomic.** The course, modules, lessons and blocks are written one after another, without a shared
+    transaction. Body validation errors are returned before anything is written, so nothing gets created. But if the
+    request breaks off in the middle of writing (a dropped connection, a timeout, a server failure), the part created so
+    far stays in the school and the course is left incomplete. Repeating the request creates a **new** course rather than
+    completing the previous one — delete the incomplete course or finish it in the admin panel.
+</Warning>
+
+<Note>
+    Unknown fields in the request body are silently dropped — no error is returned. Check field names against this page.
+</Note>
+
+## Request parameters
+
+### Course
+
+<ParamField body="type" type="enum" required>
+    Course type: `TextCourse`, `VideoCourse`, `Webinar`, `Assessment`, `PersonalLesson`, `Bundle`.
+</ParamField>
+
+<ParamField body="name" type="string" required>
+    Course name. 1 to 130 characters; leading and trailing spaces are trimmed.
+</ParamField>
+
+<ParamField body="description" type="string" required>
+    Course description. Up to 500 characters; may be an empty string `""`.
+</ParamField>
+
+<ParamField body="tags" type="string[]" required>
+    Course tags, each at least 2 characters long. Pass `[]` if there are none.
+</ParamField>
+
+<ParamField body="authors" type="integer[]" required>
+    IDs of school users listed as course authors. The API key's user is added automatically. Pass `[]` if there are no
+    other authors.
+</ParamField>
+
+<ParamField body="alias" type="string" required={false}>
+    Course URL alias: Latin letters, digits and `_`. Cannot consist of digits only and must be unique.
+</ParamField>
+
+<ParamField body="image" type="object" required={false}>
+    Course images.
+
+    <Expandable title="image properties">
+        <ParamField body="main" type="string" required={false}>Main image URL.</ParamField>
+        <ParamField body="card" type="string" required={false}>Course card image URL.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField body="promoVideo" type="string" required={false}>
+    Link to the course promo video.
+</ParamField>
+
+<ParamField body="seoTags" type="string[]" required={false}>
+    SEO tags.
+</ParamField>
+
+<ParamField body="subjectCategoryIds" type="integer[]" required={false}>
+    IDs of the course subject categories.
+</ParamField>
+
+<ParamField body="contentCategoryId" type="integer" required={false}>
+    ID of the course content category.
+</ParamField>
+
+<ParamField body="settings" type="object" required={false}>
+    Course settings. All fields are optional.
+
+    <Expandable title="settings properties">
+        <ParamField body="learningPathMode" type="enum">Learning path: `ByOrder` — in lesson order, `ByUser` — in any order.</ParamField>
+        <ParamField body="lessonProgressMode" type="enum">Lesson unlocking: `Free` — all at once, `Sequence` — the next one after the previous is completed.</ParamField>
+        <ParamField body="editorAccessMode" type="enum">Which school team members see the course as editors: `All` — everyone with "Course Management", `Assigned` — only those assigned to the course. Defaults to `All`; `Assigned` for corporate schools.</ParamField>
+        <ParamField body="curatorAccessMode" type="enum">The same for curators: `All` or `Assigned`. Defaults to the `editorAccessMode` default.</ParamField>
+        <ParamField body="hideModuleOrders" type="boolean">Hide module numbering.</ParamField>
+        <ParamField body="hideParticipantsCount" type="boolean">Hide the participant count.</ParamField>
+        <ParamField body="withGamification" type="boolean">Enable gamification (stars) in the course.</ParamField>
+        <ParamField body="defaultStarsForLessonCompletion" type="integer">Default stars for completing a lesson, `0` or more.</ParamField>
+        <ParamField body="defaultStarsForTaskCorrect" type="integer">Default stars for a correct task answer, `0` or more.</ParamField>
+        <ParamField body="protectScreen" type="boolean">Screen recording protection.</ParamField>
+        <ParamField body="protectTextCopy" type="boolean">Disable text copying.</ParamField>
+        <ParamField body="hideCourseFeedback" type="boolean">Hide course feedback.</ParamField>
+        <ParamField body="hideLessonFeedback" type="boolean">Hide lesson ratings.</ParamField>
+        <ParamField body="lessonFeedbackMode" type="enum">How ratings are collected: `ByLesson` — after each lesson, `ByModule` — after a module.</ParamField>
+        <ParamField body="curatorChatMode" type="enum">Curator chat: `Hidden`, `Platform` (Exode chat) or `External` (external link from `curatorChatUrl`).</ParamField>
+        <ParamField body="curatorChatUrl" type="string">External curator chat link (with `curatorChatMode: External`). Up to 255 characters.</ParamField>
+        <ParamField body="cardCustomLink" type="string">Custom link (URL) the course card leads to.</ParamField>
+        <ParamField body="certificate" type="object">
+            Completion certificate: `enabled`, `templateId` (required with `enabled: true`; the template must be available
+            to the school), `expireInMonths`, `brandColor` (HEX), `signatureImageUrl`, `stampImageUrl`, `curatorName`,
+            `curatorRole` (up to 255 characters).
+        </ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField body="product" type="object" required={false}>
+    Course product parameters. If omitted, the product is created with the default settings.
+
+    <Expandable title="product properties">
+        <ParamField body="type" type="enum" required>Product type: `Course`. Required if the `product` object is passed.</ParamField>
+        <ParamField body="currency" type="enum">Currency: `Free`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ParamField>
+        <ParamField body="showInCatalog" type="boolean">Whether to show the course in the school catalog. Defaults to `false` for corporate schools.</ParamField>
+        <ParamField body="enrollmentTypes" type="enum[]">Enrollment methods (non-empty array): `ByAssignment`, `ByInviteLink`, `ByApplication`, `BySelfEnrollment`.</ParamField>
+        <ParamField body="saleStartAt" type="string">Sales start (ISO 8601), not later than `saleFinishAt`.</ParamField>
+        <ParamField body="saleFinishAt" type="string">Sales end (ISO 8601), not earlier than `saleStartAt`.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField body="bundleCourses" type="object[]" required={false}>
+    For `type: Bundle` only — courses included in the bundle (up to 50). The courses and their groups must belong to the
+    same school.
+
+    <Expandable title="Item properties">
+        <ParamField body="bundleCourseId" type="integer" required>ID of a course included in the bundle.</ParamField>
+        <ParamField body="groupId" type="integer | null">Group of that course to enroll bundle participants into. A group may appear in at most one row.</ParamField>
+        <ParamField body="parentGroupIds" type="integer[]">Groups of the bundle itself the row applies to.</ParamField>
+    </Expandable>
+</ParamField>
+
+<Note>
+    The `buildStatus` and `aiContext` fields are internal — they are filled in by the AI course wizard. Do not pass them:
+    with `buildStatus: AiGenerating` the course is hidden from everyone except its author.
+</Note>
+
+### Modules and lessons
+
+<ParamField body="modules" type="object[]" required={false}>
+    Course modules — up to 50. The order of modules, lessons and blocks in the course follows the order in the arrays.
+
+    <Expandable title="Module properties">
+        <ParamField body="name" type="string" required>Module name. Up to 120 characters.</ParamField>
+        <ParamField body="description" type="string" required>Module description. Up to 500 characters; may be `""`.</ParamField>
+        <ParamField body="status" type="enum">Status: `Draft`, `OnCheck` or `Published`. Defaults to `Draft`.</ParamField>
+        <ParamField body="accessType" type="enum">Access: `Participant` — course participants only (default), `Demo` — open as a demo.</ParamField>
+        <ParamField body="previewImage" type="string">Module preview URL.</ParamField>
+        <ParamField body="lessons" type="object[]" required>
+            Module lessons — up to 100.
+
+            <Expandable title="Lesson properties">
+                <ParamField body="name" type="string" required>Lesson name. Up to 120 characters.</ParamField>
+                <ParamField body="description" type="string" required>Lesson description. Up to 500 characters; may be `""`.</ParamField>
+                <ParamField body="status" type="enum">Status: `Draft`, `OnCheck` or `Published`. Defaults to `Draft`.</ParamField>
+                <ParamField body="type" type="enum">Lesson type: `Regular` (default) or `Webinar`.</ParamField>
+                <ParamField body="accessType" type="enum">Access: `Participant` (default) or `Demo`.</ParamField>
+                <ParamField body="previewImage" type="string">Lesson preview URL.</ParamField>
+                <ParamField body="withPractice" type="boolean">Create an empty practice for the lesson — tasks are added in the admin panel. Defaults to `false`.</ParamField>
+                <ParamField body="settings" type="object">
+                    Lesson settings: `starsForCompletion` (stars for completion, `0` or more),
+                    `videoWatchPercentThreshold` (percentage of the video to watch, `1` to `100`),
+                    `scorm` (`completionThreshold` from `1` to `100`, `requireNotFailed`).
+                </ParamField>
+                <ParamField body="blocks" type="object[]">Lesson content blocks — up to 100. See [Content blocks](#content-blocks).</ParamField>
+            </Expandable>
+        </ParamField>
+    </Expandable>
+</ParamField>
+
+<Warning>
+    Modules and lessons are created as **`Draft`** — students do not see them. To make the materials available right
+    away, pass `status: "Published"` for modules and lessons. Do not pass `parentLessonId`: modules and lessons are linked
+    by array nesting.
+</Warning>
+
+### Content blocks
+
+Each lesson block is an object with the fields:
+
+<ParamField body="type" type="enum" required>
+    Block type. For lessons: `EditorJsBlock`, `TaskQuestion`, `Checklist`, `Button`, `Checkpoint`, `ChatMessage`, `Video`,
+    `Iframe`, `NotionPage`. Other values (`Text`, `Audio`, `Scorm`, `Survey` and promo block types) are not recommended
+    for creation via the API.
+</ParamField>
+
+<ParamField body="title" type="string" required={false}>
+    Heading shown above the block in the lesson.
+</ParamField>
+
+<ParamField body="content" type="object" required>
+    Block content. Its shape depends on `type` — see the examples below.
+</ParamField>
+
+<Warning>
+    **The API does not validate `content`**: the block is saved as passed. A block with the wrong `content` shape is
+    created but renders empty or broken in the lesson. Check the shape against the examples. Generate every `uuid` inside
+    `content` on your side (UUID v4), unique within the block. Blocks with files (uploaded video, audio, a SCORM package)
+    cannot be created via the API — the file is uploaded in the admin panel.
+</Warning>
+
+<AccordionGroup>
+    <Accordion title="EditorJsBlock — text">
+        The main block for theory: headings, paragraphs, lists, quotes, tables and a delimiter. `content` is an
+        [EditorJS](https://editorjs.io/) document. The text may use `<b>`, `<i>`, `<u>`, `<a>` tags.
+
+        ```json
+        {
+          "type": "EditorJsBlock",
+          "content": {
+            "time": 0,
+            "version": "2.29.1",
+            "blocks": [
+              { "id": "h-1", "type": "header", "data": { "text": "Why workplace safety matters", "level": 2 } },
+              { "id": "p-1", "type": "paragraph", "data": { "text": "The rules protect <b>you</b> and your colleagues." } },
+              { "id": "l-1", "type": "list", "data": { "style": "unordered", "items": ["Helmet", "Gloves"] } },
+              { "id": "q-1", "type": "quote", "data": { "text": "Safety first.", "caption": "Handbook" } },
+              { "id": "d-1", "type": "delimiter", "data": {} },
+              { "id": "t-1", "type": "table", "data": { "withHeadings": true, "content": [["Equipment", "When"], ["Helmet", "Always"]] } }
+            ]
+          }
+        }
+        ```
+
+        Inner block `id`s are arbitrary unique strings. A header `level` is `2` or `3`; a list `style` is `unordered` or
+        `ordered`.
+    </Accordion>
+
+    <Accordion title="TaskQuestion — auto-checked question">
+        A question with answer options, checked right in the lesson. `answerType`: `Single` — one correct option,
+        `Multiple` — several.
+
+        ```json
+        {
+          "type": "TaskQuestion",
+          "title": "Check yourself",
+          "content": {
+            "uuid": "7f1c2a4e-3b5d-4c6e-8f9a-0b1c2d3e4f50",
+            "task": {
+              "title": "Who conducts the induction briefing?",
+              "answerType": "Single",
+              "question": {
+                "variants": [
+                  { "uuid": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d", "text": "A safety officer", "correct": true },
+                  { "uuid": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e", "text": "The employee", "correct": false }
+                ]
+              }
+            },
+            "messages": {
+              "correct": "Correct — a safety officer conducts it.",
+              "incorrect": "The briefing is conducted by a safety officer."
+            }
+          }
+        }
+        ```
+
+        `messages` is optional. When set, the blocks below the question stay hidden until the student answers.
+    </Accordion>
+
+    <Accordion title="Checklist">
+        ```json
+        {
+          "type": "Checklist",
+          "content": {
+            "items": [
+              { "uuid": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f", "text": "Read the instructions" },
+              { "uuid": "d2e3f4a5-b6c7-4d8e-9f0a-1b2c3d4e5f6a", "text": "Sign the logbook" }
+            ]
+          }
+        }
+        ```
+    </Accordion>
+
+    <Accordion title="Button — link button">
+        ```json
+        {
+          "type": "Button",
+          "content": {
+            "buttons": [
+              { "uuid": "e3f4a5b6-c7d8-4e9f-0a1b-2c3d4e5f6a7b", "text": "Open the policy", "link": "https://example.com/rules", "target": "_blank" }
+            ]
+          }
+        }
+        ```
+
+        `target` is `_blank` (new tab) or `_self`.
+    </Accordion>
+
+    <Accordion title='Checkpoint — "Continue" button'>
+        A divider button: everything below stays hidden until the student presses it.
+
+        ```json
+        {
+          "type": "Checkpoint",
+          "content": { "uuid": "f4a5b6c7-d8e9-4f0a-1b2c-3d4e5f6a7b8c", "text": "Got it, continue" }
+        }
+        ```
+    </Accordion>
+
+    <Accordion title="ChatMessage — messages from a mentor">
+        ```json
+        {
+          "type": "ChatMessage",
+          "content": {
+            "senderName": "Anna, mentor",
+            "messages": [
+              { "uuid": "a5b6c7d8-e9f0-4a1b-2c3d-4e5f6a7b8c9d", "text": "Hi! Today we cover workplace safety." }
+            ]
+          }
+        }
+        ```
+    </Accordion>
+
+    <Accordion title="Video — video by link">
+        A video from a video host (YouTube, Vimeo, Kinescope) — by link, without uploading a file.
+
+        ```json
+        {
+          "type": "Video",
+          "title": "Introductory lecture",
+          "content": { "type": "ThirdParty", "location": "https://www.youtube.com/watch?v=VIDEO_ID" }
+        }
+        ```
+    </Accordion>
+
+    <Accordion title="Iframe — embedded page">
+        ```json
+        {
+          "type": "Iframe",
+          "content": { "src": "https://example.com/embed" }
+        }
+        ```
+    </Accordion>
+
+    <Accordion title="NotionPage — Notion page">
+        A public Notion page, displayed inside the lesson.
+
+        ```json
+        {
+          "type": "NotionPage",
+          "content": { "notionUrl": "https://example.notion.site/Page-Title-0123456789abcdef0123456789abcdef" }
+        }
+        ```
+    </Accordion>
+</AccordionGroup>
+
+## Response fields
+
+<ResponseField name="payload" type="object">
+    The created course — a [`course`](/en/exode-api/objects/entities/course) object. The module and lesson tree is not
+    included in the response.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/course/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "type": "TextCourse",
+    "name": "Workplace safety for new employees",
+    "description": "An introductory safety course",
+    "tags": ["safety"],
+    "authors": [],
+    "modules": [
+      {
+        "name": "Module 1. Basics",
+        "description": "",
+        "status": "Published",
+        "lessons": [
+          {
+            "name": "Lesson 1. Why workplace safety matters",
+            "description": "",
+            "status": "Published",
+            "blocks": [
+              {
+                "type": "EditorJsBlock",
+                "content": {
+                  "time": 0,
+                  "version": "2.29.1",
+                  "blocks": [
+                    { "id": "h-1", "type": "header", "data": { "text": "Why workplace safety matters", "level": 2 } },
+                    { "id": "p-1", "type": "paragraph", "data": { "text": "The rules protect you and your colleagues." } }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const createCourse = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/course/create', {
+      type: 'TextCourse',
+      name: 'Workplace safety for new employees',
+      description: 'An introductory safety course',
+      tags: ['safety'],
+      authors: [],
+      modules: [
+        {
+          name: 'Module 1. Basics',
+          description: '',
+          status: 'Published',
+          lessons: [
+            {
+              name: 'Lesson 1. Why workplace safety matters',
+              description: '',
+              status: 'Published',
+              blocks: [
+                {
+                  type: 'EditorJsBlock',
+                  content: {
+                    time: 0,
+                    version: '2.29.1',
+                    blocks: [
+                      { id: 'h-1', type: 'header', data: { text: 'Why workplace safety matters', level: 2 } },
+                      { id: 'p-1', type: 'paragraph', data: { text: 'The rules protect you and your colleagues.' } }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Course created:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+createCourse();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/course/create';
+$data = [
+  'type' => 'TextCourse',
+  'name' => 'Workplace safety for new employees',
+  'description' => 'An introductory safety course',
+  'tags' => ['safety'],
+  'authors' => [],
+  'modules' => [
+    [
+      'name' => 'Module 1. Basics',
+      'description' => '',
+      'status' => 'Published',
+      'lessons' => [
+        [
+          'name' => 'Lesson 1. Why workplace safety matters',
+          'description' => '',
+          'status' => 'Published',
+          'blocks' => [
+            [
+              'type' => 'EditorJsBlock',
+              'content' => [
+                'time' => 0,
+                'version' => '2.29.1',
+                'blocks' => [
+                  ['id' => 'h-1', 'type' => 'header', 'data' => ['text' => 'Why workplace safety matters', 'level' => 2]],
+                  ['id' => 'p-1', 'type' => 'paragraph', 'data' => ['text' => 'The rules protect you and your colleagues.']]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data, JSON_UNESCAPED_UNICODE));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Course created: " . $result['payload']['id'] . "\n";
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/course/create'
+
+data = {
+  'type': 'TextCourse',
+  'name': 'Workplace safety for new employees',
+  'description': 'An introductory safety course',
+  'tags': ['safety'],
+  'authors': [],
+  'modules': [
+    {
+      'name': 'Module 1. Basics',
+      'description': '',
+      'status': 'Published',
+      'lessons': [
+        {
+          'name': 'Lesson 1. Why workplace safety matters',
+          'description': '',
+          'status': 'Published',
+          'blocks': [
+            {
+              'type': 'EditorJsBlock',
+              'content': {
+                'time': 0,
+                'version': '2.29.1',
+                'blocks': [
+                  { 'id': 'h-1', 'type': 'header', 'data': { 'text': 'Why workplace safety matters', 'level': 2 } },
+                  { 'id': 'p-1', 'type': 'paragraph', 'data': { 'text': 'The rules protect you and your colleagues.' } }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.post(url, json=data, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+ВнутреннийБлок = Новый Структура;
+ВнутреннийБлок.Вставить("id", "p-1");
+ВнутреннийБлок.Вставить("type", "paragraph");
+ВнутреннийБлок.Вставить("data", Новый Структура("text", "The rules protect you and your colleagues."));
+
+СодержимоеБлока = Новый Структура;
+СодержимоеБлока.Вставить("time", 0);
+СодержимоеБлока.Вставить("version", "2.29.1");
+СодержимоеБлока.Вставить("blocks", Новый Массив);
+СодержимоеБлока.blocks.Добавить(ВнутреннийБлок);
+
+Блок = Новый Структура;
+Блок.Вставить("type", "EditorJsBlock");
+Блок.Вставить("content", СодержимоеБлока);
+
+Урок = Новый Структура;
+Урок.Вставить("name", "Lesson 1. Why workplace safety matters");
+Урок.Вставить("description", "");
+Урок.Вставить("status", "Published");
+Урок.Вставить("blocks", Новый Массив);
+Урок.blocks.Добавить(Блок);
+
+Модуль = Новый Структура;
+Модуль.Вставить("name", "Module 1. Basics");
+Модуль.Вставить("description", "");
+Модуль.Вставить("status", "Published");
+Модуль.Вставить("lessons", Новый Массив);
+Модуль.lessons.Добавить(Урок);
+
+Данные = Новый Структура;
+Данные.Вставить("type", "TextCourse");
+Данные.Вставить("name", "Workplace safety for new employees");
+Данные.Вставить("description", "An introductory safety course");
+Данные.Вставить("tags", Новый Массив);
+Данные.tags.Добавить("safety");
+Данные.Вставить("authors", Новый Массив);
+Данные.Вставить("modules", Новый Массив);
+Данные.modules.Добавить(Модуль);
+
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 60, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/course/create");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
+
+Если Ответ.КодСостояния = 201 Тогда
+    Сообщить("Course created");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 412,
+    "createdAt": "2026-09-28T09:12:03.518Z",
+    "updatedAt": "2026-09-28T09:12:03.941Z",
+    "archivedAt": null,
+    "type": "TextCourse",
+    "productId": 1290,
+    "buildStatus": "Ready",
+    "name": "Workplace safety for new employees",
+    "description": "An introductory safety course",
+    "alias": null,
+    "tags": [
+      "safety"
+    ],
+    "seoTags": [],
+    "image": {
+      "main": ""
+    },
+    "promoVideo": null,
+    "settings": {
+      "editorAccessMode": "All",
+      "curatorAccessMode": "All"
+    },
+    "order": 0,
+    "isBundle": false
+  }
+}
+```
+```json Error - Validation
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": [
+    "modules.0.lessons.0.name must be shorter than or equal to 120 characters"
+  ],
+  "error": "Bad Request"
+}
+```
+```json Error - Plan Limit Reached
+{
+  "code": 402,
+  "success": false,
+  "cause": "SaasLimitReached",
+  "message": "School plan limit reached: maxActiveProducts (10/10)",
+  "error": "School plan limit reached: maxActiveProducts (10/10)",
+  "data": {
+    "max": 10,
+    "current": 10,
+    "feature": "maxActiveProducts"
+  }
+}
+```
+```json Error - Alias Already Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "AliasAlreadyBusy",
+  "message": "Этот адрес уже занят",
+  "error": "Этот адрес уже занят"
+}
+```
+```json Error - Certificate Template Required
+{
+  "code": 400,
+  "success": false,
+  "cause": "CertificateTemplateRequired",
+  "message": "Certificate template is required",
+  "error": "Certificate template is required"
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - permissions CourseManage",
+  "error": "Forbidden seller resource - permissions CourseManage"
+}
+```
+</ResponseExample>
+
+## Errors
+
+| HTTP | `cause` | When it happens |
+|---|---|---|
+| 400 | `validation` | The body failed validation: type, length, enum, limits (50 modules, 100 lessons per module, 100 blocks per lesson). The field path is in `message` |
+| 400 | `InvalidAlias` | `alias` contains invalid characters or consists of digits only |
+| 400 | `AliasAlreadyBusy` | `alias` is already taken by another course |
+| 400 | `CertificateTemplateRequired` | The certificate is enabled but `templateId` is missing |
+| 400 | `CertificateTemplateNotAvailable` | The certificate template is not available to the school |
+| 400 | `BundleGroupAlreadyUsed` | The same group appears in several `bundleCourses` rows |
+| 400 | `BundleCourseSellerMismatch` | A course or group from `bundleCourses` belongs to another school |
+| 401 | `Forbidden` | The key lacks the `CourseManage` permission, or the method is called for a non-school seller (`Allowed only for school`) |
+| 402 | `SaasLimitReached` | The plan limit on active products is reached. `data` holds `feature`, `current`, `max` |
+
+The `InvalidAlias` and `AliasAlreadyBusy` messages are currently returned in Russian — rely on `cause`.
+
+## Related sections
+
+- [Update a course](/en/exode-api/school/course/update) — change course fields
+- [Get a course](/en/exode-api/school/course/get) — the full course object by ID
+- [Course enrollment](/en/exode-api/school/course/enroll) — grant access through a course group
+- [The `course` object](/en/exode-api/objects/entities/course) — response fields
+
+## Permission requirements
+
+<Check>
+    Requires token authentication and the [**"Course Management"**](/en/exode-api/permissions) permission
+    (`CourseManage`). The method is available to schools only.
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-28 05:04 UTC_

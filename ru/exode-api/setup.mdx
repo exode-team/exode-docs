@@ -159,6 +159,7 @@ https://api.exode.biz
 | 401 | `Blocked` | Пользователь токена неактивен или забанен (`User is not active or banned`) |
 | 401 | `Forbidden` | Нет доступа к данным продавца. По `message` видно причину: `Forbidden seller resource - permissions <Код>` — у ключа не включено нужное право (см. [«Права доступа»](/ru/exode-api/permissions#справочник-прав)) или не передан/чужой `Seller-Id`; `seller not entity owner` — объект (пользователь, группа, курс…) принадлежит другой школе; `Allowed only for school` / `Allowed only for Corporate school` — метод доступен только школам или только корпоративным школам |
 | 403 | `Forbidden` | Токен принадлежит пользователю без признака API-клиента (`Access to the resource is restricted`) — используйте токен со страницы API-ключей |
+| 402 | `SaasLimitReached` | Достигнут лимит тарифа школы — например, по числу активных продуктов при [`course/create`](/ru/exode-api/school/course/create). В `data` — `{ feature, current, max }` |
 | 429 | `Rate` | Превышен лимит запросов (см. ниже) |
 
 <Tip>
@@ -327,4 +328,4 @@ print(r.json()['payload']['user'])
 
 ---
 
-_Обновлено: 2026-09-25 13:43 UTC_
+_Обновлено: 2026-09-28 05:04 UTC_

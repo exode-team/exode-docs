@@ -1,0 +1,325 @@
+---
+title: "Изменение курса"
+description: "Обновление полей существующего курса школы"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+PUT /saas/v2/course/:courseId/update
+```
+
+Требуется аутентификация и право [**«Управление курсами»**](/ru/exode-api/permissions) (`CourseManage`). Метод доступен
+только школам.
+
+Метод меняет поля самого курса — те же, что при [создании](/ru/exode-api/school/course/create). Модули, уроки и блоки
+этим методом не меняются: поле `modules` в теле игнорируется.
+
+<Warning>
+    **Режим доступа «Назначенные» действует и для API.** Если у курса `settings.editorAccessMode` = `Assigned`, изменить
+    его может только ключ, пользователь которого назначен на курс (или владелец школы). Иначе вернётся `Forbidden`
+    с сообщением `Forbidden seller resource - product <ID продукта> permissions CourseManage`. Курсы, созданные
+    через [`course/create`](/ru/exode-api/school/course/create), доступны создавшему их ключу.
+</Warning>
+
+## Параметры пути
+
+<ParamField path="courseId" type="integer" required>
+    ID курса.
+</ParamField>
+
+## Параметры запроса
+
+##### Все поля необязательны — передавайте только те, что меняете
+
+<ParamField body="name" type="string" required={false}>
+    Название курса. От 1 до 130 символов.
+</ParamField>
+
+<ParamField body="description" type="string" required={false}>
+    Описание курса. До 500 символов.
+</ParamField>
+
+<ParamField body="type" type="enum" required={false}>
+    Тип курса: `TextCourse`, `VideoCourse`, `Webinar`, `Assessment`, `PersonalLesson`, `Bundle`.
+</ParamField>
+
+<ParamField body="tags" type="string[]" required={false}>
+    Теги курса (каждый — от 2 символов). Заменяют текущий список.
+</ParamField>
+
+<ParamField body="authors" type="integer[]" required={false}>
+    ID пользователей-авторов. **Заменяют** текущий список авторов целиком — передавайте полный список, включая тех,
+    кого нужно оставить.
+</ParamField>
+
+<ParamField body="subjectCategoryIds" type="integer[]" required={false}>
+    ID предметных категорий. Заменяют текущий список.
+</ParamField>
+
+<ParamField body="contentCategoryId" type="integer" required={false}>
+    ID контентной категории.
+</ParamField>
+
+<ParamField body="alias" type="string" required={false}>
+    Символьный адрес курса: латинские буквы, цифры и `_`, уникальный.
+</ParamField>
+
+<ParamField body="image" type="object" required={false}>
+    Изображения курса: `main`, `card` (URL).
+</ParamField>
+
+<ParamField body="promoVideo" type="string" required={false}>
+    Ссылка на промо-видео.
+</ParamField>
+
+<ParamField body="seoTags" type="string[]" required={false}>
+    SEO-теги.
+</ParamField>
+
+<ParamField body="settings" type="object" required={false}>
+    Настройки курса — поля те же, что при [создании](/ru/exode-api/school/course/create#курс). Переданные поля
+    сливаются с текущими настройками: непереданные остаются как были. Поля `certificate` тоже сливаются с текущими.
+</ParamField>
+
+<ParamField body="bundleCourses" type="object[]" required={false}>
+    Только для курсов `Bundle` — состав пакета (формат — как при создании).
+</ParamField>
+
+<ParamField body="archivedAt" type="string" required={false}>
+    Дата архивации (ISO 8601) — переводит курс в архив.
+</ParamField>
+
+<Note>
+    Параметры продукта (`product`) этим методом не меняются — не передавайте поле `product`. Цена, валюта и
+    показ в каталоге настраиваются в кабинете. Служебные поля `buildStatus` и `aiContext` тоже не передавайте.
+</Note>
+
+## Поля ответа
+
+<ResponseField name="payload" type="object">
+    Обновлённый курс — объект [`course`](/ru/exode-api/objects/entities/course).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/course/412/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Охрана труда: вводный курс",
+    "settings": {
+      "lessonProgressMode": "Sequence"
+    }
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateCourse = async (courseId) => {
+  try {
+    const response = await axios.put(`https://api.exode.biz/saas/v2/course/${courseId}/update`, {
+      name: 'Охрана труда: вводный курс',
+      settings: {
+        lessonProgressMode: 'Sequence'
+      }
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Course updated:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+updateCourse(412);
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/course/412/update';
+$data = [
+  'name' => 'Охрана труда: вводный курс',
+  'settings' => [
+    'lessonProgressMode' => 'Sequence'
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data, JSON_UNESCAPED_UNICODE));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/course/412/update'
+
+data = {
+  'name': 'Охрана труда: вводный курс',
+  'settings': {
+    'lessonProgressMode': 'Sequence'
+  }
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.put(url, json=data, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Настройки = Новый Структура;
+Настройки.Вставить("lessonProgressMode", "Sequence");
+
+Данные = Новый Структура;
+Данные.Вставить("name", "Охрана труда: вводный курс");
+Данные.Вставить("settings", Настройки);
+
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/course/412/update");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("PUT", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    Сообщить("Курс обновлён");
+Иначе
+    Сообщить("Ошибка: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 412,
+    "createdAt": "2026-09-28T09:12:03.518Z",
+    "updatedAt": "2026-09-28T10:40:17.202Z",
+    "archivedAt": null,
+    "type": "TextCourse",
+    "productId": 1290,
+    "buildStatus": "Ready",
+    "name": "Охрана труда: вводный курс",
+    "description": "Вводный курс по технике безопасности",
+    "alias": null,
+    "tags": [
+      "охрана труда"
+    ],
+    "seoTags": [],
+    "image": {
+      "main": ""
+    },
+    "promoVideo": null,
+    "settings": {
+      "editorAccessMode": "All",
+      "curatorAccessMode": "All",
+      "lessonProgressMode": "Sequence"
+    },
+    "order": 0,
+    "isBundle": false
+  }
+}
+```
+```json Error - Course Not Found / Other School
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
+}
+```
+```json Error - Not Assigned To Course
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - product 1290 permissions CourseManage",
+  "error": "Forbidden seller resource - product 1290 permissions CourseManage"
+}
+```
+```json Error - Alias Already Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "AliasAlreadyBusy",
+  "message": "Этот адрес уже занят",
+  "error": "Этот адрес уже занят"
+}
+```
+</ResponseExample>
+
+## Ошибки
+
+| HTTP | `cause` | Когда возникает |
+|---|---|---|
+| 400 | `validation` | Тело не прошло проверку (тип, длина, enum) |
+| 400 | `InvalidAlias` / `AliasAlreadyBusy` | Недопустимый или занятый `alias` |
+| 400 | `CertificateTemplateRequired` / `CertificateTemplateNotAvailable` | Сертификат включён без шаблона или шаблон недоступен школе |
+| 400 | `BundleGroupAlreadyUsed` / `BundleCourseSellerMismatch` | Ошибка в составе пакета `bundleCourses` |
+| 401 | `Forbidden` | Курс не найден или принадлежит другой школе (`seller not entity owner`); у ключа нет права `CourseManage`; курс в режиме «Назначенные», а ключ на него не назначен (`product <ID> permissions CourseManage`) |
+
+## Связанные разделы
+
+- [Создание курса](/ru/exode-api/school/course/create) — создание курса с модулями, уроками и блоками
+- [Получение курса](/ru/exode-api/school/course/get) — текущее состояние курса
+- [Объект `course`](/ru/exode-api/objects/entities/course) — описание полей ответа
+
+## Требования к правам доступа
+
+<Check>
+    Требуется аутентификация по токену и право [**«Управление курсами»**](/ru/exode-api/permissions) (`CourseManage`).
+    Метод доступен только школам.
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-09-28 05:04 UTC_

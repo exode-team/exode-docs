@@ -100,7 +100,8 @@ GET /saas/v2/course/list/raw
 ## Поля ответа
 
 <ResponseField name="payload" type="object">
-    Постраничный список курсов (компактная проекция). Полная структура — в справочнике
+    Постраничный список курсов (компактная проекция). Полный объект курса отдаёт
+    [Получение курса](/ru/exode-api/school/course/get), структура — в справочнике
     [`course`](/ru/exode-api/objects/entities/course).
 
     <Expandable title="Свойства payload">
@@ -265,4 +266,4 @@ print(response.json())
 
 ---
 
-_Обновлено: 2026-09-25 13:43 UTC_
+_Обновлено: 2026-09-28 05:04 UTC_

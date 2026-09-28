@@ -253,6 +253,17 @@ Below are the events that are actually delivered, along with the structure of th
     - `prevTgId` — the previous `tgId`, for tracking re-linking (`number | null`).
 </Accordion>
 
+<Accordion title="UserCreatedViaLms — user created by the school">
+    Trigger: a school employee created a new user — in the admin panel (one by one or via bulk import) or through
+    the API [`user/create`](/en/exode-api/school/user/create) and [`user/upsert`](/en/exode-api/school/user/upsert)
+    (only when `upsert` creates the user rather than updating an existing one). A user who signs up on their own
+    arrives as a separate `UserSignedUp` event.
+
+    `data`:
+    - `user` — the [user](/en/exode-api/objects/entities/user) object.
+    - `profile` — the profile card (optional).
+</Accordion>
+
 <Accordion title="CourseProgressChanged — lesson progress changed">
     Trigger: the status of a lesson changed for the user.
 
@@ -354,7 +365,7 @@ Below are the events that are actually delivered, along with the structure of th
 </AccordionGroup>
 
 <Note>
-    You can subscribe to `UserSignedIn`, `UserLoggedOut`, `UserJoinedByReferral`, `UserCreatedViaLms`,
+    You can subscribe to `UserSignedIn`, `UserLoggedOut`, `UserJoinedByReferral`,
     `CourseLessonPracticeDetailedSent`, `CourseLessonPracticeAutoVerifySent`, `ProductRefundCompleted`,
     `ProductAccessSubscriptionEnding7Days` and `ProductAccessSubscriptionEnding1Day`, but
     the formal `data` contract for them is not fixed yet, so the payload contents are not guaranteed.
@@ -625,4 +636,4 @@ The body below is a real test-delivery example (synthetic values, exact field se
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-09-28 05:04 UTC_

@@ -1,0 +1,771 @@
+---
+title: "Создание курса"
+description: "Создание курса школы — сразу с модулями, уроками и блоками контента"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+POST /saas/v2/course/create
+```
+
+Требуется аутентификация и право [**«Управление курсами»**](/ru/exode-api/permissions) (`CourseManage`). Метод доступен
+только школам.
+
+Метод создаёт курс с теми же параметрами, что и кнопка «Создать курс» в кабинете. Если передать `modules`, вместе с
+курсом за один запрос создаётся всё его дерево: модули, уроки в них и блоки контента каждого урока. Без `modules`
+создаётся пустой курс — уроки можно добавить позже в кабинете.
+
+<Info>
+    Вместе с курсом автоматически создаются:
+    - **продукт** курса — сразу опубликован; его ID приходит в поле `productId` ответа;
+    - **группа по умолчанию** («Группа 1») — в неё можно [записывать пользователей](/ru/exode-api/school/course/enroll).
+      ID группы вернёт [Список групп](/ru/exode-api/school/group/list) с фильтром `courseIds`.
+
+    Пользователь API-ключа становится автором курса и назначается его редактором, поэтому созданный курс доступен этому
+    ключу в методах [`update`](/ru/exode-api/school/course/update) и [`get`](/ru/exode-api/school/course/get), даже
+    если у курса включён режим доступа «Назначенные».
+</Info>
+
+<Warning>
+    **Создание не атомарно.** Курс, модули, уроки и блоки записываются последовательно, без общей транзакции. Ошибки
+    валидации тела возвращаются до записи — тогда не создаётся ничего. Но если запрос оборвётся посередине записи
+    (обрыв соединения, таймаут, сбой сервера), уже созданная часть останется в школе: курс будет собран не полностью. Повторный запрос создаст **новый** курс, а не дособерёт прежний — неполный курс
+    удалите или допишите в кабинете.
+</Warning>
+
+<Note>
+    Лишние поля в теле запроса молча отбрасываются — ошибки не будет. Проверяйте написание полей по этой странице.
+</Note>
+
+## Параметры запроса
+
+### Курс
+
+<ParamField body="type" type="enum" required>
+    Тип курса: `TextCourse`, `VideoCourse`, `Webinar`, `Assessment`, `PersonalLesson`, `Bundle`.
+</ParamField>
+
+<ParamField body="name" type="string" required>
+    Название курса. От 1 до 130 символов, пробелы по краям обрезаются.
+</ParamField>
+
+<ParamField body="description" type="string" required>
+    Описание курса. До 500 символов, может быть пустой строкой `""`.
+</ParamField>
+
+<ParamField body="tags" type="string[]" required>
+    Теги курса. Каждый — от 2 символов. Передайте `[]`, если тегов нет.
+</ParamField>
+
+<ParamField body="authors" type="integer[]" required>
+    ID пользователей школы, которые будут указаны авторами курса. Пользователь API-ключа добавляется автоматически.
+    Передайте `[]`, если других авторов нет.
+</ParamField>
+
+<ParamField body="alias" type="string" required={false}>
+    Символьный адрес курса: латинские буквы, цифры и `_`. Не может состоять только из цифр и должен быть уникальным.
+</ParamField>
+
+<ParamField body="image" type="object" required={false}>
+    Изображения курса.
+
+    <Expandable title="Свойства image">
+        <ParamField body="main" type="string" required={false}>URL основного изображения.</ParamField>
+        <ParamField body="card" type="string" required={false}>URL изображения для карточки курса.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField body="promoVideo" type="string" required={false}>
+    Ссылка на промо-видео курса.
+</ParamField>
+
+<ParamField body="seoTags" type="string[]" required={false}>
+    SEO-теги.
+</ParamField>
+
+<ParamField body="subjectCategoryIds" type="integer[]" required={false}>
+    ID предметных категорий курса.
+</ParamField>
+
+<ParamField body="contentCategoryId" type="integer" required={false}>
+    ID контентной категории курса.
+</ParamField>
+
+<ParamField body="settings" type="object" required={false}>
+    Настройки курса. Все поля необязательны.
+
+    <Expandable title="Свойства settings">
+        <ParamField body="learningPathMode" type="enum">Порядок прохождения: `ByOrder` — по порядку уроков, `ByUser` — в свободном порядке.</ParamField>
+        <ParamField body="lessonProgressMode" type="enum">Открытие уроков: `Free` — все сразу, `Sequence` — следующий после завершения предыдущего.</ParamField>
+        <ParamField body="editorAccessMode" type="enum">Кто из команды школы видит курс в роли редактора: `All` — все с правом «Управление курсами», `Assigned` — только назначенные на курс. По умолчанию `All`, у корпоративных школ — `Assigned`.</ParamField>
+        <ParamField body="curatorAccessMode" type="enum">То же для кураторов: `All` или `Assigned`. Значение по умолчанию — как у `editorAccessMode`.</ParamField>
+        <ParamField body="hideModuleOrders" type="boolean">Скрыть нумерацию модулей.</ParamField>
+        <ParamField body="hideParticipantsCount" type="boolean">Скрыть число участников.</ParamField>
+        <ParamField body="withGamification" type="boolean">Включить геймификацию (звёзды) в курсе.</ParamField>
+        <ParamField body="defaultStarsForLessonCompletion" type="integer">Звёзд за прохождение урока по умолчанию, от `0`.</ParamField>
+        <ParamField body="defaultStarsForTaskCorrect" type="integer">Звёзд за верный ответ на задание по умолчанию, от `0`.</ParamField>
+        <ParamField body="protectScreen" type="boolean">Защита от записи экрана.</ParamField>
+        <ParamField body="protectTextCopy" type="boolean">Запрет копирования текста.</ParamField>
+        <ParamField body="hideCourseFeedback" type="boolean">Скрыть отзыв о курсе.</ParamField>
+        <ParamField body="hideLessonFeedback" type="boolean">Скрыть оценку уроков.</ParamField>
+        <ParamField body="lessonFeedbackMode" type="enum">Как собирать оценку: `ByLesson` — после каждого урока, `ByModule` — после модуля.</ParamField>
+        <ParamField body="curatorChatMode" type="enum">Чат с куратором: `Hidden`, `Platform` (чат Exode) или `External` (внешняя ссылка из `curatorChatUrl`).</ParamField>
+        <ParamField body="curatorChatUrl" type="string">Ссылка на внешний чат куратора (при `curatorChatMode: External`). До 255 символов.</ParamField>
+        <ParamField body="cardCustomLink" type="string">Своя ссылка, на которую ведёт карточка курса (URL).</ParamField>
+        <ParamField body="certificate" type="object">
+            Сертификат о прохождении: `enabled`, `templateId` (обязателен при `enabled: true`, шаблон должен быть
+            доступен школе), `expireInMonths`, `brandColor` (HEX), `signatureImageUrl`, `stampImageUrl`,
+            `curatorName`, `curatorRole` (до 255 символов).
+        </ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField body="product" type="object" required={false}>
+    Параметры продукта курса. Если не передан — продукт создаётся с настройками по умолчанию.
+
+    <Expandable title="Свойства product">
+        <ParamField body="type" type="enum" required>Тип продукта: `Course`. Обязателен, если передан объект `product`.</ParamField>
+        <ParamField body="currency" type="enum">Валюта: `Free`, `Rub`, `Uzs`, `Kzt`, `Usd`, `Eur`.</ParamField>
+        <ParamField body="showInCatalog" type="boolean">Показывать ли курс в каталоге школы. У корпоративных школ по умолчанию `false`.</ParamField>
+        <ParamField body="enrollmentTypes" type="enum[]">Способы записи (непустой массив): `ByAssignment` — назначение, `ByInviteLink` — по ссылке-приглашению, `ByApplication` — по заявке, `BySelfEnrollment` — самостоятельно.</ParamField>
+        <ParamField body="saleStartAt" type="string">Начало продаж (ISO 8601), не позже `saleFinishAt`.</ParamField>
+        <ParamField body="saleFinishAt" type="string">Окончание продаж (ISO 8601), не раньше `saleStartAt`.</ParamField>
+    </Expandable>
+</ParamField>
+
+<ParamField body="bundleCourses" type="object[]" required={false}>
+    Только для `type: Bundle` — курсы, входящие в пакет (до 50). Курсы и их группы должны принадлежать этой же школе.
+
+    <Expandable title="Свойства элемента">
+        <ParamField body="bundleCourseId" type="integer" required>ID курса, входящего в пакет.</ParamField>
+        <ParamField body="groupId" type="integer | null">Группа курса, в которую записывать участников пакета. Одна группа — не более чем в одной строке.</ParamField>
+        <ParamField body="parentGroupIds" type="integer[]">Группы самого пакета, для которых действует строка.</ParamField>
+    </Expandable>
+</ParamField>
+
+<Note>
+    Поля `buildStatus` и `aiContext` служебные — их заполняет мастер создания курса с ИИ. Не передавайте их: при
+    `buildStatus: AiGenerating` курс скрыт от всех, кроме автора.
+</Note>
+
+### Модули и уроки
+
+<ParamField body="modules" type="object[]" required={false}>
+    Модули курса — до 50. Порядок модулей, уроков и блоков в курсе совпадает с порядком в массивах.
+
+    <Expandable title="Свойства модуля">
+        <ParamField body="name" type="string" required>Название модуля. До 120 символов.</ParamField>
+        <ParamField body="description" type="string" required>Описание модуля. До 500 символов, может быть `""`.</ParamField>
+        <ParamField body="status" type="enum">Статус: `Draft`, `OnCheck` или `Published`. По умолчанию `Draft`.</ParamField>
+        <ParamField body="accessType" type="enum">Доступ: `Participant` — только участникам курса (по умолчанию), `Demo` — открыт как демо.</ParamField>
+        <ParamField body="previewImage" type="string">URL превью модуля.</ParamField>
+        <ParamField body="lessons" type="object[]" required>
+            Уроки модуля — до 100.
+
+            <Expandable title="Свойства урока">
+                <ParamField body="name" type="string" required>Название урока. До 120 символов.</ParamField>
+                <ParamField body="description" type="string" required>Описание урока. До 500 символов, может быть `""`.</ParamField>
+                <ParamField body="status" type="enum">Статус: `Draft`, `OnCheck` или `Published`. По умолчанию `Draft`.</ParamField>
+                <ParamField body="type" type="enum">Тип урока: `Regular` (по умолчанию) или `Webinar`.</ParamField>
+                <ParamField body="accessType" type="enum">Доступ: `Participant` (по умолчанию) или `Demo`.</ParamField>
+                <ParamField body="previewImage" type="string">URL превью урока.</ParamField>
+                <ParamField body="withPractice" type="boolean">Создать у урока пустую практику — задания в неё добавляются в кабинете. По умолчанию `false`.</ParamField>
+                <ParamField body="settings" type="object">
+                    Настройки урока: `starsForCompletion` (звёзд за прохождение, от `0`),
+                    `videoWatchPercentThreshold` (сколько процентов видео нужно досмотреть, от `1` до `100`),
+                    `scorm` (`completionThreshold` от `1` до `100`, `requireNotFailed`).
+                </ParamField>
+                <ParamField body="blocks" type="object[]">Блоки контента урока — до 100. См. [«Блоки контента»](#блоки-контента).</ParamField>
+            </Expandable>
+        </ParamField>
+    </Expandable>
+</ParamField>
+
+<Warning>
+    Модули и уроки создаются в статусе **`Draft`** — ученики их не видят. Чтобы материалы сразу стали доступны,
+    передайте `status: "Published"` у модулей и уроков. Не передавайте `parentLessonId`: модуль и урок связываются
+    вложенностью массивов.
+</Warning>
+
+### Блоки контента
+
+Каждый блок урока — объект с полями:
+
+<ParamField body="type" type="enum" required>
+    Тип блока. Для уроков: `EditorJsBlock`, `TaskQuestion`, `Checklist`, `Button`, `Checkpoint`, `ChatMessage`, `Video`,
+    `Iframe`, `NotionPage`. Другие значения (`Text`, `Audio`, `Scorm`, `Survey` и типы промо-блоков) не рекомендуется
+    создавать через API.
+</ParamField>
+
+<ParamField body="title" type="string" required={false}>
+    Заголовок над блоком в уроке.
+</ParamField>
+
+<ParamField body="content" type="object" required>
+    Содержимое блока. Форма зависит от `type` — см. примеры ниже.
+</ParamField>
+
+<Warning>
+    **`content` не проверяется API**: блок сохраняется как передан. Блок с неверной формой `content` создастся, но в
+    уроке отобразится пустым или сломанным. Сверяйте форму с примерами. Все `uuid` внутри `content` генерируйте на своей
+    стороне (UUID v4), уникальными в пределах блока. Блоки с файлами (загруженное видео, аудио, SCORM-пакет) через API
+    не создать — файл загружается в кабинете.
+</Warning>
+
+<AccordionGroup>
+    <Accordion title="EditorJsBlock — текст">
+        Основной блок для теории: заголовки, абзацы, списки, цитаты, таблицы, разделитель. `content` — документ
+        [EditorJS](https://editorjs.io/). В тексте допустимы теги `<b>`, `<i>`, `<u>`, `<a>`.
+
+        ```json
+        {
+          "type": "EditorJsBlock",
+          "content": {
+            "time": 0,
+            "version": "2.29.1",
+            "blocks": [
+              { "id": "h-1", "type": "header", "data": { "text": "Зачем нужна охрана труда", "level": 2 } },
+              { "id": "p-1", "type": "paragraph", "data": { "text": "Правила защищают <b>вас</b> и коллег." } },
+              { "id": "l-1", "type": "list", "data": { "style": "unordered", "items": ["Каска", "Перчатки"] } },
+              { "id": "q-1", "type": "quote", "data": { "text": "Безопасность — прежде всего.", "caption": "Инструкция" } },
+              { "id": "d-1", "type": "delimiter", "data": {} },
+              { "id": "t-1", "type": "table", "data": { "withHeadings": true, "content": [["Средство", "Когда"], ["Каска", "Всегда"]] } }
+            ]
+          }
+        }
+        ```
+
+        `id` внутренних блоков — произвольные уникальные строки. `level` у заголовка — `2` или `3`, `style` у списка —
+        `unordered` или `ordered`.
+    </Accordion>
+
+    <Accordion title="TaskQuestion — вопрос с автопроверкой">
+        Вопрос с вариантами ответа, проверяется сразу в уроке. `answerType`: `Single` — один верный вариант,
+        `Multiple` — несколько.
+
+        ```json
+        {
+          "type": "TaskQuestion",
+          "title": "Проверьте себя",
+          "content": {
+            "uuid": "7f1c2a4e-3b5d-4c6e-8f9a-0b1c2d3e4f50",
+            "task": {
+              "title": "Кто проводит вводный инструктаж?",
+              "answerType": "Single",
+              "question": {
+                "variants": [
+                  { "uuid": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d", "text": "Специалист по охране труда", "correct": true },
+                  { "uuid": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e", "text": "Сам сотрудник", "correct": false }
+                ]
+              }
+            },
+            "messages": {
+              "correct": "Верно — инструктаж проводит специалист.",
+              "incorrect": "Инструктаж проводит специалист по охране труда."
+            }
+          }
+        }
+        ```
+
+        `messages` необязателен. Если он задан, блоки ниже вопроса скрыты, пока ученик не ответит.
+    </Accordion>
+
+    <Accordion title="Checklist — чек-лист">
+        ```json
+        {
+          "type": "Checklist",
+          "content": {
+            "items": [
+              { "uuid": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f", "text": "Прочитать инструкцию" },
+              { "uuid": "d2e3f4a5-b6c7-4d8e-9f0a-1b2c3d4e5f6a", "text": "Подписать журнал" }
+            ]
+          }
+        }
+        ```
+    </Accordion>
+
+    <Accordion title="Button — кнопка со ссылкой">
+        ```json
+        {
+          "type": "Button",
+          "content": {
+            "buttons": [
+              { "uuid": "e3f4a5b6-c7d8-4e9f-0a1b-2c3d4e5f6a7b", "text": "Открыть регламент", "link": "https://example.com/rules", "target": "_blank" }
+            ]
+          }
+        }
+        ```
+
+        `target` — `_blank` (новая вкладка) или `_self`.
+    </Accordion>
+
+    <Accordion title="Checkpoint — кнопка «Продолжить»">
+        Кнопка-разделитель: всё, что ниже, скрыто, пока ученик её не нажмёт.
+
+        ```json
+        {
+          "type": "Checkpoint",
+          "content": { "uuid": "f4a5b6c7-d8e9-4f0a-1b2c-3d4e5f6a7b8c", "text": "Я прочитал, дальше" }
+        }
+        ```
+    </Accordion>
+
+    <Accordion title="ChatMessage — сообщения от наставника">
+        ```json
+        {
+          "type": "ChatMessage",
+          "content": {
+            "senderName": "Анна, наставник",
+            "messages": [
+              { "uuid": "a5b6c7d8-e9f0-4a1b-2c3d-4e5f6a7b8c9d", "text": "Привет! Сегодня разберём технику безопасности." }
+            ]
+          }
+        }
+        ```
+    </Accordion>
+
+    <Accordion title="Video — видео по ссылке">
+        Видео с видеохостинга (YouTube, Vimeo, Kinescope) — по ссылке, без загрузки файла.
+
+        ```json
+        {
+          "type": "Video",
+          "title": "Вводная лекция",
+          "content": { "type": "ThirdParty", "location": "https://www.youtube.com/watch?v=VIDEO_ID" }
+        }
+        ```
+    </Accordion>
+
+    <Accordion title="Iframe — встраиваемая страница">
+        ```json
+        {
+          "type": "Iframe",
+          "content": { "src": "https://example.com/embed" }
+        }
+        ```
+    </Accordion>
+
+    <Accordion title="NotionPage — страница Notion">
+        Публичная страница Notion, отображается внутри урока.
+
+        ```json
+        {
+          "type": "NotionPage",
+          "content": { "notionUrl": "https://example.notion.site/Page-Title-0123456789abcdef0123456789abcdef" }
+        }
+        ```
+    </Accordion>
+</AccordionGroup>
+
+## Поля ответа
+
+<ResponseField name="payload" type="object">
+    Созданный курс — объект [`course`](/ru/exode-api/objects/entities/course). Дерево модулей и уроков в ответ не
+    входит.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/course/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "type": "TextCourse",
+    "name": "Охрана труда для новых сотрудников",
+    "description": "Вводный курс по технике безопасности",
+    "tags": ["охрана труда"],
+    "authors": [],
+    "modules": [
+      {
+        "name": "Модуль 1. Основы",
+        "description": "",
+        "status": "Published",
+        "lessons": [
+          {
+            "name": "Урок 1. Зачем нужна охрана труда",
+            "description": "",
+            "status": "Published",
+            "blocks": [
+              {
+                "type": "EditorJsBlock",
+                "content": {
+                  "time": 0,
+                  "version": "2.29.1",
+                  "blocks": [
+                    { "id": "h-1", "type": "header", "data": { "text": "Зачем нужна охрана труда", "level": 2 } },
+                    { "id": "p-1", "type": "paragraph", "data": { "text": "Правила защищают вас и коллег." } }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const createCourse = async () => {
+  try {
+    const response = await axios.post('https://api.exode.biz/saas/v2/course/create', {
+      type: 'TextCourse',
+      name: 'Охрана труда для новых сотрудников',
+      description: 'Вводный курс по технике безопасности',
+      tags: ['охрана труда'],
+      authors: [],
+      modules: [
+        {
+          name: 'Модуль 1. Основы',
+          description: '',
+          status: 'Published',
+          lessons: [
+            {
+              name: 'Урок 1. Зачем нужна охрана труда',
+              description: '',
+              status: 'Published',
+              blocks: [
+                {
+                  type: 'EditorJsBlock',
+                  content: {
+                    time: 0,
+                    version: '2.29.1',
+                    blocks: [
+                      { id: 'h-1', type: 'header', data: { text: 'Зачем нужна охрана труда', level: 2 } },
+                      { id: 'p-1', type: 'paragraph', data: { text: 'Правила защищают вас и коллег.' } }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }, {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN'
+      }
+    });
+
+    console.log('Course created:', response.data.payload);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+createCourse();
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/course/create';
+$data = [
+  'type' => 'TextCourse',
+  'name' => 'Охрана труда для новых сотрудников',
+  'description' => 'Вводный курс по технике безопасности',
+  'tags' => ['охрана труда'],
+  'authors' => [],
+  'modules' => [
+    [
+      'name' => 'Модуль 1. Основы',
+      'description' => '',
+      'status' => 'Published',
+      'lessons' => [
+        [
+          'name' => 'Урок 1. Зачем нужна охрана труда',
+          'description' => '',
+          'status' => 'Published',
+          'blocks' => [
+            [
+              'type' => 'EditorJsBlock',
+              'content' => [
+                'time' => 0,
+                'version' => '2.29.1',
+                'blocks' => [
+                  ['id' => 'h-1', 'type' => 'header', 'data' => ['text' => 'Зачем нужна охрана труда', 'level' => 2]],
+                  ['id' => 'p-1', 'type' => 'paragraph', 'data' => ['text' => 'Правила защищают вас и коллег.']]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+];
+
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Content-Type: application/json',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data, JSON_UNESCAPED_UNICODE));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 201) {
+  $result = json_decode($response, true);
+  echo "Course created: " . $result['payload']['id'] . "\n";
+} else {
+  echo "Error: HTTP $httpCode\n";
+  echo $response;
+}
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/course/create'
+
+data = {
+  'type': 'TextCourse',
+  'name': 'Охрана труда для новых сотрудников',
+  'description': 'Вводный курс по технике безопасности',
+  'tags': ['охрана труда'],
+  'authors': [],
+  'modules': [
+    {
+      'name': 'Модуль 1. Основы',
+      'description': '',
+      'status': 'Published',
+      'lessons': [
+        {
+          'name': 'Урок 1. Зачем нужна охрана труда',
+          'description': '',
+          'status': 'Published',
+          'blocks': [
+            {
+              'type': 'EditorJsBlock',
+              'content': {
+                'time': 0,
+                'version': '2.29.1',
+                'blocks': [
+                  { 'id': 'h-1', 'type': 'header', 'data': { 'text': 'Зачем нужна охрана труда', 'level': 2 } },
+                  { 'id': 'p-1', 'type': 'paragraph', 'data': { 'text': 'Правила защищают вас и коллег.' } }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.post(url, json=data, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+ВнутреннийБлок = Новый Структура;
+ВнутреннийБлок.Вставить("id", "p-1");
+ВнутреннийБлок.Вставить("type", "paragraph");
+ВнутреннийБлок.Вставить("data", Новый Структура("text", "Правила защищают вас и коллег."));
+
+СодержимоеБлока = Новый Структура;
+СодержимоеБлока.Вставить("time", 0);
+СодержимоеБлока.Вставить("version", "2.29.1");
+СодержимоеБлока.Вставить("blocks", Новый Массив);
+СодержимоеБлока.blocks.Добавить(ВнутреннийБлок);
+
+Блок = Новый Структура;
+Блок.Вставить("type", "EditorJsBlock");
+Блок.Вставить("content", СодержимоеБлока);
+
+Урок = Новый Структура;
+Урок.Вставить("name", "Урок 1. Зачем нужна охрана труда");
+Урок.Вставить("description", "");
+Урок.Вставить("status", "Published");
+Урок.Вставить("blocks", Новый Массив);
+Урок.blocks.Добавить(Блок);
+
+Модуль = Новый Структура;
+Модуль.Вставить("name", "Модуль 1. Основы");
+Модуль.Вставить("description", "");
+Модуль.Вставить("status", "Published");
+Модуль.Вставить("lessons", Новый Массив);
+Модуль.lessons.Добавить(Урок);
+
+Данные = Новый Структура;
+Данные.Вставить("type", "TextCourse");
+Данные.Вставить("name", "Охрана труда для новых сотрудников");
+Данные.Вставить("description", "Вводный курс по технике безопасности");
+Данные.Вставить("tags", Новый Массив);
+Данные.tags.Добавить("охрана труда");
+Данные.Вставить("authors", Новый Массив);
+Данные.Вставить("modules", Новый Массив);
+Данные.modules.Добавить(Модуль);
+
+ЗаписьJSON = Новый ЗаписьJSON;
+ЗаписьJSON.УстановитьСтроку();
+ЗаписатьJSON(ЗаписьJSON, Данные);
+ТелоЗапроса = ЗаписьJSON.Закрыть();
+
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 60, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/course/create");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Content-Type", "application/json");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+Запрос.УстановитьТелоИзСтроки(ТелоЗапроса);
+
+Ответ = Соединение.ВызватьHTTPМетод("POST", Запрос);
+
+Если Ответ.КодСостояния = 201 Тогда
+    Сообщить("Курс создан");
+Иначе
+    Сообщить("Ошибка: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 412,
+    "createdAt": "2026-09-28T09:12:03.518Z",
+    "updatedAt": "2026-09-28T09:12:03.941Z",
+    "archivedAt": null,
+    "type": "TextCourse",
+    "productId": 1290,
+    "buildStatus": "Ready",
+    "name": "Охрана труда для новых сотрудников",
+    "description": "Вводный курс по технике безопасности",
+    "alias": null,
+    "tags": [
+      "охрана труда"
+    ],
+    "seoTags": [],
+    "image": {
+      "main": ""
+    },
+    "promoVideo": null,
+    "settings": {
+      "editorAccessMode": "All",
+      "curatorAccessMode": "All"
+    },
+    "order": 0,
+    "isBundle": false
+  }
+}
+```
+```json Error - Validation
+{
+  "code": 400,
+  "success": false,
+  "cause": "validation",
+  "message": [
+    "modules.0.lessons.0.name must be shorter than or equal to 120 characters"
+  ],
+  "error": "Bad Request"
+}
+```
+```json Error - Plan Limit Reached
+{
+  "code": 402,
+  "success": false,
+  "cause": "SaasLimitReached",
+  "message": "School plan limit reached: maxActiveProducts (10/10)",
+  "error": "School plan limit reached: maxActiveProducts (10/10)",
+  "data": {
+    "max": 10,
+    "current": 10,
+    "feature": "maxActiveProducts"
+  }
+}
+```
+```json Error - Alias Already Busy
+{
+  "code": 400,
+  "success": false,
+  "cause": "AliasAlreadyBusy",
+  "message": "Этот адрес уже занят",
+  "error": "Этот адрес уже занят"
+}
+```
+```json Error - Certificate Template Required
+{
+  "code": 400,
+  "success": false,
+  "cause": "CertificateTemplateRequired",
+  "message": "Certificate template is required",
+  "error": "Certificate template is required"
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - permissions CourseManage",
+  "error": "Forbidden seller resource - permissions CourseManage"
+}
+```
+</ResponseExample>
+
+## Ошибки
+
+| HTTP | `cause` | Когда возникает |
+|---|---|---|
+| 400 | `validation` | Тело не прошло проверку: тип, длина, enum, лимиты (50 модулей, 100 уроков в модуле, 100 блоков в уроке). Путь к полю — в `message` |
+| 400 | `InvalidAlias` | `alias` содержит недопустимые символы или состоит только из цифр |
+| 400 | `AliasAlreadyBusy` | `alias` уже занят другим курсом |
+| 400 | `CertificateTemplateRequired` | Сертификат включён, но не передан `templateId` |
+| 400 | `CertificateTemplateNotAvailable` | Шаблон сертификата недоступен школе |
+| 400 | `BundleGroupAlreadyUsed` | Одна группа указана в нескольких строках `bundleCourses` |
+| 400 | `BundleCourseSellerMismatch` | Курс или группа из `bundleCourses` принадлежит другой школе |
+| 401 | `Forbidden` | У ключа нет права `CourseManage` или метод вызван не для школы (`Allowed only for school`) |
+| 402 | `SaasLimitReached` | Достигнут лимит тарифа на число активных продуктов. В `data` — `feature`, `current`, `max` |
+
+## Связанные разделы
+
+- [Изменение курса](/ru/exode-api/school/course/update) — обновление полей курса
+- [Получение курса](/ru/exode-api/school/course/get) — полный объект курса по ID
+- [Запись на курс](/ru/exode-api/school/course/enroll) — выдача доступа через группу курса
+- [Объект `course`](/ru/exode-api/objects/entities/course) — описание полей ответа
+
+## Требования к правам доступа
+
+<Check>
+    Требуется аутентификация по токену и право [**«Управление курсами»**](/ru/exode-api/permissions) (`CourseManage`).
+    Метод доступен только школам.
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-09-28 05:04 UTC_

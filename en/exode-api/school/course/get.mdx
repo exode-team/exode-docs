@@ -1,0 +1,184 @@
+---
+title: "Get a course"
+description: "The full school course object by its ID"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/course/:courseId/get
+```
+
+Requires authentication and one of the permissions: [**"Course Management"**](/en/exode-api/permissions)
+(`CourseManage`) or **"Course Curator"** (`CourseCurator`). The method is available to schools only.
+
+The method returns the full course object — unlike the [Course list](/en/exode-api/school/course/list), which returns a
+compact projection. Modules, lessons and blocks are not included in the response.
+
+<Warning>
+    **The "Assigned" access mode applies to the API too.** The `CourseManage` permission grants access to the course only
+    if `settings.editorAccessMode` = `All`, and `CourseCurator` only if `settings.curatorAccessMode` = `All`. For a course
+    in the `Assigned` mode the key has access only if its user is assigned to the course as an editor or a curator.
+    Otherwise `Forbidden` is returned with the message
+    `Forbidden seller resource - product <product ID> permissions CourseManage CourseCurator`.
+</Warning>
+
+## Path parameters
+
+<ParamField path="courseId" type="integer" required>
+    Course ID.
+</ParamField>
+
+## Response fields
+
+<ResponseField name="payload" type="object">
+    The course — a [`course`](/en/exode-api/objects/entities/course) object.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/course/412/get' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const getCourse = async (courseId) => {
+  const { data } = await axios.get(`https://api.exode.biz/saas/v2/course/${courseId}/get`, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+getCourse(412);
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/course/412/get';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/course/412/get'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/course/412/get");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Course received");
+Иначе
+    Сообщить("Error: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 412,
+    "createdAt": "2026-09-28T09:12:03.518Z",
+    "updatedAt": "2026-09-28T10:40:17.202Z",
+    "archivedAt": null,
+    "type": "TextCourse",
+    "productId": 1290,
+    "buildStatus": "Ready",
+    "name": "Workplace safety: introductory course",
+    "description": "An introductory safety course",
+    "alias": null,
+    "tags": [
+      "safety"
+    ],
+    "seoTags": [],
+    "image": {
+      "main": ""
+    },
+    "promoVideo": null,
+    "settings": {
+      "editorAccessMode": "All",
+      "curatorAccessMode": "All",
+      "lessonProgressMode": "Sequence"
+    },
+    "order": 0,
+    "isBundle": false
+  }
+}
+```
+```json Error - Course Not Found / Other School
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
+}
+```
+</ResponseExample>
+
+## Related sections
+
+- [Course list](/en/exode-api/school/course/list) — find courses and their group IDs
+- [Update a course](/en/exode-api/school/course/update) — change course fields
+- [Course progress](/en/exode-api/school/course/progresses) — participants' progress by lesson
+
+## Permission requirements
+
+<Check>
+    Requires token authentication and one of the permissions: [**"Course Management"**](/en/exode-api/permissions)
+    (`CourseManage`) or **"Course Curator"** (`CourseCurator`). The method is available to schools only.
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-09-28 05:04 UTC_

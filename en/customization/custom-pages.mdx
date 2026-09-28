@@ -49,9 +49,32 @@ service with its own database.
 | **Page** | A regular platform page at `/<slug>` | A landing page, a reference, a full-fledged section |
 | **Floating window** | A window on top of the interface that minimizes into a stack | A chat, a calculator, an assistant: things used without interrupting learning |
 | **Side panel** | A side panel next to the content | Notes, hints, tools next to a lesson |
+| **Fullscreen** | A window covering the whole screen on top of the interface; minimizes into the stack like the other windows | Wizards and editors that need all the space, e.g. a course builder |
 
 At most one window can be expanded at a time: opening a second one minimizes the first.
 Minimized windows collect in a tray and expand with a single click.
+
+On a phone, every window type opens as a regular page.
+
+## Page parameters
+
+The page address parameters are passed to the iframe as a query string: the link `/<slug>?courseId=5` opens the
+app at `https://<your-app>/…?courseId=5#exodeInitData=…`. If the app URL already has its own query, the parameters
+are appended to it, and Init Data still arrives in the hash. The platform's service parameters (`modal`, `popup`,
+`appId`) are not passed to the iframe.
+
+This works for every window type. If the app is already open and gets opened with different parameters (for
+example, to continue working on another course), the iframe reloads with the new address; with the same
+parameters the window just expands.
+
+<Warning>
+  Parameters come from an address anyone can craft. Use them only as a hint about what to open, and check access to
+  that entity on your server or with an API request made on behalf of the user.
+</Warning>
+
+<Note>
+  A window restored after the platform reloads opens without parameters.
+</Note>
 
 ## School home page
 
@@ -85,4 +108,4 @@ Two commands are available from the mini app itself ([MiniApp SDK](/en/exode-sdk
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-09-28 05:04 UTC_

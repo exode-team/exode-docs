@@ -253,6 +253,17 @@ def exode_webhook():
     - `prevTgId` — предыдущий `tgId` для отслеживания перепривязки (`number | null`).
 </Accordion>
 
+<Accordion title="UserCreatedViaLms — школа создала пользователя">
+    Триггер: сотрудник школы создал нового пользователя — в кабинете (по одному или массовым импортом) или через
+    API [`user/create`](/ru/exode-api/school/user/create) и [`user/upsert`](/ru/exode-api/school/user/upsert)
+    (только когда `upsert` создаёт пользователя, а не обновляет существующего). Самостоятельная регистрация
+    пользователя приходит отдельным событием `UserSignedUp`.
+
+    `data`:
+    - `user` — объект [пользователя](/ru/exode-api/objects/entities/user).
+    - `profile` — карточка профиля (опционально).
+</Accordion>
+
 <Accordion title="CourseProgressChanged — изменился прогресс по уроку">
     Триггер: изменился статус урока у пользователя.
 
@@ -354,7 +365,7 @@ def exode_webhook():
 </AccordionGroup>
 
 <Note>
-    На события `UserSignedIn`, `UserLoggedOut`, `UserJoinedByReferral`, `UserCreatedViaLms`,
+    На события `UserSignedIn`, `UserLoggedOut`, `UserJoinedByReferral`,
     `CourseLessonPracticeDetailedSent`, `CourseLessonPracticeAutoVerifySent`, `ProductRefundCompleted`,
     `ProductAccessSubscriptionEnding7Days` и `ProductAccessSubscriptionEnding1Day` можно подписаться, но
     формальный контракт `data` для них ещё не зафиксирован — состав полезной нагрузки не гарантируется.
@@ -625,4 +636,4 @@ UTM-метки приходят в трёх местах в зависимост
 
 ---
 
-_Обновлено: 2026-09-25 13:43 UTC_
+_Обновлено: 2026-09-28 05:04 UTC_

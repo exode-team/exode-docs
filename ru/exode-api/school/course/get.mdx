@@ -1,0 +1,184 @@
+---
+title: "Получение курса"
+description: "Полный объект курса школы по его ID"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+```
+GET /saas/v2/course/:courseId/get
+```
+
+Требуется аутентификация и одно из прав: [**«Управление курсами»**](/ru/exode-api/permissions) (`CourseManage`) или
+**«Куратор курсов»** (`CourseCurator`). Метод доступен только школам.
+
+Метод возвращает полный объект курса — в отличие от [Списка курсов](/ru/exode-api/school/course/list), который отдаёт
+компактную проекцию. Модули, уроки и блоки в ответ не входят.
+
+<Warning>
+    **Режим доступа «Назначенные» действует и для API.** Право `CourseManage` даёт доступ к курсу, только если
+    `settings.editorAccessMode` = `All`, право `CourseCurator` — только если `settings.curatorAccessMode` = `All`. К курсу
+    в режиме `Assigned` у ключа есть доступ, только если его пользователь назначен на курс редактором или куратором.
+    Иначе вернётся `Forbidden` с сообщением
+    `Forbidden seller resource - product <ID продукта> permissions CourseManage CourseCurator`.
+</Warning>
+
+## Параметры пути
+
+<ParamField path="courseId" type="integer" required>
+    ID курса.
+</ParamField>
+
+## Поля ответа
+
+<ResponseField name="payload" type="object">
+    Курс — объект [`course`](/ru/exode-api/objects/entities/course).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/course/412/get' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const getCourse = async (courseId) => {
+  const { data } = await axios.get(`https://api.exode.biz/saas/v2/course/${courseId}/get`, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+getCourse(412);
+```
+
+```php PHP
+<?php
+
+$url = 'https://api.exode.biz/saas/v2/course/412/get';
+$headers = [
+  'Seller-Id: {{ sellerId }}',
+  'School-Id: {{ schoolId }}',
+  'Authorization: Bearer YOUR_TOKEN'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+echo curl_exec($ch);
+curl_close($ch);
+?>
+```
+
+```python Python
+import requests
+
+url = 'https://api.exode.biz/saas/v2/course/412/get'
+headers = {
+  'Seller-Id': '{{ sellerId }}',
+  'School-Id': '{{ schoolId }}',
+  'Authorization': 'Bearer YOUR_TOKEN'
+}
+
+response = requests.get(url, headers=headers)
+print(response.json())
+```
+
+```bsl 1С
+Соединение = Новый HTTPСоединение("api.exode.biz", 443, , , , 30, Новый OpenSSLSecureConnection);
+
+Запрос = Новый HTTPЗапрос("/saas/v2/course/412/get");
+Запрос.Заголовки.Вставить("Seller-Id", "{{ sellerId }}");
+Запрос.Заголовки.Вставить("School-Id", "{{ schoolId }}");
+Запрос.Заголовки.Вставить("Authorization", "Bearer YOUR_TOKEN");
+
+Ответ = Соединение.ВызватьHTTPМетод("GET", Запрос);
+
+Если Ответ.КодСостояния = 200 Тогда
+    ЧтениеJSON = Новый ЧтениеJSON;
+    ЧтениеJSON.УстановитьСтроку(Ответ.ПолучитьТелоКакСтроку());
+    Результат = ПрочитатьJSON(ЧтениеJSON);
+    Сообщить("Курс получен");
+Иначе
+    Сообщить("Ошибка: HTTP " + Ответ.КодСостояния);
+    Сообщить(Ответ.ПолучитьТелоКакСтроку());
+КонецЕсли;
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 412,
+    "createdAt": "2026-09-28T09:12:03.518Z",
+    "updatedAt": "2026-09-28T10:40:17.202Z",
+    "archivedAt": null,
+    "type": "TextCourse",
+    "productId": 1290,
+    "buildStatus": "Ready",
+    "name": "Охрана труда: вводный курс",
+    "description": "Вводный курс по технике безопасности",
+    "alias": null,
+    "tags": [
+      "охрана труда"
+    ],
+    "seoTags": [],
+    "image": {
+      "main": ""
+    },
+    "promoVideo": null,
+    "settings": {
+      "editorAccessMode": "All",
+      "curatorAccessMode": "All",
+      "lessonProgressMode": "Sequence"
+    },
+    "order": 0,
+    "isBundle": false
+  }
+}
+```
+```json Error - Course Not Found / Other School
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "message": "Forbidden seller resource - seller not entity owner",
+  "error": "Forbidden seller resource - seller not entity owner"
+}
+```
+</ResponseExample>
+
+## Связанные разделы
+
+- [Список курсов](/ru/exode-api/school/course/list) — поиск курсов и ID их групп
+- [Изменение курса](/ru/exode-api/school/course/update) — обновление полей курса
+- [Прогресс по курсу](/ru/exode-api/school/course/progresses) — прогресс участников по урокам
+
+## Требования к правам доступа
+
+<Check>
+    Требуется аутентификация по токену и одно из прав: [**«Управление курсами»**](/ru/exode-api/permissions)
+    (`CourseManage`) или **«Куратор курсов»** (`CourseCurator`). Метод доступен только школам.
+</Check>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-09-28 05:04 UTC_

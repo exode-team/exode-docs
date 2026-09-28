@@ -14,19 +14,26 @@ description: "Структуры объектов курса, прогресса
 
 ## `course`
 
+Возвращается методами [`course/create`](/ru/exode-api/school/course/create),
+[`course/:courseId/update`](/ru/exode-api/school/course/update), [`course/:courseId/get`](/ru/exode-api/school/course/get)
+и в вебхуках о курсах.
+
 <ResponseField name="id" type="integer" required>ID курса.</ResponseField>
 <ResponseField name="type" type="enum" required>Тип: `Bundle`, `Webinar`, `TextCourse`, `Assessment`, `VideoCourse`, `PersonalLesson`.</ResponseField>
 <ResponseField name="productId" type="integer | null">ID [продукта](/ru/exode-api/objects/entities/product), через который продаётся курс и выдаётся доступ к нему.</ResponseField>
-<ResponseField name="contentCategoryId" type="integer | null">ID категории контента.</ResponseField>
+<ResponseField name="contentCategoryId" type="integer | null">
+    ID контентной категории. Зарезервировано: в текущей версии в ответе не заполняется.
+</ResponseField>
 <ResponseField name="buildStatus" type="enum" required>
-    Состояние сборки курса: `Ready` — курс готов; `AiGenerating` — курс ещё генерируется с помощью ИИ.
+    Состояние сборки курса: `Ready` — курс готов (значение по умолчанию); `AiGenerating` — курс ещё собирается
+    мастером создания курса с ИИ, такой курс скрыт от всех, кроме автора.
 </ResponseField>
 <ResponseField name="name" type="string" required>Название.</ResponseField>
 <ResponseField name="description" type="string" required>Описание.</ResponseField>
 <ResponseField name="alias" type="string | null">Символьный алиас.</ResponseField>
 <ResponseField name="tags" type="string[]" required>Теги.</ResponseField>
 <ResponseField name="seoTags" type="string[]" required>SEO-теги.</ResponseField>
-<ResponseField name="image" type="object | null">Изображения: `{ main, wrapper }`.</ResponseField>
+<ResponseField name="image" type="object | null">Изображения: `{ main }` — URL основного изображения курса.</ResponseField>
 <ResponseField name="promoVideo" type="string | null">Промо-видео.</ResponseField>
 <ResponseField name="settings" type="object" required>Настройки курса (произвольный объект).</ResponseField>
 <ResponseField name="order" type="integer" required>Порядок сортировки.</ResponseField>
@@ -146,4 +153,4 @@ description: "Структуры объектов курса, прогресса
 
 ---
 
-_Обновлено: 2026-09-25 13:43 UTC_
+_Обновлено: 2026-09-28 05:04 UTC_

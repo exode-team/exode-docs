@@ -87,7 +87,7 @@ Create one (user does this in the browser — guide click by click):
    - **Title** — shown in the header and menu (per school language);
    - **App address (slug)** — lowercase latin letters, digits, hyphens, 2–64 chars; page opens at `/<slug>`; system platform addresses are reserved;
    - **App URL (iframe)** — the https address of the mini app (opens in the iframe);
-   - **Window type** — `Page` (a normal platform page), `Floating window` (overlay that can be minimized), `Side panel` (panel next to the content);
+   - **Window type** — `Page` (a normal platform page), `Floating window` (overlay that can be minimized), `Side panel` (panel next to the content), `Fullscreen` (a window over the whole screen, also minimizable); on a phone every type opens as a page. Query parameters of the page address (`/<slug>?courseId=5`) are passed to the iframe URL query, except `modal`, `popup`, `appId`;
    - **Layout** — `Page` window type only: `Full width` or `Island` (a card with padding);
    - **Available without login** — whether unauthenticated visitors can see it.
 3. Page row menu «⋯» → **Show secret** («Показать секрет») — the mini app's server needs it to verify Init Data. Store it only on the server; never print it into chat. **Regenerate secret** («Перевыпустить секрет») invalidates the old one immediately.

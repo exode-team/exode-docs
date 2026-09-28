@@ -352,7 +352,7 @@ await app.route.back()
 await app.ui.showSnackbar({ message: string, type?: 'success' | 'error' | 'info' })
 await app.ui.setTabbarVisible(visible: boolean)
 await app.ui.setHeaderVisible(visible: boolean)  // currently no effect on school custom pages
-await app.ui.minimize()  // window-type pages only ('Floating' | 'Panel'); no-op for 'Page'
+await app.ui.minimize()  // window-type pages only ('Floating' | 'Panel' | 'Fullscreen'); no-op for 'Page'
 await app.ui.close()
 // throw 'ExodeMiniApp is not initialized' if called before init()
 // the host acks every command, so a resolved promise does not guarantee a visible effect;

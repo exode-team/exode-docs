@@ -75,6 +75,9 @@ Full documentation lives in the `en/exode-api/` directory. Source of truth — s
 | POST | `/saas/v2/group/:groupId/member/create-many` | Add members (userIds ≤250) | `SchoolManageUsers` | — | `en/exode-api/school/group-member/create-many` |
 | DELETE | `/saas/v2/group/:groupId/member/delete-many` | Remove members (userIds ≤250) | `SchoolManageUsers` | — | `en/exode-api/school/group-member/delete-many` |
 | GET | `/saas/v2/course/list/raw` | List courses | `CourseCurator` \| `SchoolManageUsers` | — | `en/exode-api/school/course/list` |
+| GET | `/saas/v2/course/:courseId/get` | Get a course (full `course` object, no lesson tree) | `CourseManage` \| `CourseCurator` | — | `en/exode-api/school/course/get` |
+| POST | `/saas/v2/course/create` | Create a course, optionally with modules/lessons/blocks | `CourseManage` | — | `en/exode-api/school/course/create` |
+| PUT | `/saas/v2/course/:courseId/update` | Update course fields (no tree) | `CourseManage` | — | `en/exode-api/school/course/update` |
 | GET | `/saas/v2/course/:courseId/progresses` | Participant progress for a course | `CourseCurator` \| `SchoolManageUsers` | — | `en/exode-api/school/course/progresses` |
 | GET | `/saas/v2/certificate/list/raw` | List certificates | `CourseManage` \| `CourseStudentManage` | — | `en/exode-api/school/certificate/list` |
 | GET | `/saas/v2/invoice/list/raw` | List invoices | `SellerSales` | — | `en/exode-api/school/invoice/list` |
@@ -131,6 +134,9 @@ Full documentation lives in the `en/exode-api/` directory. Source of truth — s
 
 ### Course
 - **list/raw** (query `FilterCourseInput`, all opt.): `courseIds[]`, `aliases[]`, `types[]`(Bundle|Webinar|TextCourse|Assessment|VideoCourse|PersonalLesson), `tags[]`, `search`(≤50), `subjectCategoryIds[]`, `contentCategoryIds[]`, `archived`, `access`(=FilterAccessProductInput), `product`(FilterProductInput) + pagination (`participation`/`manage`/`administrate` exist in the schema but are not applied by this method). Item: `{ courseId, productId, name, type, groupIds[] }`.
+- **create** (body `ImportCourseInput`; school only; plan guard `maxActiveProducts` → 402 `SaasLimitReached` with `data{feature,current,max}`): required `type`, `name`(1..130), `description`(≤500, may be ""), `tags[]`(each ≥2, may be []), `authors[]`(userIds, may be []; the key user is added automatically); optional `alias`, `image{main,card}`, `promoVideo`, `seoTags[]`, `subjectCategoryIds[]`, `contentCategoryId`, `settings{learningPathMode, lessonProgressMode, editorAccessMode, curatorAccessMode, certificate{…}, …}`, `product{type:Course (required if object passed), currency, showInCatalog, enrollmentTypes[], saleStartAt, saleFinishAt}`, `bundleCourses[]`, `modules[]` (≤50) → `{ name(≤120), description(≤500), status?, accessType?, previewImage?, lessons[] (≤100) → { name, description, status?, type?, accessType?, previewImage?, withPractice?, settings?, blocks[] (≤100) → { type(ContentElementType), title?, content(object, NOT validated — stored as passed) } } }`. Modules/lessons default to `Draft` — pass `status: Published` to show them. NOT atomic: the tree is written sequentially without a transaction; a failure midway leaves a partial course. Also creates a published product and a default group; the key user becomes author + editor. Unknown fields are silently dropped. Do not pass `buildStatus`/`aiContext` (AI wizard internals). Response: `course`. Errors: `validation`, `InvalidAlias`, `AliasAlreadyBusy`, `CertificateTemplateRequired`, `CertificateTemplateNotAvailable`, `BundleGroupAlreadyUsed`, `BundleCourseSellerMismatch`, 402 `SaasLimitReached`.
+- **:courseId/update** (body = all `create` course fields optional, no `modules`; `authors`/`tags`/`subjectCategoryIds` replace, `settings` merges; do not pass `product`). Response: `course`. Course access modes apply: with `editorAccessMode: Assigned` only an assigned key passes (`Forbidden … product <id> permissions CourseManage`).
+- **:courseId/get** — full `course` (no lesson tree). `CourseManage` works when `editorAccessMode=All`, `CourseCurator` when `curatorAccessMode=All`; otherwise the key must be assigned to the course.
 - **:courseId/progresses** (query — pagination only; no user/lesson filters). Items: `courseProgress` (see entities); DB `status` values: NotStarted|OnTheory|OnPractice|OnReview|OnCorrection|Completed.
 - **Course enrollment:** there is no dedicated endpoint — enroll a user by adding them to a group tied to the course: find the group via `group/list/raw` with `courseIds`, then call `group/:groupId/member/create-many`. Access records are created automatically. Docs: `en/exode-api/school/course/enroll`.
 
@@ -173,7 +179,7 @@ Common audit fields on most entities: `id, createdAt, updatedAt, deletedAt?, arc
 - **staffAbsence**: `+ schoolId, employmentId, extId?, type(Absent|Vacation|DayOff|BusinessTrip|SickLeave|ParentalLeave|StudyLeave), startAt, finishAt?, note?`.
 - **group**: `+ uuid, space(Education), name, order?, maxMembers?, communication, accessLimitation, scheduleLimitation, contentLimitation, isTgConnected?, tgConnectionMode?(Disconnected|Connected|Required)`.
 - **groupMember**: `+ groupId?, userId?, inviterId?, active, blockedUntil?, isAddedToTg?, tgChannelMeta?, tgGroupChatMeta?, user?`.
-- **course**: `+ type(Bundle|Webinar|TextCourse|Assessment|VideoCourse|PersonalLesson), productId?, contentCategoryId?, buildStatus(Ready|AiGenerating), name, description, alias?, tags[], seoTags[], image?, promoVideo?, settings, order, isBundle?`.
+- **course**: `+ type(Bundle|Webinar|TextCourse|Assessment|VideoCourse|PersonalLesson), productId?, contentCategoryId?(reserved, currently never filled), buildStatus(Ready|AiGenerating — AiGenerating = being built by the AI wizard, hidden from everyone but the author), name, description, alias?, tags[], seoTags[], image?{main}, promoVideo?, settings, order, isBundle?`.
 - **courseProgress**: `+ courseId?, userId, lessonId, status?, scheduleStartAt?, scheduleFinishAt?, practiceDeadlineAt?, isCompleted?, isOnReview?, completedAt?, onReviewAt?, statusHistoryLogs?`.
 - **certificate**: `+ uuid, link (public URL), userId, courseId, templateId, snapshot, issuedAt, expireAt?`.
 - **courseLesson**: `+ courseId, type(Regular|Webinar), accessType(Demo|Participant), status?, name, description, previewImage?, order, withContent, withPractice, publishedAt?, settings, isPublished?`.
@@ -202,6 +208,7 @@ Common audit fields on most entities: `id, createdAt, updatedAt, deletedAt?, arc
 - **Events and `data`:**
   - `UserSignedUp` / `UserAcquainted`: `{ user, profile?, states?{utmSignupParams?} }`.
   - `UserTgConnected`: `{ user, profile?, prevTgId? }`.
+  - `UserCreatedViaLms`: `{ user, profile? }` — a school employee created the user (admin panel, bulk import, API `user/create`, or `user/upsert` when it creates rather than updates). Self sign-up arrives as `UserSignedUp`.
   - `CourseProgressChanged`: `{ user, course, product?, access?, groups?, states?{utmSignupParams?, utmEnrollParams?}, status?, lessonId? }`.
   - `CourseCompleted`: `{ user, course, product?, access?, groups?, states? }`.
   - `CourseLessonPracticeCompleted`: `{ user, course?, lesson?, practice?, attempt?, variantId? }`.

@@ -100,7 +100,8 @@ GET /saas/v2/course/list/raw
 ## Response fields
 
 <ResponseField name="payload" type="object">
-    A paginated list of courses (compact projection). The full structure is in the
+    A paginated list of courses (compact projection). The full course object is returned by
+    [Get a course](/en/exode-api/school/course/get); its structure is in the
     [`course`](/en/exode-api/objects/entities/course) reference.
 
     <Expandable title="payload properties">
@@ -265,4 +266,4 @@ print(response.json())
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-09-28 05:04 UTC_

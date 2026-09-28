@@ -60,6 +60,7 @@ localhost); fails → Mode C.
 | `UserSignedUp` | user completed registration | `user`, `profile`, `states.utmSignupParams` |
 | `UserAcquainted` | user finished onboarding | same as `UserSignedUp` |
 | `UserTgConnected` | Telegram linked | `user`, `profile`, `prevTgId` |
+| `UserCreatedViaLms` | school employee created the user (admin panel, bulk import, API `user/create` / `user/upsert` when it creates) | `user`, `profile?` |
 | `CourseProgressChanged` | lesson status changed | `user`, `course`, `product?`, `groups?`, `status?`, `lessonId?` |
 | `CourseCompleted` | course finished | `user`, `course`, `product?`, `groups?` |
 | `CourseLessonPracticeCompleted` | practice task done | `user`, `course?`, `lesson?`, `practice?`, `attempt?`, `variantId?` |
@@ -78,7 +79,7 @@ Gotchas documented by Exode:
   `ProductEnrolledByInviteLink` — distinguish by `inviteLinkId` and don't
   double-count enrollments.
 - Other events (`UserSignedIn`, `UserLoggedOut`, `UserJoinedByReferral`,
-  `UserCreatedViaLms`, `CourseLessonPracticeDetailedSent`,
+  `CourseLessonPracticeDetailedSent`,
   `CourseLessonPracticeAutoVerifySent`, `ProductRefundCompleted`,
   `ProductAccessSubscriptionEnding7Days`, `ProductAccessSubscriptionEnding1Day`)
   are subscribable but their `data` contract is **not fixed** — confirm with
