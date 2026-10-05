@@ -26,8 +26,9 @@ Requires authentication and the [**"School User Management"**](/en/exode-api/per
 <Info>
   If the **user is found** by the fields below, the user is only updated.
   **If a user is created**, the login and password are sent to the new user **automatically** (delivery
-  channels are the same as in [`user/create`](/en/exode-api/school/user/create)). You cannot set your own password via upsert:
-  the `password` field is supported only in `user/create`.
+  channels are the same as in [`user/create`](/en/exode-api/school/user/create)). You can turn the delivery off by
+  passing `skipSendCredentials: true`. You cannot set your own password via upsert: the `password` field is
+  supported only in `user/create`.
 </Info>
 
 <Warning>
@@ -91,6 +92,12 @@ Requires authentication and the [**"School User Management"**](/en/exode-api/per
   The school owner is protected: if the upsert finds the owner, setting a blocking status
   (`Banned`/`Blocked`/`Terminated`) is forbidden and returns the `ForbiddenModifySchoolOwner` error.
 </Warning>
+
+<ParamField body="skipSendCredentials" type="boolean" required={false}>
+  Do not send the sign-in credentials (SMS, email and Telegram) when the upsert **creates** a user. Defaults to
+  `false` — the credentials are sent. A password is still generated: you can view it in the user's settings in the
+  account and deliver it yourself. Ignored when an existing user is updated.
+</ParamField>
 
 ### Profile parameters
 
@@ -617,4 +624,4 @@ Creating or updating a user requires the **"School User Management"** permission
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-10-05 12:43 UTC_

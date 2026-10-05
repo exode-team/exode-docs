@@ -96,7 +96,8 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 <Step title="Создайте пользователя">
     Если пользователя ещё нет — создайте его методом [`user/create`](/ru/exode-api/school/user/create).
     Логин и пароль будут отправлены пользователю автоматически, если есть канал доставки: `email`, `phone` (при
-    подключённом SMS-провайдере) или `tgId` — подробности на странице метода.
+    подключённом SMS-провайдере) или `tgId` — подробности на странице метода. Чтобы не отправлять их, передайте
+    `skipSendCredentials: true`.
 
     ```bash cURL
     curl --location 'https://api.exode.biz/saas/v2/user/create' \
@@ -154,4 +155,4 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 
 ---
 
-_Обновлено: 2026-09-25 13:43 UTC_
+_Обновлено: 2026-10-05 12:43 UTC_

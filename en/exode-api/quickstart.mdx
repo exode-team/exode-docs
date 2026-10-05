@@ -96,7 +96,8 @@ a user, and parse the response.
 <Step title="Create a user">
     If the user doesn't exist yet, create them with the [`user/create`](/en/exode-api/school/user/create) method.
     The login and password are sent to the user automatically if there is a delivery channel: `email`, `phone` (with
-    an SMS provider connected) or `tgId` — see the method page for details.
+    an SMS provider connected) or `tgId` — see the method page for details. To skip the delivery, pass
+    `skipSendCredentials: true`.
 
     ```bash cURL
     curl --location 'https://api.exode.biz/saas/v2/user/create' \
@@ -154,4 +155,4 @@ a user, and parse the response.
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-10-05 12:43 UTC_

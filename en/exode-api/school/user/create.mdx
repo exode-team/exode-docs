@@ -33,8 +33,9 @@ credentials sent automatically, pass at least one of them.
 </Info>
 
 <Info>
-  If you pass the `password` field, the user gets the specified password instead of a generated one.
-  The sign-in credentials are **still sent** through the channels above — with your password.
+  If you pass the `password` field, the user gets the specified password instead of a generated one, and that
+  password is what gets sent through the channels above. To **not send the credentials at all** (for example, you
+  deliver the password to the user yourself), pass `skipSendCredentials: true`.
 </Info>
 
 <Info>
@@ -104,8 +105,15 @@ credentials sent automatically, pass at least one of them.
 
 <ParamField body="password" type="string" required={false}>
   The user's password. From 6 to 100 characters. If passed, it is set as the sign-in password instead of a
-  generated one (the credentials are still sent to the user, see above). An empty string is converted to `null`.
-  Available only on creation (the field is not supported in `update` and `upsert`).
+  generated one, and this password is what gets sent to the user (unless `skipSendCredentials: true` is passed).
+  An empty string is converted to `null`. Available only on creation (the field is not supported in `update` and
+  `upsert`).
+</ParamField>
+
+<ParamField body="skipSendCredentials" type="boolean" required={false}>
+  Do not send the sign-in credentials to the user (SMS, email and Telegram). Defaults to `false` — the credentials
+  are sent. If `password` is not passed, a password is still generated: you can view it in the user's settings in the
+  account and deliver it yourself.
 </ParamField>
 
 ### Profile parameters
@@ -652,4 +660,4 @@ Creating a user requires the **"School User Management"** permission (`SchoolMan
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-10-05 12:43 UTC_

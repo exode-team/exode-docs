@@ -93,6 +93,9 @@ Violating the order fails loudly: creating an employee with an unknown
   - You **do** set passwords → `PUT /user/ext/{extId}/update` → `NotFound` →
     `POST /user/create`. Password applies **only on creation**; update (and the update
     branch of upsert) ignores it.
+  - Either way, a created employee gets the credentials by SMS/email/Telegram. If you
+    deliver them yourself, pass `skipSendCredentials: true` (create and upsert; applies
+    only on creation).
 - **`extra.staff.employments` only "ensures the assignment exists".** Re-sending the
   same active department+position pair is a no-op; a new pair creates an **additional**
   employment (secondary job), and an assignment missing from the array is **not**

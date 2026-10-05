@@ -87,10 +87,11 @@ platform **automatically sends login + password** a few seconds later — by SMS
 given and the school has an SMS provider for that country, otherwise to `email`; additionally
 to Telegram if `tgId` is given (needs an active bot chat). Passing an explicit `password` to
 `user/create` does **not** stop the delivery — it only replaces the generated password (the
-credentials are still sent, with the given password; `user/upsert` has no `password` field).
-There is no documented API switch to create users silently: only a user without any delivery
-channel (e.g. only `domain`, or a phone without an SMS provider and no email) receives nothing.
-Tell the user this explicitly before the full run and confirm they accept it.
+credentials are sent with the given password; `user/upsert` has no `password` field).
+To create users silently, pass `skipSendCredentials: true` to `user/create` or `user/upsert`
+(applies only on creation; without `password` a password is still generated and is visible in
+the user's settings in the account). Ask the user whether the platform should send the
+credentials or they deliver them themselves, and set the flag accordingly before the full run.
 
 ### Step 3. Dry-run on 1–2 records
 
