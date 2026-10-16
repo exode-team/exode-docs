@@ -515,7 +515,8 @@ All of them are addressed by the **employment** `extId` (the same `extId` you pa
 | Position changed (promotion) | `POST /staff/employment/ext/{employment extId}/promote` |
 | Dismissed | `POST /staff/employment/ext/{employment extId}/terminate` |
 | Re-hired | `PUT /user/ext/{extId}/update` with `extra.staff.employments` (or `POST /staff/employment/hire`); the `Active` status returns automatically. The regular loop does not work for this: it does not send `extra` for an existing employee |
-| Transferred and changed position at the same time | `.../transfer`, then `.../promote` with the same employment extId and the same `startAt` |
+| Transferred and changed position at the same time | A single `.../transfer` with `toDepartmentExtId` and `toPositionId`; the Exode position ID by GUID: `GET /staff/position/list?extIds=<GUID>` |
+| Grade changed (if the school uses grades) | `POST /staff/employment/ext/{employment extId}/promote { "toGradeExtId": "<grade code>" }` |
 | Secondary employment added | One more element in `extra.staff.employments` (or `POST /staff/employment/hire`) |
 | Vacation / sick leave | `POST /staff/absence/create`; the `OnLeave` status is set automatically |
 | Position renamed | Nothing: `ОбеспечитьДолжностьПоГуид` refreshes the name during the run |
@@ -539,6 +540,14 @@ POST /saas/v2/staff/employment/ext/i.ivanov.01011990:ПОДР-001/transfer
 POST /saas/v2/staff/employment/ext/i.ivanov.01011990:ПОДР-001/promote
 
 { "toPositionExtId": "0f8e2d10-11aa-4c00-8b2f-777d12003b02" }
+```
+
+```http
+// Transferred to ПОДР-002 and changed position at the same time, in a single call.
+// toPositionId is the internal Exode position ID: GET /saas/v2/staff/position/list?extIds=<GUID> → payload.items[0].id
+POST /saas/v2/staff/employment/ext/i.ivanov.01011990:ПОДР-001/transfer
+
+{ "toDepartmentExtId": "ПОДР-002", "toPositionId": 17 }
 ```
 
 ```http
@@ -607,9 +616,21 @@ If you want precision, use the ID of the employment record from 1C as the extId.
   Limitation: a position name is unique within the school, so you cannot create two positions with the same name but different GUIDs
   (different organizations in 1C) (`StaffPositionNameIsNotUniq`); consolidate the GUIDs into one
   or do not pass a GUID for the second organization.
+- **Linking a position to departments is optional.** `ОбеспечитьДолжностьПоГуид` creates positions without
+  links: such a position is common to the whole school, and this has no side effects. If a position should be
+  available only in certain departments, pass the `departmentIds` field to `position/create` or
+  `position/ext/{GUID}/update` — an array of **internal Exode department IDs** (returned by
+  `GET /saas/v2/staff/department/list?extIds=ПОДР-001`). The array replaces the whole list, `[]` removes the links,
+  and without the field the links stay unchanged. Once linked, hiring, promoting or transferring to this position in
+  another department returns `StaffPositionNotInDepartment`. See [Positions](/en/exode-api/school/staff/position)
+  for details.
+- **If the school has an org-structure source app connected** (for example, the Verifix integration), it manages
+  the records that have an `extId`: creating with an `extId`, renaming, deleting, transferring and terminating such
+  records via the API returns `MiniappInstallationManagedEntity`. See the
+  [sync guide](/en/exode-api/school/staff/sync-guide) for details.
 
 {/* updated-stamp */}
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-10-16 13:24 UTC_

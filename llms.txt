@@ -28,7 +28,8 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 
 - [HR system sync guide](https://docs.exode.biz/en/exode-api/school/staff/sync-guide): how to keep the org structure in sync with an external HR system.
 - [Departments](https://docs.exode.biz/en/exode-api/school/staff/department): `GET /saas/v2/staff/department/tree` (also `list`, `create`, `update`, `delete`; `ext/{extId}` variants).
-- [Positions](https://docs.exode.biz/en/exode-api/school/staff/position): `GET /saas/v2/staff/position/list` (also `create`, `update`, `delete`).
+- [Positions](https://docs.exode.biz/en/exode-api/school/staff/position): `GET /saas/v2/staff/position/list` (also `create`, `update`, `delete`; optional `departmentIds`/`gradeIds` links).
+- [Grades](https://docs.exode.biz/en/exode-api/school/staff/grade): `GET /saas/v2/staff/grade/list` (also `create`, `update`, `delete`; `ext/{extId}` variants).
 - [Employments](https://docs.exode.biz/en/exode-api/school/staff/employment): `GET /saas/v2/staff/employment/list` (also `hire`, `promote`, `transfer`, `terminate`).
 - [Department managers](https://docs.exode.biz/en/exode-api/school/staff/department-manager): `POST /saas/v2/staff/department-manager/set` (also `remove`).
 - [Absences](https://docs.exode.biz/en/exode-api/school/staff/absence): `GET /saas/v2/staff/absence/list` (also `create`, `update`, `delete`).

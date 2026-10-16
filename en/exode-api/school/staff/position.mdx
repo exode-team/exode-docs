@@ -42,6 +42,33 @@ import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
   `/` or whitespace characters, because the value is used in `ext/{extId}` paths.
 </Info>
 
+## Linking to departments and grades
+
+A position can be limited to a list of departments and a list of grades. Both links are **optional**: positions can
+be created without them, this affects nothing, and they can be linked later.
+
+- **`departmentIds`** — the departments where the position is available. Not passed or an empty array — the position
+  is **common to the whole school** (shown as "All departments" in the UI). When the link is set, an employee cannot
+  be hired, promoted or transferred to this position in another department — `StaffPositionNotInDepartment` is
+  returned (see [employments](/en/exode-api/school/staff/employment)).
+- **`gradeIds`** — the [grades](/en/exode-api/school/staff/grade) that can be given to an employee in this position.
+  Not passed or an empty array — any grade of the school fits.
+
+<Info>
+  The array **replaces the whole list**: to add a department, pass the full new list. `[]` removes the link, and a
+  field omitted on update keeps the link unchanged. Pass the internal IDs of departments and grades (not `extId`):
+  a department ID by its `extId` is available via
+  [`department/list?extIds=...`](/en/exode-api/school/staff/department). The links are not returned in the position
+  response — `position/list?departmentId={id}` returns the positions of a department.
+</Info>
+
+<Warning>
+  If the school has an org-structure source app connected (for example, the Verifix integration), positions with an
+  `extId` are managed by it: creating a position with an `extId`, changing the `name` or `extId` of such a position
+  and deleting it via the API return the `MiniappInstallationManagedEntity` error. The links to departments and
+  grades (`departmentIds`, `gradeIds`) can still be changed.
+</Warning>
+
 ## List positions
 
 ```
@@ -81,6 +108,11 @@ Requires authentication and the **"Staff browsing"** permission (`StaffView`).
 
 <ParamField query="extIds" type="string[]" required={false}>
   Filter by a list of external IDs (`extId`). Up to 250 values, each up to 50 characters.
+</ParamField>
+
+<ParamField query="departmentId" type="integer" required={false}>
+  Positions available in the department: the ones linked to it and the ones common to the whole school (with no
+  department link).
 </ParamField>
 
 <ParamField query="createdAt" type="enum" required={false}>
@@ -195,6 +227,18 @@ Requires authentication and the **"Staff Management"** permission (`StaffManage`
   whitespace characters. Must be unique within the school among non-deleted records.
 </ParamField>
 
+<ParamField body="departmentIds" type="integer[]" required={false}>
+  IDs of the departments where the position is available. Up to 250 values. Not passed or `[]` — the position is
+  common to the whole school. Every department must belong to the school, otherwise `StaffDepartmentNotFound` is
+  returned. See [Linking to departments and grades](#linking-to-departments-and-grades).
+</ParamField>
+
+<ParamField body="gradeIds" type="integer[]" required={false}>
+  IDs of the [grades](/en/exode-api/school/staff/grade) that can be given to an employee in this position. Up to 100
+  values. Not passed or `[]` — any grade fits. Every grade must belong to the school, otherwise `StaffGradeNotFound`
+  is returned.
+</ParamField>
+
 <RequestExample>
 ```bash cURL
 curl --location 'https://api.exode.biz/saas/v2/staff/position/create' \
@@ -203,7 +247,8 @@ curl --location 'https://api.exode.biz/saas/v2/staff/position/create' \
   --header 'Content-Type: application/json' \
   --header 'Authorization: Bearer YOUR_TOKEN' \
   --data-raw '{
-    "name": "Backend Engineer"
+    "name": "Backend Engineer",
+    "departmentIds": [12, 15]
   }'
 ```
 
@@ -215,6 +260,7 @@ async function createPosition() {
     'https://api.exode.biz/saas/v2/staff/position/create',
     {
       name: 'Backend Engineer',
+      departmentIds: [12, 15],
     },
     {
       headers: {
@@ -266,6 +312,36 @@ createPosition();
   "error": "Staff position extId is not uniq"
 }
 ```
+```json Error - Department Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
+}
+```
+```json Error - Grade Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNotFound",
+  "message": "Staff grade not found",
+  "error": "Staff grade not found"
+}
+```
+```json Error - Managed By Integration
+{
+  "code": 400,
+  "success": false,
+  "cause": "MiniappInstallationManagedEntity",
+  "message": "The record is managed by a miniapp",
+  "error": "The record is managed by a miniapp",
+  "data": {
+    "installationId": 7
+  }
+}
+```
 ```json Error - Forbidden
 {
   "code": 401,
@@ -301,6 +377,17 @@ Requires authentication and the **"Staff Management"** permission (`StaffManage`
   whitespace characters. Must be unique within the school among non-deleted records.
 </ParamField>
 
+<ParamField body="departmentIds" type="integer[]" required={false}>
+  New list of IDs of the departments where the position is available (up to 250). Replaces the current list as a
+  whole; `[]` makes the position common to the whole school; not passed — the link is kept. `StaffDepartmentNotFound`
+  if a department is not found in the school.
+</ParamField>
+
+<ParamField body="gradeIds" type="integer[]" required={false}>
+  New list of grade IDs of the position (up to 100). Replaces the current list as a whole; `[]` — any grade fits;
+  not passed — the list is kept. `StaffGradeNotFound` if a grade is not found in the school.
+</ParamField>
+
 <RequestExample>
 ```bash cURL
 curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/position/4/update' \
@@ -309,7 +396,8 @@ curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/position/4/up
   --header 'Content-Type: application/json' \
   --header 'Authorization: Bearer YOUR_TOKEN' \
   --data-raw '{
-    "name": "Staff Backend Engineer"
+    "name": "Staff Backend Engineer",
+    "departmentIds": [12]
   }'
 ```
 
@@ -321,6 +409,7 @@ async function updatePosition() {
     'https://api.exode.biz/saas/v2/staff/position/4/update',
     {
       name: 'Staff Backend Engineer',
+      departmentIds: [12],
     },
     {
       headers: {
@@ -372,6 +461,15 @@ updatePosition();
   "error": "Staff position extId is not uniq"
 }
 ```
+```json Error - Department Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
+}
+```
 </ResponseExample>
 
 ## Update a position by extId
@@ -401,6 +499,15 @@ Requires authentication and the **"Staff Management"** permission (`StaffManage`
 <ParamField body="extId" type="string" required={false}>
   New external ID of the position. 1 to 50 characters, cannot contain `/` or whitespace characters.
   Must be unique within the school among non-deleted records.
+</ParamField>
+
+<ParamField body="departmentIds" type="integer[]" required={false}>
+  New list of IDs of the departments where the position is available (up to 250). Works the same as
+  [update by ID](#update-a-position).
+</ParamField>
+
+<ParamField body="gradeIds" type="integer[]" required={false}>
+  New list of grade IDs of the position (up to 100). Works the same as [update by ID](#update-a-position).
 </ParamField>
 
 <RequestExample>
@@ -668,4 +775,4 @@ deletePositionByExtId();
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-10-16 13:24 UTC_

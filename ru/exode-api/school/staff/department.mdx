@@ -25,6 +25,18 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
   Запрос от школы другого сегмента будет отклонён.
 </Warning>
 
+<Warning>
+  Если в школе подключено приложение — источник оргструктуры (например, интеграция с Verifix), департаменты с
+  `extId` управляются им: создание департамента с `extId`, изменение `name`, `extId` и родителя (`parentId`,
+  `parentExtId`) такого департамента и его удаление через API вернут ошибку `MiniappInstallationManagedEntity`
+  (в `data.installationId` — ID подключённого приложения).
+</Warning>
+
+<Tip>
+  Должность можно привязать к одному или нескольким департаментам — см.
+  [«Привязка к подразделениям и грейдам»](/ru/exode-api/school/staff/position#привязка-к-подразделениям-и-грейдам).
+</Tip>
+
 ## Требования к правам доступа
 
 <Check>
@@ -797,4 +809,4 @@ deleteDepartmentByExtId();
 
 ---
 
-_Обновлено: 2026-09-25 13:43 UTC_
+_Обновлено: 2026-10-16 13:24 UTC_

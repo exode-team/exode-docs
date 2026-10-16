@@ -1,0 +1,733 @@
+---
+title: "Grades"
+description: "REST endpoints for managing the employee grade ladder in a corporate school"
+---
+
+import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+  Grades are the levels of the school's career ladder (for example, Junior → Middle → Senior). There is one grade
+  ladder for all positions of the school. A grade is assigned to an employee on hiring, promotion and transfer (see
+  [employments](/en/exode-api/school/staff/employment)) and is used to calculate readiness for the next grade.
+</Info>
+
+<Warning>
+  All staff module endpoints are available **only to schools in the corporate segment** (`Corporate`).
+  Requests from schools in other segments are rejected.
+</Warning>
+
+## Permission requirements
+
+<Check>
+  Reading (`list`) requires the [**"Staff browsing"**](/en/exode-api/permissions) permission (`StaffView`). Creating, updating and deleting require the **"Staff Management"** permission (`StaffManage`).
+  In all cases, token authentication is required and the school must belong to the `Corporate` segment.
+</Check>
+
+<Warning>
+  The service user must be authenticated with a token and have the appropriate access rights to the specified
+  school.
+</Warning>
+
+## How the ladder works
+
+<Info>
+  **Order.** The `order` field is the grade's place on the ladder: the higher the `order`, the higher the grade. A new
+  grade is created at the top of the ladder. The order of grades is changed in the interface (**School → Structure →
+  Grades**, by dragging a row); the REST API does not change the order. The grade list is always returned from the
+  lowest grade to the highest.
+</Info>
+
+<Info>
+  **Enabling grades.** Grades are enabled in the **"Grades"** section of the interface. The ladder can be set up in
+  advance — via the API or in the interface — but a grade can be assigned to an employee (`gradeId` in `hire`,
+  `toGradeId` in `promote` and `transfer`) only after grades are enabled; otherwise the `StaffGradesDisabled` error is
+  returned.
+</Info>
+
+<Info>
+  **Position grades.** A position can limit the list of grades that fit it — the `gradeIds` parameter when
+  [creating and updating a position](/en/exode-api/school/staff/position). If no limit is set, any grade of the school
+  fits the position. An employee can be assigned only a grade of their position; otherwise `StaffGradeNotForPosition`
+  is returned.
+</Info>
+
+<Info>
+  **Transition conditions.** The conditions for moving to a grade (the courses an employee in a specific position has
+  to complete) are configured in the interface. Readiness for the next grade is calculated from them — employees who
+  have met every condition can be fetched with the `readyForPromotion` filter of the
+  [employment list](/en/exode-api/school/staff/employment).
+</Info>
+
+<Info>
+  A grade name is **unique within the school**, case-insensitive ("Senior" and "senior" are the same name). Creating a
+  grade with, or renaming a grade to, a name that already exists in the same school returns the
+  `StaffGradeNameIsNotUniq` error.
+</Info>
+
+<Info>
+  The `extId` field is the grade's external ID from the client's system (CRM/1C, for example a GUID). It is unique
+  within the school among non-deleted records. 1 to 50 characters, cannot contain `/` or whitespace characters,
+  because the value is used in `ext/{extId}` paths.
+</Info>
+
+## List grades
+
+```
+GET /saas/v2/staff/grade/list
+```
+
+Requires authentication and the **"Staff browsing"** permission (`StaffView`).
+
+<Info>
+  The endpoint returns a paginated list of grades ordered by `order` — from the lowest grade to the highest.
+  Pagination and filter parameters are passed as query parameters.
+</Info>
+
+### Parameters
+
+<ParamField query="skip" type="integer" required={false}>
+  Number of records to skip (offset pagination). Minimum `0`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+  Number of records returned per page. From `1` to `1000`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+  Page number (alternative to `skip`). Minimum `1`.
+</ParamField>
+
+<ParamField query="gradeIds" type="integer[]" required={false}>
+  Filter by grade IDs. Up to 250 values.
+</ParamField>
+
+<ParamField query="extIds" type="string[]" required={false}>
+  Filter by a list of external IDs (`extId`). Up to 250 values, each at most 50 characters.
+</ParamField>
+
+<ParamField query="positionId" type="integer" required={false}>
+  Grades that fit the position: its own list of grades, or every grade of the school if the position has no limit.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+  Search by grade name. Maximum 50 characters. The search is fuzzy (it also finds partial matches), so to find a
+  specific grade by name, compare the `name` of the found records with your value case-insensitively — or, more
+  reliably, search by `extIds`.
+</ParamField>
+
+### Response
+
+<ResponseField name="payload" type="object" required>
+  Paginated object: `items` (array of grades), `page`, `count`, `pages`, `isFirst`, `isLast`, `next`, `prev`.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/grade/list?take=10&page=1' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function getGradeList() {
+  const { data } = await axios.get(
+    'https://api.exode.biz/saas/v2/staff/grade/list',
+    {
+      params: {
+        take: 10,
+        page: 1,
+      },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+getGradeList();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 2,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "id": 7,
+        "createdAt": "2026-10-12T09:20:11.104Z",
+        "updatedAt": "2026-10-12T09:20:11.104Z",
+        "archivedAt": null,
+        "schoolId": 198,
+        "name": "Junior",
+        "order": 1,
+        "description": "Works from ready-made instructions under a mentor's guidance",
+        "extId": null
+      },
+      {
+        "id": 8,
+        "createdAt": "2026-10-12T09:21:36.518Z",
+        "updatedAt": "2026-10-12T09:21:36.518Z",
+        "archivedAt": null,
+        "schoolId": 198,
+        "name": "Middle",
+        "order": 2,
+        "description": null,
+        "extId": "b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18"
+      }
+    ],
+    "next": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    },
+    "prev": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Create a grade
+
+```
+POST /saas/v2/staff/grade/create
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+<Info>
+  A new grade goes to the top of the ladder — it gets the highest `order` in the school. To put it in another place,
+  change the order in the interface.
+</Info>
+
+### Request parameters
+
+<ParamField body="name" type="string" required>
+  Grade name. 1 to 100 characters. Leading and trailing spaces are trimmed automatically. Must be unique within the
+  school.
+</ParamField>
+
+<ParamField body="description" type="string | null" required={false}>
+  Grade description — how it differs from the neighbouring grades. Up to 500 characters. Leading and trailing spaces
+  are trimmed automatically.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  The grade's external ID from the client's system (CRM/1C). 1 to 50 characters, cannot contain `/` or whitespace
+  characters. Must be unique within the school among non-deleted records.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/grade/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Middle",
+    "extId": "b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function createGrade() {
+  const { data } = await axios.post(
+    'https://api.exode.biz/saas/v2/staff/grade/create',
+    {
+      name: 'Middle',
+      extId: 'b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+createGrade();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 8,
+    "createdAt": "2026-10-12T09:21:36.518Z",
+    "updatedAt": "2026-10-12T09:21:36.518Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "name": "Middle",
+    "order": 2,
+    "description": null,
+    "extId": "b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18"
+  }
+}
+```
+```json Error - Name Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNameIsNotUniq",
+  "message": "Staff grade name is not uniq",
+  "error": "Staff grade name is not uniq"
+}
+```
+```json Error - ExtId Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeExtIdIsNotUniq",
+  "message": "Staff grade extId is not uniq",
+  "error": "Staff grade extId is not uniq"
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
+}
+```
+</ResponseExample>
+
+## Update a grade
+
+```
+PUT /saas/v2/staff/grade/{gradeId}/update
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+### Parameters
+
+<ParamField path="gradeId" type="integer" required>
+  ID of the grade to update within the school.
+</ParamField>
+
+<ParamField body="name" type="string" required={false}>
+  New grade name. 1 to 100 characters. Leading and trailing spaces are trimmed automatically. Must be unique within
+  the school.
+</ParamField>
+
+<ParamField body="description" type="string | null" required={false}>
+  New grade description. Up to 500 characters. `null` clears the description.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  The grade's external ID from the client's system (CRM/1C). 1 to 50 characters, cannot contain `/` or whitespace
+  characters. Must be unique within the school among non-deleted records.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/grade/8/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "description": "Independently handles mid-sized tasks"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function updateGrade() {
+  const { data } = await axios.put(
+    'https://api.exode.biz/saas/v2/staff/grade/8/update',
+    {
+      description: 'Independently handles mid-sized tasks',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+updateGrade();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 8,
+    "createdAt": "2026-10-12T09:21:36.518Z",
+    "updatedAt": "2026-10-12T10:02:48.330Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "name": "Middle",
+    "order": 2,
+    "description": "Independently handles mid-sized tasks",
+    "extId": "b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18"
+  }
+}
+```
+```json Error - Name Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNameIsNotUniq",
+  "message": "Staff grade name is not uniq",
+  "error": "Staff grade name is not uniq"
+}
+```
+```json Error - ExtId Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeExtIdIsNotUniq",
+  "message": "Staff grade extId is not uniq",
+  "error": "Staff grade extId is not uniq"
+}
+```
+</ResponseExample>
+
+## Update a grade by extId
+
+```
+PUT /saas/v2/staff/grade/ext/{extId}/update
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+<Info>
+  The counterpart of the update by ID: the grade is looked up by its external ID `extId` within the school.
+  The `extId` value in the path must be URL-encoded.
+</Info>
+
+### Parameters
+
+<ParamField path="extId" type="string" required>
+  External ID (`extId`) of the grade to update within the school. Must be URL-encoded.
+</ParamField>
+
+<ParamField body="name" type="string" required={false}>
+  New grade name. 1 to 100 characters. Leading and trailing spaces are trimmed automatically. Must be unique within
+  the school.
+</ParamField>
+
+<ParamField body="description" type="string | null" required={false}>
+  New grade description. Up to 500 characters. `null` clears the description.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  New external ID of the grade. 1 to 50 characters, cannot contain `/` or whitespace characters.
+  Must be unique within the school among non-deleted records.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/grade/ext/b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Middle+"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function updateGradeByExtId() {
+  const extId = encodeURIComponent('b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18');
+
+  const { data } = await axios.put(
+    `https://api.exode.biz/saas/v2/staff/grade/ext/${extId}/update`,
+    {
+      name: 'Middle+',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+updateGradeByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 8,
+    "createdAt": "2026-10-12T09:21:36.518Z",
+    "updatedAt": "2026-10-12T10:15:02.917Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "name": "Middle+",
+    "order": 2,
+    "description": null,
+    "extId": "b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18"
+  }
+}
+```
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNotFound",
+  "message": "Staff grade not found",
+  "error": "Staff grade not found"
+}
+```
+```json Error - Name Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNameIsNotUniq",
+  "message": "Staff grade name is not uniq",
+  "error": "Staff grade name is not uniq"
+}
+```
+```json Error - ExtId Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeExtIdIsNotUniq",
+  "message": "Staff grade extId is not uniq",
+  "error": "Staff grade extId is not uniq"
+}
+```
+</ResponseExample>
+
+## Delete a grade
+
+```
+DELETE /saas/v2/staff/grade/{gradeId}/delete
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+<Warning>
+  A grade cannot be deleted while it is assigned to employees in open employments: the method returns
+  `StaffGradeHasActiveEmployments`. First change the employees' grade via
+  [`promote`](/en/exode-api/school/staff/employment) (the `toGradeId` parameter) or terminate them.
+</Warning>
+
+<Info>
+  On deletion the grade is removed from every position it was assigned to, and its transition conditions are deleted.
+  Employees' readiness for the next grade is recalculated.
+</Info>
+
+### Parameters
+
+<ParamField path="gradeId" type="integer" required>
+  ID of the grade to delete within the school.
+</ParamField>
+
+### Response
+
+<ResponseField name="affected" type="integer" required>
+  Number of deleted records (`1` on successful deletion).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/grade/8/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function deleteGrade() {
+  const { data } = await axios.delete(
+    'https://api.exode.biz/saas/v2/staff/grade/8/delete',
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+deleteGrade();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+```json Error - Has Active Employments
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeHasActiveEmployments",
+  "message": "Staff grade has active employments",
+  "error": "Staff grade has active employments"
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
+}
+```
+</ResponseExample>
+
+## Delete a grade by extId
+
+```
+DELETE /saas/v2/staff/grade/ext/{extId}/delete
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+<Warning>
+  A grade cannot be deleted while it is assigned to employees in open employments: the method returns
+  `StaffGradeHasActiveEmployments`. First change the employees' grade via
+  [`promote`](/en/exode-api/school/staff/employment) (the `toGradeId` parameter) or terminate them.
+</Warning>
+
+<Info>
+  The counterpart of the deletion by ID: the grade is looked up by its external ID `extId` within the school.
+  The `extId` value in the path must be URL-encoded.
+</Info>
+
+### Parameters
+
+<ParamField path="extId" type="string" required>
+  External ID (`extId`) of the grade to delete within the school. Must be URL-encoded.
+</ParamField>
+
+### Response
+
+<ResponseField name="affected" type="integer" required>
+  Number of deleted records (`1` on successful deletion).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/grade/ext/b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function deleteGradeByExtId() {
+  const extId = encodeURIComponent('b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18');
+
+  const { data } = await axios.delete(
+    `https://api.exode.biz/saas/v2/staff/grade/ext/${extId}/delete`,
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+deleteGradeByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNotFound",
+  "message": "Staff grade not found",
+  "error": "Staff grade not found"
+}
+```
+```json Error - Has Active Employments
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeHasActiveEmployments",
+  "message": "Staff grade has active employments",
+  "error": "Staff grade has active employments"
+}
+```
+</ResponseExample>
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-10-16 13:24 UTC_

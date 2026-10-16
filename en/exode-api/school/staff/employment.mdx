@@ -20,6 +20,24 @@ import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
     returns `401` with `cause: "Forbidden"` and the message `Allowed only for Corporate school`.
 </Warning>
 
+<Warning>
+    If the school has an org-structure source app connected (for example, the Verifix integration), employments
+    with an `extId` are managed by that app, and changing such records through the API returns
+    `MiniappInstallationManagedEntity` (`data.installationId` holds the ID of the app installation). The restriction
+    applies to `hire` with an `extId` in the body (the `extId` namespace belongs to the integration), to `transfer` and
+    `terminate` of a record with an `extId`, and to `promote` of a record with an `extId` when the position changes
+    (or the grade — when the integration syncs grades). Records without an `extId` can still be changed through the API.
+</Warning>
+
+<Info>
+    Besides a position, an employment can be given a [grade](/en/exode-api/school/staff/grade) (`gradeId`) — a level
+    of the school's career ladder. A grade is available when grades are enabled in the school, otherwise
+    `StaffGradesDisabled` is returned. If the position has a limited list of grades, only a grade from that list
+    can be assigned (`StaffGradeNotForPosition`). If the [position is linked to departments](/en/exode-api/school/staff/position),
+    it can be assigned only in one of them (`StaffPositionNotInDepartment`); a position without links is common to
+    the whole school and available in any department.
+</Info>
+
 <Info>
     Transfer (`transfer`) and promotion (`promote`) do not modify the current record; they **close** it (`finishAt`, status
     `Terminated`) and create a **new** active record in the target department or with the new position. The employment
@@ -45,8 +63,8 @@ import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
 |---|---|
 | Hiring, a new secondary job | [`hire`](#hire-an-employee) — creates another active record |
 | Transfer to another department (same position) | [`transfer`](#transfer-to-another-department) |
-| Position change within the same department | [`promote`](#change-position) |
-| Both the department and the position changed | `transfer`, then `promote` by the same `extId` with the same `startAt` |
+| Position and/or grade change within the same department | [`promote`](#change-position) |
+| Both the department and the position (or grade) changed | [`transfer`](#transfer-to-another-department) with `toPositionId` / `toGradeId` — in a single operation |
 | Termination from one job | [`terminate`](#terminate-an-employee) |
 
 The API has no employment deletion: a record is closed only through `terminate` and stays in the history. Every
@@ -112,6 +130,15 @@ Requires authentication and the [**"Staff browsing"**](/en/exode-api/permissions
     Filter by position external identifiers (`extId`). Up to 250 values, each up to 50 characters.
 </ParamField>
 
+<ParamField query="gradeIds" type="integer[]" required={false}>
+    Filter by [grade](/en/exode-api/school/staff/grade) IDs. Up to 100 values.
+</ParamField>
+
+<ParamField query="readyForPromotion" type="boolean" required={false}>
+    `true` — only employees who have met every condition for moving to the next grade; `false` — only those who
+    have not met them yet.
+</ParamField>
+
 <ParamField query="statuses" type="enum[]" required={false}>
     Filter by employment status. Possible values: `Active`, `Terminated`. Up to 250 values.
 </ParamField>
@@ -147,6 +174,7 @@ Requires authentication and the [**"Staff browsing"**](/en/exode-api/permissions
                 <ResponseField name="schoolId" type="integer">School ID.</ResponseField>
                 <ResponseField name="userId" type="integer">ID of the employee user.</ResponseField>
                 <ResponseField name="positionId" type="integer | null">Position ID, or `null` for an employment without a position.</ResponseField>
+                <ResponseField name="gradeId" type="integer | null">[Grade](/en/exode-api/school/staff/grade) ID, or `null` if no grade is assigned.</ResponseField>
                 <ResponseField name="departmentId" type="integer">Department ID.</ResponseField>
                 <ResponseField name="extId" type="string | null">External identifier of the employment from the client's system, or `null`. Unique within the school among open (not finished) records; moves to the new record on transfer/promotion.</ResponseField>
                 <ResponseField name="startAt" type="string">Employment start date (ISO 8601).</ResponseField>
@@ -218,6 +246,7 @@ listEmployments();
         "schoolId": 198,
         "userId": 1683,
         "positionId": 4,
+        "gradeId": 2,
         "departmentId": 4,
         "extId": "emp-1683",
         "startAt": "2026-07-02T11:15:47.316Z",
@@ -235,6 +264,7 @@ listEmployments();
         "schoolId": 198,
         "userId": 1683,
         "positionId": 3,
+        "gradeId": null,
         "departmentId": 4,
         "extId": "emp-1683",
         "startAt": "2026-07-02T11:15:47.299Z",
@@ -286,7 +316,12 @@ the `Terminated` status, hiring automatically restores their `Active` status.
 The department is **required** and is specified by ID or external identifier: pass exactly one parameter of the
 `departmentId` / `departmentExtId` pair. The position is **optional**: pass exactly one parameter of the
 `positionId` / `positionExtId` pair, or pass neither — the employee is then hired without a position. You cannot pass
-both fields of the same pair at once.
+both fields of the same pair at once. If the position is linked to departments, the hiring department must be
+among them, otherwise `StaffPositionNotInDepartment` is returned.
+
+The grade is **optional** and is set the same way — with one parameter of the `gradeId` / `gradeExtId` pair. It is
+checked for belonging to the school (`StaffGradeNotFound`) and against the position's list of grades
+(`StaffGradeNotForPosition`); when grades are disabled in the school, `StaffGradesDisabled` is returned.
 
 ### Request parameters
 
@@ -300,16 +335,28 @@ both fields of the same pair at once.
 
 <ParamField body="extId" type="string" required={false}>
     External identifier of the employment from the client's system. From 1 to 50 characters, without `/` or whitespace.
-    Must be unique within the school among open (not finished) employments.
+    Must be unique within the school among open (not finished) employments. If the school has an org-structure
+    source app connected, a hire with an `extId` returns `MiniappInstallationManagedEntity`.
 </ParamField>
 
 <ParamField body="positionId" type="integer" required={false}>
-    Position ID. The position must belong to the school. Optional: pass one parameter of the
+    Position ID. The position must belong to the school and be available in the hiring department (a position
+    without department links is available everywhere). Optional: pass one parameter of the
     `positionId` / `positionExtId` pair, or pass neither — the employee is hired without a position.
 </ParamField>
 
 <ParamField body="positionExtId" type="string" required={false}>
     External identifier (`extId`) of the position — an alternative to `positionId`.
+</ParamField>
+
+<ParamField body="gradeId" type="integer" required={false}>
+    [Grade](/en/exode-api/school/staff/grade) ID. The grade must belong to the school and be in the position's list of
+    grades (if the list is set). Optional: pass one parameter of the `gradeId` / `gradeExtId` pair, or pass
+    neither — the employee is hired without a grade.
+</ParamField>
+
+<ParamField body="gradeExtId" type="string" required={false}>
+    External identifier (`extId`) of the grade — an alternative to `gradeId`.
 </ParamField>
 
 <ParamField body="departmentId" type="integer" required={false}>
@@ -402,6 +449,7 @@ hireEmployment();
     "schoolId": 198,
     "userId": 1683,
     "positionId": 3,
+    "gradeId": null,
     "departmentId": 3,
     "extId": "emp-1683",
     "startAt": "2026-07-02T11:15:47.273Z",
@@ -454,6 +502,46 @@ hireEmployment();
 }
 ```
 
+```json Error - Position Not In Department
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotInDepartment",
+  "message": "Staff position is not available in the department",
+  "error": "Staff position is not available in the department"
+}
+```
+
+```json Error - Grade Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNotFound",
+  "message": "Staff grade not found",
+  "error": "Staff grade not found"
+}
+```
+
+```json Error - Grade Not For Position
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNotForPosition",
+  "message": "Staff grade is not a grade of the position",
+  "error": "Staff grade is not a grade of the position"
+}
+```
+
+```json Error - Grades Disabled
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradesDisabled",
+  "message": "Staff grades are disabled",
+  "error": "Staff grades are disabled"
+}
+```
+
 ```json Error - User Not Belongs To School
 {
   "code": 400,
@@ -461,6 +549,19 @@ hireEmployment();
   "cause": "UserNotBelongsToSchool",
   "message": "User does not belong to the school",
   "error": "User does not belong to the school"
+}
+```
+
+```json Error - Managed By Integration
+{
+  "code": 400,
+  "success": false,
+  "cause": "MiniappInstallationManagedEntity",
+  "message": "The record is managed by a miniapp",
+  "error": "The record is managed by a miniapp",
+  "data": {
+    "installationId": 12
+  }
 }
 ```
 </ResponseExample>
@@ -474,9 +575,14 @@ POST /saas/v2/staff/employment/transfer
 Requires authentication and the **"Staff Management"** permission (`StaffManage`).
 
 Closes the current active employment record (`finishAt`, status `Terminated`) and creates a **new** active
-record in the target department, keeping the position. The target department must belong to the school. If
-the employee already has an open record with the same position in the target department,
-`StaffEmploymentAlreadyExists` is returned.
+record in the target department. The target department must belong to the school. If the employee already has
+an open record with the same position in the target department, `StaffEmploymentAlreadyExists` is returned.
+
+By default the position and the grade are kept; if the current position is linked to departments and the target
+department is not among them, `StaffPositionNotInDepartment` is returned. To change the position and/or the grade
+at the same time, pass `toPositionId` and/or `toGradeId` — a single operation instead of a `transfer` + `promote`
+pair. The new position and grade are checked the same way as when [changing the position](#change-position), but
+against the target department.
 
 ### Request parameters
 
@@ -491,6 +597,16 @@ the employee already has an open record with the same position in the target dep
 
 <ParamField body="toDepartmentExtId" type="string" required={false}>
     External identifier (`extId`) of the target department — an alternative to `toDepartmentId`.
+</ParamField>
+
+<ParamField body="toPositionId" type="integer | null" required={false}>
+    ID of the new position in the target department. The value `null` **removes** the position. Not passed — the
+    position is kept. Specified by ID only (there is no `extId` variant).
+</ParamField>
+
+<ParamField body="toGradeId" type="integer | null" required={false}>
+    ID of the new [grade](/en/exode-api/school/staff/grade). The value `null` **removes** the grade. Specified by
+    ID only (there is no `extId` variant).
 </ParamField>
 
 <ParamField body="startAt" type="string" required={false}>
@@ -549,6 +665,7 @@ transferEmployment();
     "schoolId": 198,
     "userId": 1683,
     "positionId": 3,
+    "gradeId": null,
     "departmentId": 4,
     "extId": "emp-1683",
     "startAt": "2026-07-02T11:15:47.299Z",
@@ -590,6 +707,16 @@ transferEmployment();
   "error": "Staff active employment already exists"
 }
 ```
+
+```json Error - Position Not In Department
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotInDepartment",
+  "message": "Staff position is not available in the department",
+  "error": "Staff position is not available in the department"
+}
+```
 </ResponseExample>
 
 ## Transfer by external identifier
@@ -601,7 +728,8 @@ POST /saas/v2/staff/employment/ext/{extId}/transfer
 Requires authentication and the **"Staff Management"** permission (`StaffManage`).
 
 Same as transfer by `employmentId`, but the active employment record is looked up by the external identifier
-`extId` within the school. The request body is the same as for a regular transfer, without the `employmentId` field.
+`extId` within the school. The request body is the same as for a regular transfer, without the `employmentId` field:
+pass `toPositionId` / `toGradeId` if needed to change the position and grade in the same operation.
 
 ### Request parameters
 
@@ -616,6 +744,16 @@ Same as transfer by `employmentId`, but the active employment record is looked u
 
 <ParamField body="toDepartmentExtId" type="string" required={false}>
     External identifier (`extId`) of the target department — an alternative to `toDepartmentId`.
+</ParamField>
+
+<ParamField body="toPositionId" type="integer | null" required={false}>
+    ID of the new position in the target department. The value `null` **removes** the position. Not passed — the
+    position is kept. Specified by ID only (there is no `extId` variant).
+</ParamField>
+
+<ParamField body="toGradeId" type="integer | null" required={false}>
+    ID of the new [grade](/en/exode-api/school/staff/grade). The value `null` **removes** the grade. Specified by
+    ID only (there is no `extId` variant).
 </ParamField>
 
 <ParamField body="startAt" type="string" required={false}>
@@ -674,6 +812,7 @@ transferEmploymentByExtId();
     "schoolId": 198,
     "userId": 1683,
     "positionId": 3,
+    "gradeId": null,
     "departmentId": 4,
     "extId": "emp-1683",
     "startAt": "2026-07-02T11:15:47.299Z",
@@ -706,12 +845,18 @@ POST /saas/v2/staff/employment/promote
 Requires authentication and the **"Staff Management"** permission (`StaffManage`).
 
 Closes the current active employment record (`finishAt`, status `Terminated`) and creates a **new** active
-record with the new position in the same department. The target position must belong to the school. If the employee
-already has an open record with the new position in this department, `StaffEmploymentAlreadyExists` is returned.
+record with the new position and/or grade in the same department. The target position must belong to the school and
+be available in the current department (`StaffPositionNotInDepartment`). If the employee already has an open record
+with the new position in this department, `StaffEmploymentAlreadyExists` is returned.
 
-The request must state the intent explicitly: pass a position (`toPositionId` **or** `toPositionExtId`) to
-assign it, or `toPositionId: null` to **remove** the position (the employee stays in the department without a
-position). If you pass none of these fields, the `StaffEmploymentInputRequired` error is returned.
+The request must state the intent explicitly: pass a position (`toPositionId` **or** `toPositionExtId`) and/or a
+grade (`toGradeId` **or** `toGradeExtId`) to assign them, or `null` to **remove** them (the employee stays in the
+department without a position or without a grade). If you pass none of these fields, the
+`StaffEmploymentInputRequired` error is returned.
+
+The grade is checked the same way as on hire: `StaffGradeNotFound`, `StaffGradeNotForPosition`,
+`StaffGradesDisabled`. If only the position changes, the current grade is kept when it is in the new position's list
+of grades, and is reset to `null` when it is not.
 
 ### Request parameters
 
@@ -729,6 +874,15 @@ position). If you pass none of these fields, the `StaffEmploymentInputRequired` 
     External identifier (`extId`) of the target position — an alternative to `toPositionId`.
 </ParamField>
 
+<ParamField body="toGradeId" type="integer | null" required={false}>
+    ID of the target [grade](/en/exode-api/school/staff/grade). Pass exactly one parameter of the
+    `toGradeId` / `toGradeExtId` pair. The value `null` **removes** the grade.
+</ParamField>
+
+<ParamField body="toGradeExtId" type="string" required={false}>
+    External identifier (`extId`) of the target grade — an alternative to `toGradeId`.
+</ParamField>
+
 <ParamField body="startAt" type="string" required={false}>
     Position change date in ISO 8601 format. Must not be earlier than the current record's `startAt`, otherwise
     `StaffEmploymentInvalidTransitionDate` is returned. Defaults to the current moment.
@@ -744,6 +898,7 @@ curl --location 'https://api.exode.biz/saas/v2/staff/employment/promote' \
   --data-raw '{
     "employmentId": 8,
     "toPositionId": 4,
+    "toGradeId": 2,
     "startAt": "2026-07-02T00:00:00.000Z"
   }'
 ```
@@ -755,6 +910,7 @@ const promoteEmployment = async () => {
   const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/employment/promote', {
     employmentId: 8,
     toPositionId: 4,
+    toGradeId: 2,
     startAt: '2026-07-02T00:00:00.000Z',
   }, {
     headers: {
@@ -785,6 +941,7 @@ promoteEmployment();
     "schoolId": 198,
     "userId": 1683,
     "positionId": 4,
+    "gradeId": 2,
     "departmentId": 4,
     "extId": "emp-1683",
     "startAt": "2026-07-02T11:15:47.316Z",
@@ -827,13 +984,46 @@ promoteEmployment();
 }
 ```
 
-```json Error - Target Position Required
+```json Error - Target Required
 {
   "code": 400,
   "success": false,
   "cause": "StaffEmploymentInputRequired",
-  "message": "Staff employment promote target position is required",
-  "error": "Staff employment promote target position is required"
+  "message": "Staff employment promote target position or grade is required",
+  "error": "Staff employment promote target position or grade is required"
+}
+```
+
+```json Error - Position Not In Department
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotInDepartment",
+  "message": "Staff position is not available in the department",
+  "error": "Staff position is not available in the department"
+}
+```
+
+```json Error - Grade Not For Position
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNotForPosition",
+  "message": "Staff grade is not a grade of the position",
+  "error": "Staff grade is not a grade of the position"
+}
+```
+
+```json Error - Managed By Integration
+{
+  "code": 400,
+  "success": false,
+  "cause": "MiniappInstallationManagedEntity",
+  "message": "The record is managed by a miniapp",
+  "error": "The record is managed by a miniapp",
+  "data": {
+    "installationId": 12
+  }
 }
 ```
 </ResponseExample>
@@ -848,7 +1038,7 @@ Requires authentication and the **"Staff Management"** permission (`StaffManage`
 
 Same as changing the position by `employmentId`, but the active employment record is looked up by the external identifier
 `extId` within the school. The request body is the same as for a regular position change, without the `employmentId` field: pass
-a position to assign it, or `toPositionId: null` to remove it; otherwise the
+a position and/or a grade to assign them, or `null` to remove them; if none of these fields is passed, the
 `StaffEmploymentInputRequired` error is returned.
 
 ### Request parameters
@@ -865,6 +1055,15 @@ a position to assign it, or `toPositionId: null` to remove it; otherwise the
 
 <ParamField body="toPositionExtId" type="string" required={false}>
     External identifier (`extId`) of the target position — an alternative to `toPositionId`.
+</ParamField>
+
+<ParamField body="toGradeId" type="integer | null" required={false}>
+    ID of the target [grade](/en/exode-api/school/staff/grade). Pass exactly one parameter of the
+    `toGradeId` / `toGradeExtId` pair. The value `null` **removes** the grade.
+</ParamField>
+
+<ParamField body="toGradeExtId" type="string" required={false}>
+    External identifier (`extId`) of the target grade — an alternative to `toGradeId`.
 </ParamField>
 
 <ParamField body="startAt" type="string" required={false}>
@@ -923,6 +1122,7 @@ promoteEmploymentByExtId();
     "schoolId": 198,
     "userId": 1683,
     "positionId": 4,
+    "gradeId": 2,
     "departmentId": 4,
     "extId": "emp-1683",
     "startAt": "2026-07-02T11:15:47.316Z",
@@ -1035,6 +1235,7 @@ terminateEmployment();
     "schoolId": 198,
     "userId": 1684,
     "positionId": 3,
+    "gradeId": null,
     "departmentId": 4,
     "extId": "emp-1684",
     "startAt": "2026-07-02T11:15:47.285Z",
@@ -1151,6 +1352,7 @@ terminateEmploymentByExtId();
     "schoolId": 198,
     "userId": 1684,
     "positionId": 3,
+    "gradeId": null,
     "departmentId": 4,
     "extId": "emp-1684",
     "startAt": "2026-07-02T11:15:47.285Z",
@@ -1190,4 +1392,4 @@ terminateEmploymentByExtId();
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-10-16 13:24 UTC_

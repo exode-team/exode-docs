@@ -42,6 +42,33 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
   `/` и пробельные символы — значение используется в путях `ext/{extId}`.
 </Info>
 
+## Привязка к подразделениям и грейдам
+
+Должность можно ограничить списком подразделений и списком грейдов. Обе привязки **необязательны**: создавать
+должности без них можно, это ни на что не влияет, а привязать можно позже.
+
+- **`departmentIds`** — подразделения, в которых доступна должность. Не переданы или пустой массив — должность
+  **общая для всей школы** (в интерфейсе: «Все подразделения»). Если привязка задана, нанять, повысить или
+  перевести сотрудника на эту должность в другом подразделении нельзя — вернётся `StaffPositionNotInDepartment`
+  (см. [занятость](/ru/exode-api/school/staff/employment)).
+- **`gradeIds`** — [грейды](/ru/exode-api/school/staff/grade), которые можно присвоить сотруднику на этой
+  должности. Не переданы или пустой массив — подходят любые грейды школы.
+
+<Info>
+  Массив **заменяет список целиком**: чтобы добавить подразделение, передайте полный новый список. `[]` снимает
+  привязку, а если поле не передано при обновлении — привязка не меняется. Передаются внутренние ID подразделений
+  и грейдов (не `extId`): ID подразделения по его `extId` можно получить через
+  [`department/list?extIds=...`](/ru/exode-api/school/staff/department). В ответе должности привязки не
+  возвращаются — список должностей подразделения отдаёт `position/list?departmentId={id}`.
+</Info>
+
+<Warning>
+  Если в школе подключено приложение — источник оргструктуры (например, интеграция с Verifix), должности с
+  `extId` управляются им: создание должности с `extId`, изменение `name` и `extId` такой должности и её удаление
+  через API вернут ошибку `MiniappInstallationManagedEntity`. Привязку к подразделениям и грейдам
+  (`departmentIds`, `gradeIds`) при этом менять можно.
+</Warning>
+
 ## Список должностей
 
 ```
@@ -81,6 +108,11 @@ GET /saas/v2/staff/position/list
 
 <ParamField query="extIds" type="string[]" required={false}>
   Фильтр по списку внешних идентификаторов (`extId`). До 250 значений, каждое — максимум 50 символов.
+</ParamField>
+
+<ParamField query="departmentId" type="integer" required={false}>
+  Должности, доступные в подразделении: привязанные к нему и общие для всей школы (без привязки к
+  подразделениям).
 </ParamField>
 
 <ParamField query="createdAt" type="enum" required={false}>
@@ -195,6 +227,18 @@ POST /saas/v2/staff/position/create
   пробельные символы. Должен быть уникальным в рамках школы среди неудалённых записей.
 </ParamField>
 
+<ParamField body="departmentIds" type="integer[]" required={false}>
+  ID подразделений, в которых доступна должность. До 250 значений. Не передано или `[]` — должность общая для всей
+  школы. Все подразделения должны принадлежать школе, иначе вернётся `StaffDepartmentNotFound`. Подробнее — в
+  разделе [«Привязка к подразделениям и грейдам»](#привязка-к-подразделениям-и-грейдам).
+</ParamField>
+
+<ParamField body="gradeIds" type="integer[]" required={false}>
+  ID [грейдов](/ru/exode-api/school/staff/grade), которые можно присвоить сотруднику на этой должности. До 100
+  значений. Не передано или `[]` — подходят любые грейды. Все грейды должны принадлежать школе, иначе вернётся
+  `StaffGradeNotFound`.
+</ParamField>
+
 <RequestExample>
 ```bash cURL
 curl --location 'https://api.exode.biz/saas/v2/staff/position/create' \
@@ -203,7 +247,8 @@ curl --location 'https://api.exode.biz/saas/v2/staff/position/create' \
   --header 'Content-Type: application/json' \
   --header 'Authorization: Bearer YOUR_TOKEN' \
   --data-raw '{
-    "name": "Backend Engineer"
+    "name": "Backend Engineer",
+    "departmentIds": [12, 15]
   }'
 ```
 
@@ -215,6 +260,7 @@ async function createPosition() {
     'https://api.exode.biz/saas/v2/staff/position/create',
     {
       name: 'Backend Engineer',
+      departmentIds: [12, 15],
     },
     {
       headers: {
@@ -266,6 +312,36 @@ createPosition();
   "error": "Staff position extId is not uniq"
 }
 ```
+```json Error - Department Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
+}
+```
+```json Error - Grade Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNotFound",
+  "message": "Staff grade not found",
+  "error": "Staff grade not found"
+}
+```
+```json Error - Managed By Integration
+{
+  "code": 400,
+  "success": false,
+  "cause": "MiniappInstallationManagedEntity",
+  "message": "The record is managed by a miniapp",
+  "error": "The record is managed by a miniapp",
+  "data": {
+    "installationId": 7
+  }
+}
+```
 ```json Error - Forbidden
 {
   "code": 401,
@@ -301,6 +377,17 @@ PUT /saas/v2/staff/position/{positionId}/update
   пробельные символы. Должен быть уникальным в рамках школы среди неудалённых записей.
 </ParamField>
 
+<ParamField body="departmentIds" type="integer[]" required={false}>
+  Новый список ID подразделений, в которых доступна должность (до 250). Заменяет текущий список целиком; `[]`
+  делает должность общей для всей школы; не передано — привязка не меняется. Ошибка `StaffDepartmentNotFound`,
+  если подразделение не найдено в школе.
+</ParamField>
+
+<ParamField body="gradeIds" type="integer[]" required={false}>
+  Новый список ID грейдов должности (до 100). Заменяет текущий список целиком; `[]` — подходят любые грейды; не
+  передано — список не меняется. Ошибка `StaffGradeNotFound`, если грейд не найден в школе.
+</ParamField>
+
 <RequestExample>
 ```bash cURL
 curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/position/4/update' \
@@ -309,7 +396,8 @@ curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/position/4/up
   --header 'Content-Type: application/json' \
   --header 'Authorization: Bearer YOUR_TOKEN' \
   --data-raw '{
-    "name": "Staff Backend Engineer"
+    "name": "Staff Backend Engineer",
+    "departmentIds": [12]
   }'
 ```
 
@@ -321,6 +409,7 @@ async function updatePosition() {
     'https://api.exode.biz/saas/v2/staff/position/4/update',
     {
       name: 'Staff Backend Engineer',
+      departmentIds: [12],
     },
     {
       headers: {
@@ -372,6 +461,15 @@ updatePosition();
   "error": "Staff position extId is not uniq"
 }
 ```
+```json Error - Department Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffDepartmentNotFound",
+  "message": "Staff department not found",
+  "error": "Staff department not found"
+}
+```
 </ResponseExample>
 
 ## Обновление должности по extId
@@ -401,6 +499,15 @@ PUT /saas/v2/staff/position/ext/{extId}/update
 <ParamField body="extId" type="string" required={false}>
   Новый внешний идентификатор должности. От 1 до 50 символов, не может содержать `/` и пробельные символы.
   Должен быть уникальным в рамках школы среди неудалённых записей.
+</ParamField>
+
+<ParamField body="departmentIds" type="integer[]" required={false}>
+  Новый список ID подразделений, в которых доступна должность (до 250). Работает так же, как при
+  [обновлении по ID](#обновление-должности).
+</ParamField>
+
+<ParamField body="gradeIds" type="integer[]" required={false}>
+  Новый список ID грейдов должности (до 100). Работает так же, как при [обновлении по ID](#обновление-должности).
 </ParamField>
 
 <RequestExample>
@@ -668,4 +775,4 @@ deletePositionByExtId();
 
 ---
 
-_Обновлено: 2026-09-25 13:43 UTC_
+_Обновлено: 2026-10-16 13:24 UTC_

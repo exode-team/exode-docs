@@ -515,7 +515,8 @@ PUT /saas/v2/user/ext/i.ivanov.01011990/update
 | Сменилась должность (повышение) | `POST /staff/employment/ext/{extId назначения}/promote` |
 | Уволили | `POST /staff/employment/ext/{extId назначения}/terminate` |
 | Приняли обратно | `PUT /user/ext/{extId}/update` с `extra.staff.employments` (или `POST /staff/employment/hire`) — статус `Active` вернётся сам. Обычный цикл для этого не подходит: существующему сотруднику он `extra` не передаёт |
-| Перевели и одновременно сменили должность | `.../transfer`, затем `.../promote` по тому же extId назначения с тем же `startAt` |
+| Перевели и одновременно сменили должность | Один `.../transfer` с `toDepartmentExtId` и `toPositionId` — ID должности Exode по GUID: `GET /staff/position/list?extIds=<GUID>` |
+| Сменился грейд (если в школе используются грейды) | `POST /staff/employment/ext/{extId назначения}/promote { "toGradeExtId": "<код грейда>" }` |
 | Добавили совместительство | Ещё один элемент в `extra.staff.employments` (или `POST /staff/employment/hire`) |
 | Отпуск / больничный | `POST /staff/absence/create` — статус `OnLeave` выставится сам |
 | Переименовали должность | Ничего — `ОбеспечитьДолжностьПоГуид` актуализирует имя при прогоне |
@@ -539,6 +540,14 @@ POST /saas/v2/staff/employment/ext/i.ivanov.01011990:ПОДР-001/transfer
 POST /saas/v2/staff/employment/ext/i.ivanov.01011990:ПОДР-001/promote
 
 { "toPositionExtId": "0f8e2d10-11aa-4c00-8b2f-777d12003b02" }
+```
+
+```http
+// Перевели в ПОДР-002 и одновременно сменили должность — одним вызовом.
+// toPositionId — внутренний ID должности Exode: GET /saas/v2/staff/position/list?extIds=<GUID> → payload.items[0].id
+POST /saas/v2/staff/employment/ext/i.ivanov.01011990:ПОДР-001/transfer
+
+{ "toDepartmentExtId": "ПОДР-002", "toPositionId": 17 }
 ```
 
 ```http
@@ -607,9 +616,21 @@ POST /saas/v2/staff/absence/create
   Ограничение: имя должности уникально в рамках школы — две должности с одинаковым именем, но разными GUID
   (разные организации в 1С) создать нельзя (`StaffPositionNameIsNotUniq`) — сведите GUID'ы к одному
   или не передавайте GUID у второй организации.
+- **Привязка должности к подразделениям — необязательна.** `ОбеспечитьДолжностьПоГуид` создаёт должности без
+  привязки: такая должность общая для всей школы, и это ни на что не влияет. Если должность должна быть
+  доступна только в определённых подразделениях, передайте в `position/create` или
+  `position/ext/{GUID}/update` поле `departmentIds` — массив **внутренних ID** подразделений Exode (их отдаёт
+  `GET /saas/v2/staff/department/list?extIds=ПОДР-001`). Массив заменяет список целиком, `[]` снимает привязку,
+  без поля привязка не меняется. После привязки найм, повышение и перевод на эту должность в другое
+  подразделение вернут `StaffPositionNotInDepartment`. Подробнее — в разделе
+  [Должности](/ru/exode-api/school/staff/position).
+- **Если в школе подключено приложение — источник оргструктуры** (например, интеграция с Verifix), записями
+  с `extId` управляет оно: создание с `extId`, переименование, удаление, перевод и увольнение таких записей
+  через API вернут `MiniappInstallationManagedEntity`. Подробнее — в
+  [гайде по синхронизации](/ru/exode-api/school/staff/sync-guide).
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-09-25 13:43 UTC_
+_Обновлено: 2026-10-16 13:24 UTC_

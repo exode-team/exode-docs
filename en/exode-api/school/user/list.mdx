@@ -53,6 +53,12 @@ Requires authentication and the [**"School User Management"**](/en/exode-api/per
     Search by first name, last name, email, phone and domain login. Maximum 50 characters.
 </ParamField>
 
+<ParamField query="searchBy" type="enum" required={false}>
+    Look for `search` in one field only: `Id` (exact match, `id123` also works), `Phone` (the digits of the number,
+    anywhere in it), `Email` (any part of the address), `Name` (first and last name in either order), `Login` (domain
+    login), `TgId` (exact match). Not passed — the search covers every field at once.
+</ParamField>
+
 <ParamField query="statuses" type="enum[]" required={false}>
     Filter by account status: `Active`, `OnLeave`, `Banned`, `Blocked`, `Terminated`, `Deleted`.
     Statuses are described in the [`user`](/en/exode-api/objects/entities/user) reference.
@@ -92,6 +98,26 @@ Requires authentication and the [**"School User Management"**](/en/exode-api/per
 
 <ParamField query="archivedByUserIds" type="integer[]" required={false}>
     Filter by IDs of the users who performed the archiving (deletion).
+</ParamField>
+
+<ParamField query="staffDepartmentIds" type="integer[]" required={false}>
+    Only employees with an active employment in the given [departments](/en/exode-api/school/staff/department) or in
+    any of their child departments. For `Corporate` schools.
+</ParamField>
+
+<ParamField query="staffPositionIds" type="integer[]" required={false}>
+    Only employees with an active employment in the given [positions](/en/exode-api/school/staff/position). For
+    `Corporate` schools.
+</ParamField>
+
+<ParamField query="productAccessesCountRange" type="object" required={false}>
+    Range of the number of active product accesses: `productAccessesCountRange[from]`,
+    `productAccessesCountRange[to]` (numbers, bounds inclusive; one bound is enough).
+</ParamField>
+
+<ParamField query="productAccessesPurchasedCountRange" type="object" required={false}>
+    Same as `productAccessesCountRange`, but only paid accesses are counted:
+    `productAccessesPurchasedCountRange[from]`, `productAccessesPurchasedCountRange[to]`.
 </ParamField>
 
 <ParamField query="profile" type="object" required={false}>
@@ -290,4 +316,4 @@ print(response.json()['payload']['items'])
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-10-16 13:24 UTC_

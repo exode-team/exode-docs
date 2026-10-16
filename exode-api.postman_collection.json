@@ -4687,7 +4687,7 @@
             "description": "```\nPOST /saas/v2/staff/position/create\n```\n\nREST-эндпоинты для управления должностями сотрудников корпоративной школы",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Backend Engineer\"\n}",
+              "raw": "{\n  \"name\": \"Backend Engineer\",\n  \"departmentIds\": [12, 15]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4730,7 +4730,7 @@
                 "description": "```\nPOST /saas/v2/staff/position/create\n```\n\nREST-эндпоинты для управления должностями сотрудников корпоративной школы",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Backend Engineer\"\n}",
+                  "raw": "{\n  \"name\": \"Backend Engineer\",\n  \"departmentIds\": [12, 15]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -4783,7 +4783,7 @@
                 "description": "```\nPOST /saas/v2/staff/position/create\n```\n\nREST-эндпоинты для управления должностями сотрудников корпоративной школы",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Backend Engineer\"\n}",
+                  "raw": "{\n  \"name\": \"Backend Engineer\",\n  \"departmentIds\": [12, 15]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -4836,7 +4836,7 @@
                 "description": "```\nPOST /saas/v2/staff/position/create\n```\n\nREST-эндпоинты для управления должностями сотрудников корпоративной школы",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Backend Engineer\"\n}",
+                  "raw": "{\n  \"name\": \"Backend Engineer\",\n  \"departmentIds\": [12, 15]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -4889,7 +4889,7 @@
                 "description": "```\nPOST /saas/v2/staff/position/create\n```\n\nREST-эндпоинты для управления должностями сотрудников корпоративной школы",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Backend Engineer\"\n}",
+                  "raw": "{\n  \"name\": \"Backend Engineer\",\n  \"departmentIds\": [12, 15]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -4945,7 +4945,7 @@
             "description": "```\nPUT /saas/v2/staff/position/{positionId}/update\n```\n\nREST-эндпоинты для управления должностями сотрудников корпоративной школы",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Staff Backend Engineer\"\n}",
+              "raw": "{\n  \"name\": \"Staff Backend Engineer\",\n  \"departmentIds\": [12]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4989,7 +4989,7 @@
                 "description": "```\nPUT /saas/v2/staff/position/{positionId}/update\n```\n\nREST-эндпоинты для управления должностями сотрудников корпоративной школы",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Staff Backend Engineer\"\n}",
+                  "raw": "{\n  \"name\": \"Staff Backend Engineer\",\n  \"departmentIds\": [12]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -5043,7 +5043,7 @@
                 "description": "```\nPUT /saas/v2/staff/position/{positionId}/update\n```\n\nREST-эндпоинты для управления должностями сотрудников корпоративной школы",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Staff Backend Engineer\"\n}",
+                  "raw": "{\n  \"name\": \"Staff Backend Engineer\",\n  \"departmentIds\": [12]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -5097,7 +5097,7 @@
                 "description": "```\nPUT /saas/v2/staff/position/{positionId}/update\n```\n\nREST-эндпоинты для управления должностями сотрудников корпоративной школы",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Staff Backend Engineer\"\n}",
+                  "raw": "{\n  \"name\": \"Staff Backend Engineer\",\n  \"departmentIds\": [12]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -5698,6 +5698,801 @@
                 }
               ],
               "body": "{\n  \"code\": 400,\n  \"success\": false,\n  \"cause\": \"StaffPositionHasActiveEmployments\",\n  \"message\": \"Staff position has active employments\",\n  \"error\": \"Staff position has active employments\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Список грейдов",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Seller-Id",
+                "value": "{{sellerId}}"
+              },
+              {
+                "key": "School-Id",
+                "value": "{{schoolId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saas/v2/staff/grade/list?take=10&page=1&positionId=4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "saas",
+                "v2",
+                "staff",
+                "grade",
+                "list"
+              ],
+              "query": [
+                {
+                  "key": "take",
+                  "value": "10"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "positionId",
+                  "value": "4"
+                }
+              ]
+            },
+            "description": "```\nGET /saas/v2/staff/grade/list\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/grade/list?take=10&page=1&positionId=4",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "grade",
+                    "list"
+                  ],
+                  "query": [
+                    {
+                      "key": "take",
+                      "value": "10"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "positionId",
+                      "value": "4"
+                    }
+                  ]
+                },
+                "description": "```\nGET /saas/v2/staff/grade/list\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"page\": 1,\n    \"count\": 1,\n    \"pages\": 1,\n    \"isFirst\": true,\n    \"isLast\": true,\n    \"items\": [\n      {\n        \"id\": 2,\n        \"createdAt\": \"2026-10-12T09:20:11.418Z\",\n        \"updatedAt\": \"2026-10-12T09:20:11.418Z\",\n        \"archivedAt\": null,\n        \"schoolId\": 198,\n        \"name\": \"Middle\",\n        \"order\": 2,\n        \"description\": \"Самостоятельно ведёт задачи средней сложности\",\n        \"extId\": \"grade-middle\"\n      }\n    ],\n    \"next\": {\n      \"skip\": 0,\n      \"take\": 10,\n      \"page\": 1\n    },\n    \"prev\": {\n      \"skip\": 0,\n      \"take\": 10,\n      \"page\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Создание грейда",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Seller-Id",
+                "value": "{{sellerId}}"
+              },
+              {
+                "key": "School-Id",
+                "value": "{{schoolId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saas/v2/staff/grade/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "saas",
+                "v2",
+                "staff",
+                "grade",
+                "create"
+              ]
+            },
+            "description": "```\nPOST /saas/v2/staff/grade/create\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Middle\",\n  \"description\": \"Самостоятельно ведёт задачи средней сложности\",\n  \"extId\": \"grade-middle\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/grade/create",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "grade",
+                    "create"
+                  ]
+                },
+                "description": "```\nPOST /saas/v2/staff/grade/create\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Middle\",\n  \"description\": \"Самостоятельно ведёт задачи средней сложности\",\n  \"extId\": \"grade-middle\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"code\": 201,\n  \"payload\": {\n    \"id\": 2,\n    \"createdAt\": \"2026-10-12T09:20:11.418Z\",\n    \"updatedAt\": \"2026-10-12T09:20:11.418Z\",\n    \"archivedAt\": null,\n    \"schoolId\": 198,\n    \"name\": \"Middle\",\n    \"order\": 2,\n    \"description\": \"Самостоятельно ведёт задачи средней сложности\",\n    \"extId\": \"grade-middle\"\n  }\n}"
+            },
+            {
+              "name": "Error - Name Is Not Unique",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/grade/create",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "grade",
+                    "create"
+                  ]
+                },
+                "description": "```\nPOST /saas/v2/staff/grade/create\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Middle\",\n  \"description\": \"Самостоятельно ведёт задачи средней сложности\",\n  \"extId\": \"grade-middle\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Error",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": 400,\n  \"success\": false,\n  \"cause\": \"StaffGradeNameIsNotUniq\",\n  \"message\": \"Staff grade name is not uniq\",\n  \"error\": \"Staff grade name is not uniq\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Обновление грейда",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Seller-Id",
+                "value": "{{sellerId}}"
+              },
+              {
+                "key": "School-Id",
+                "value": "{{schoolId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saas/v2/staff/grade/2/update",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "saas",
+                "v2",
+                "staff",
+                "grade",
+                "2",
+                "update"
+              ]
+            },
+            "description": "```\nPUT /saas/v2/staff/grade/{gradeId}/update\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Middle+\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/grade/2/update",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "grade",
+                    "2",
+                    "update"
+                  ]
+                },
+                "description": "```\nPUT /saas/v2/staff/grade/{gradeId}/update\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Middle+\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"id\": 2,\n    \"createdAt\": \"2026-10-12T09:20:11.418Z\",\n    \"updatedAt\": \"2026-10-12T09:20:11.418Z\",\n    \"archivedAt\": null,\n    \"schoolId\": 198,\n    \"name\": \"Middle+\",\n    \"order\": 2,\n    \"description\": \"Самостоятельно ведёт задачи средней сложности\",\n    \"extId\": \"grade-middle\"\n  }\n}"
+            },
+            {
+              "name": "Error - Name Is Not Unique",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/grade/2/update",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "grade",
+                    "2",
+                    "update"
+                  ]
+                },
+                "description": "```\nPUT /saas/v2/staff/grade/{gradeId}/update\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Middle+\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Error",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": 400,\n  \"success\": false,\n  \"cause\": \"StaffGradeNameIsNotUniq\",\n  \"message\": \"Staff grade name is not uniq\",\n  \"error\": \"Staff grade name is not uniq\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Обновление грейда по extId",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Seller-Id",
+                "value": "{{sellerId}}"
+              },
+              {
+                "key": "School-Id",
+                "value": "{{schoolId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saas/v2/staff/grade/ext/grade-middle/update",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "saas",
+                "v2",
+                "staff",
+                "grade",
+                "ext",
+                "grade-middle",
+                "update"
+              ]
+            },
+            "description": "```\nPUT /saas/v2/staff/grade/ext/{extId}/update\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Middle+\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/grade/ext/grade-middle/update",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "grade",
+                    "ext",
+                    "grade-middle",
+                    "update"
+                  ]
+                },
+                "description": "```\nPUT /saas/v2/staff/grade/ext/{extId}/update\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Middle+\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"id\": 2,\n    \"createdAt\": \"2026-10-12T09:20:11.418Z\",\n    \"updatedAt\": \"2026-10-12T09:20:11.418Z\",\n    \"archivedAt\": null,\n    \"schoolId\": 198,\n    \"name\": \"Middle+\",\n    \"order\": 2,\n    \"description\": \"Самостоятельно ведёт задачи средней сложности\",\n    \"extId\": \"grade-middle\"\n  }\n}"
+            },
+            {
+              "name": "Error - Not Found",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/grade/ext/grade-middle/update",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "grade",
+                    "ext",
+                    "grade-middle",
+                    "update"
+                  ]
+                },
+                "description": "```\nPUT /saas/v2/staff/grade/ext/{extId}/update\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Middle+\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Error",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": 400,\n  \"success\": false,\n  \"cause\": \"StaffGradeNotFound\",\n  \"message\": \"Staff grade not found\",\n  \"error\": \"Staff grade not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Удаление грейда",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Seller-Id",
+                "value": "{{sellerId}}"
+              },
+              {
+                "key": "School-Id",
+                "value": "{{schoolId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saas/v2/staff/grade/2/delete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "saas",
+                "v2",
+                "staff",
+                "grade",
+                "2",
+                "delete"
+              ]
+            },
+            "description": "```\nDELETE /saas/v2/staff/grade/{gradeId}/delete\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/grade/2/delete",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "grade",
+                    "2",
+                    "delete"
+                  ]
+                },
+                "description": "```\nDELETE /saas/v2/staff/grade/{gradeId}/delete\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"affected\": 1\n  }\n}"
+            },
+            {
+              "name": "Error - Has Active Employments",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/grade/2/delete",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "grade",
+                    "2",
+                    "delete"
+                  ]
+                },
+                "description": "```\nDELETE /saas/v2/staff/grade/{gradeId}/delete\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы"
+              },
+              "status": "Error",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": 400,\n  \"success\": false,\n  \"cause\": \"StaffGradeHasActiveEmployments\",\n  \"message\": \"Staff grade has active employments\",\n  \"error\": \"Staff grade has active employments\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Удаление грейда по extId",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Seller-Id",
+                "value": "{{sellerId}}"
+              },
+              {
+                "key": "School-Id",
+                "value": "{{schoolId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saas/v2/staff/grade/ext/grade-middle/delete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "saas",
+                "v2",
+                "staff",
+                "grade",
+                "ext",
+                "grade-middle",
+                "delete"
+              ]
+            },
+            "description": "```\nDELETE /saas/v2/staff/grade/ext/{extId}/delete\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/grade/ext/grade-middle/delete",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "grade",
+                    "ext",
+                    "grade-middle",
+                    "delete"
+                  ]
+                },
+                "description": "```\nDELETE /saas/v2/staff/grade/ext/{extId}/delete\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"affected\": 1\n  }\n}"
+            },
+            {
+              "name": "Error - Not Found",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/grade/ext/grade-middle/delete",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "grade",
+                    "ext",
+                    "grade-middle",
+                    "delete"
+                  ]
+                },
+                "description": "```\nDELETE /saas/v2/staff/grade/ext/{extId}/delete\n```\n\nREST-эндпоинты для управления грейдами сотрудников корпоративной школы"
+              },
+              "status": "Error",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": 400,\n  \"success\": false,\n  \"cause\": \"StaffGradeNotFound\",\n  \"message\": \"Staff grade not found\",\n  \"error\": \"Staff grade not found\"\n}"
             }
           ]
         },

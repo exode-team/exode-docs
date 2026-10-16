@@ -25,6 +25,18 @@ import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
   Requests from a school in any other segment are rejected.
 </Warning>
 
+<Warning>
+  If the school has an org-structure source app connected (for example, the Verifix integration), departments with an
+  `extId` are managed by it: creating a department with an `extId`, changing the `name`, `extId` or parent
+  (`parentId`, `parentExtId`) of such a department and deleting it via the API return the
+  `MiniappInstallationManagedEntity` error (`data.installationId` holds the ID of the connected app).
+</Warning>
+
+<Tip>
+  A position can be linked to one or more departments — see
+  [Linking to departments and grades](/en/exode-api/school/staff/position#linking-to-departments-and-grades).
+</Tip>
+
 ## Permission requirements
 
 <Check>
@@ -797,4 +809,4 @@ deleteDepartmentByExtId();
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-10-16 13:24 UTC_

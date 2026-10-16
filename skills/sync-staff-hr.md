@@ -61,19 +61,22 @@ school (for employments — among open ones; a terminated employment frees its `
 Store the employment `extId`, not its `id`: transfer/promote close the record and open a
 new one with a new `id`, while the `extId` moves to the new record.
 
-An **employment** is the central record: user + department + optional position, with
-`kind` (`Main` / `InternalSecondary` / `ExternalSecondary`), `type`
+An **employment** is the central record: user + department + optional position (+ optional
+grade), with `kind` (`Main` / `InternalSecondary` / `ExternalSecondary`), `type`
 (`FullTime`/`PartTime`), `rate` (0.01–1). Managers and absences attach to the
-employment, not the user.
+employment, not the user. A **position** is common to the whole school unless it is limited
+to departments (`departmentIds`) and/or grades (`gradeIds`) — both links are optional.
 
 Sync strictly in this order (each step depends on the previous):
 
 1. **Departments** — top-down: a parent must exist before its children.
-2. **Positions** — keyed by HR GUID (`extId`), never by name.
-3. **Employees** — user + employments in one call (`extra.staff.employments`).
-4. **Department managers** — by `departmentExtId` + `employmentExtId`.
-5. **Absences** — vacations/sick leaves per employment.
-6. **Terminations** — explicit `terminate` calls (full-sync diff or HR events).
+2. **Grades** (optional) — the career ladder, created from junior to senior.
+3. **Positions** — keyed by HR GUID (`extId`), never by name; department/grade links after
+   departments and grades exist.
+4. **Employees** — user + employments in one call (`extra.staff.employments`).
+5. **Department managers** — by `departmentExtId` + `employmentExtId`.
+6. **Absences** — vacations/sick leaves per employment.
+7. **Terminations** — explicit `terminate` calls (full-sync diff or HR events).
 
 Violating the order fails loudly: creating an employee with an unknown
 `departmentExtId` returns `StaffDepartmentNotFound` and **the user is not created**
@@ -142,6 +145,26 @@ Fallback for exports without GUIDs: resolve by name via `list?search=`, create i
 { "name": "Менеджер", "extId": "e3b0c442-98fc-4b39-96f7-9c2a4d001a01" }
 ```
 
+Optional links on create/update: `departmentIds` (integer[], ≤250) and `gradeIds`
+(integer[], ≤100) — **internal Exode IDs only** (no extId variant; resolve via
+`GET /staff/department/list?extIds=...` / `GET /staff/grade/list?extIds=...`). Without
+`departmentIds` the position is common to the whole school — this is the default and is
+fine. The array **replaces** the whole list; `[]` clears it; an omitted field keeps it.
+Unknown/foreign IDs → `StaffDepartmentNotFound` / `StaffGradeNotFound`. The position
+response does not echo the links: verify with `GET /staff/position/list?departmentId=N`
+(returns positions available in the department — linked to it plus common ones). Links
+are enforced on hire/promote/transfer → `StaffPositionNotInDepartment` /
+`StaffGradeNotForPosition`.
+
+**2a. Grades** (optional) — `GET /staff/grade/list` (`gradeIds[]`, `extIds[]`,
+`positionId`, `search`), `POST /staff/grade/create` (`name` 1..100, `description?` ≤500,
+`extId?`), `PUT /staff/grade/ext/{extId}/update`, `DELETE /staff/grade/ext/{extId}/delete`
+(`StaffGradeHasActiveEmployments` while someone holds it). Same upsert-by-extId pattern
+(`StaffGradeNotFound` → create). A new grade goes on top of the ladder (`order`), so create
+junior → senior. Assigning a grade to an employee (`gradeId`/`gradeExtId` on hire or in
+`extra.staff.employments`, `toGradeId`/`toGradeExtId` on promote, `toGradeId` on transfer)
+requires grades to be enabled in the school, else `StaffGradesDisabled`.
+
 **3. Employees** — `POST /user/create` or `PUT /user/upsert` (see idempotency above).
 For a corporate school, `extra.staff.employments` (1–10 items) is **required at
 creation** (`StaffEmploymentInputRequired`). Multiple items = secondary jobs: first
@@ -178,9 +201,10 @@ old record closes, a new one opens, and the `extId` moves to the new active reco
 | Profile change (name, email, bdate) | re-run the loop — `PUT /user/ext/{extId}/update` |
 | Transfer to another department | `POST /staff/employment/ext/{extId}/transfer` `{ "toDepartmentExtId": "ПОДР-002" }` |
 | Position change (promotion) | `POST /staff/employment/ext/{extId}/promote` `{ "toPositionExtId": "<GUID>" }` (or `"toPositionId": null` to clear) |
+| Grade change | `POST /staff/employment/ext/{extId}/promote` `{ "toGradeExtId": "<grade code>" }` (can be combined with a position change) |
 | Fired | `POST /staff/employment/ext/{extId}/terminate` `{}` (optional `finishAt`) |
 | New secondary job | `POST /staff/employment/hire` or another `employments` item |
-| Transfer + position change at once | `transfer`, then `promote` on the same `extId` with the same `startAt` |
+| Transfer + position change at once | one `transfer` `{ "toDepartmentExtId": "...", "toPositionId": <id> }` (+ `toGradeId`); transfer takes position/grade by **internal ID only** — resolve via `position/list?extIds=`. A plain transfer keeps the position, so if it is linked to other departments it fails with `StaffPositionNotInDepartment` — pass `toPositionId` then |
 | Rehired | `PUT /user/ext/{extId}/update` with `extra.staff.employments` (or `POST /staff/employment/hire`) — status returns `Active`. The normal loop does not rehire: it omits `extra` for existing users |
 
 **5. Managers** — `POST /staff/department-manager/set` (upsert per
@@ -284,7 +308,7 @@ async function terminateMissing(exportEmploymentExtIds) { // full-sync mode only
 }
 ```
 
-Order the run: departments → positions → employees → managers
+Order the run: departments → grades (if used) → positions → employees → managers
 (`POST /staff/department-manager/set`) → absences → `terminateMissing` (full exports
 only). Handle `429` by waiting until `data.retryAfter` and retrying.
 
@@ -310,6 +334,9 @@ them from HR events or derive them from the full-sync diff.
 | `ExtIdIsBusy` / `DomainIsBusy` / `EmailIsBusy` on create | The value belongs to another user in the school — dedupe the export or resolve the conflict by `user/find`. |
 | Password from the export not applied | Password applies only on **creation**; `update`/upsert-update ignores it. Use create-path for new users. |
 | `StaffCannotTerminateSelf` / `StaffCannotTerminateSchoolOwner` | Last-employment protection — skip the token's own user and the school owner in the termination diff. |
+| `StaffPositionNotInDepartment` on hire/promote/transfer | The position is linked to other departments (`departmentIds`). Add the department to the position's list (send the full array), or use another position. |
+| `StaffGradesDisabled` / `StaffGradeNotForPosition` | Grades are off in the school, or the grade is not in the position's `gradeIds`. Enable grades / fix the position's list, or omit the grade. |
+| `MiniappInstallationManagedEntity` | The school has an org-structure source app connected (e.g. the Verifix integration): records with an `extId` are managed by it. Creating with an `extId`, changing name/`extId`/department parent, deleting, transferring, terminating, and promotions that change the position (or the grade, if the app syncs grades) are refused. `departmentIds`/`gradeIds` of a position can still be changed — send them without `name`/`extId`. Don't run a parallel HR sync over the same records. |
 | `429` `cause: "Rate"` | Rate limit — wait until `data.retryAfter`, retry with backoff. |
 | `validation` errors on names | `firstName`/`lastName` >15 chars, or `extId` with `/`/spaces, or `domain` digits-only — trim/sanitize on your side. |
 

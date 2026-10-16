@@ -53,6 +53,12 @@ GET /saas/v2/user/list
     Поиск по имени, фамилии, email, телефону и доменному логину. Максимум 50 символов.
 </ParamField>
 
+<ParamField query="searchBy" type="enum" required={false}>
+    Искать `search` только в одном поле: `Id` (точное совпадение, можно `id123`), `Phone` (цифры номера в любой
+    его части), `Email` (любая часть адреса), `Name` (имя и фамилия в любом порядке), `Login` (доменный логин),
+    `TgId` (точное совпадение). Не передан — поиск идёт по всем полям сразу.
+</ParamField>
+
 <ParamField query="statuses" type="enum[]" required={false}>
     Фильтр по статусам учётной записи: `Active`, `OnLeave`, `Banned`, `Blocked`, `Terminated`, `Deleted`.
     Описание статусов — в справочнике [`user`](/ru/exode-api/objects/entities/user).
@@ -92,6 +98,26 @@ GET /saas/v2/user/list
 
 <ParamField query="archivedByUserIds" type="integer[]" required={false}>
     Фильтр по ID пользователей, выполнивших архивацию (удаление).
+</ParamField>
+
+<ParamField query="staffDepartmentIds" type="integer[]" required={false}>
+    Только сотрудники с активной занятостью в указанных [подразделениях](/ru/exode-api/school/staff/department)
+    или в любом из их дочерних подразделений. Для школ сегмента `Corporate`.
+</ParamField>
+
+<ParamField query="staffPositionIds" type="integer[]" required={false}>
+    Только сотрудники с активной занятостью на указанных [должностях](/ru/exode-api/school/staff/position). Для школ
+    сегмента `Corporate`.
+</ParamField>
+
+<ParamField query="productAccessesCountRange" type="object" required={false}>
+    Диапазон количества активных доступов к продуктам: `productAccessesCountRange[from]`,
+    `productAccessesCountRange[to]` (числа, границы включительно; можно передать одну из границ).
+</ParamField>
+
+<ParamField query="productAccessesPurchasedCountRange" type="object" required={false}>
+    То же, что `productAccessesCountRange`, но учитываются только оплаченные доступы:
+    `productAccessesPurchasedCountRange[from]`, `productAccessesPurchasedCountRange[to]`.
 </ParamField>
 
 <ParamField query="profile" type="object" required={false}>
@@ -290,4 +316,4 @@ print(response.json()['payload']['items'])
 
 ---
 
-_Обновлено: 2026-09-25 13:43 UTC_
+_Обновлено: 2026-10-16 13:24 UTC_

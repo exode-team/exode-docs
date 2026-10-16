@@ -1,0 +1,731 @@
+---
+title: "Грейды"
+description: "REST-эндпоинты для управления шкалой грейдов сотрудников корпоративной школы"
+---
+
+import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
+
+<HeaderParamFields/>
+
+<Info>
+  Грейды — это уровни карьерной лестницы школы (например, Junior → Middle → Senior). Шкала грейдов одна на все
+  должности школы. Грейд присваивается сотруднику при найме, повышении и переводе (см.
+  [занятость](/ru/exode-api/school/staff/employment)) и используется для расчёта готовности к следующему грейду.
+</Info>
+
+<Warning>
+  Все эндпоинты модуля персонала доступны **только для школ корпоративного сегмента** (`Corporate`).
+  Запрос от школы другого сегмента будет отклонён.
+</Warning>
+
+## Требования к правам доступа
+
+<Check>
+  Чтение (`list`) требует права [**«Просмотр персонала»**](/ru/exode-api/permissions) (`StaffView`). Создание, обновление и удаление требуют права **«Управление персоналом»** (`StaffManage`).
+  Во всех случаях необходима аутентификация по токену и принадлежность школы к сегменту `Corporate`.
+</Check>
+
+<Warning>
+  Сервисный пользователь должен быть аутентифицирован по токену и иметь соответствующие права доступа к указанной
+  школе.
+</Warning>
+
+## Как устроена шкала
+
+<Info>
+  **Порядок.** Поле `order` — место грейда на лестнице: чем больше `order`, тем выше грейд. Новый грейд создаётся
+  на вершине шкалы. Порядок грейдов меняется в интерфейсе (**Школа → Структура → Грейды**, перетаскиванием строки);
+  через REST API порядок не меняется. Список грейдов всегда возвращается от младшего к старшему.
+</Info>
+
+<Info>
+  **Включение грейдов.** Грейды включаются в разделе **«Грейды»** в интерфейсе. Шкалу можно настроить заранее — через
+  API или в интерфейсе, — но присвоить грейд сотруднику (`gradeId` в `hire`, `toGradeId` в `promote` и `transfer`)
+  можно только после включения: иначе вернётся ошибка `StaffGradesDisabled`.
+</Info>
+
+<Info>
+  **Грейды должности.** Должность может ограничить список подходящих ей грейдов — параметр `gradeIds` при
+  [создании и обновлении должности](/ru/exode-api/school/staff/position). Если ограничение не задано, должности
+  подходят любые грейды школы. Сотруднику можно присвоить только грейд своей должности, иначе вернётся
+  `StaffGradeNotForPosition`.
+</Info>
+
+<Info>
+  **Условия перехода.** Условия перехода на грейд (курсы, которые нужно пройти сотруднику на конкретной должности)
+  настраиваются в интерфейсе. По ним считается готовность к следующему грейду — сотрудников, выполнивших все условия,
+  можно получить фильтром `readyForPromotion` в [списке занятостей](/ru/exode-api/school/staff/employment).
+</Info>
+
+<Info>
+  Название грейда **уникально в рамках школы** без учёта регистра («Senior» и «senior» — одно и то же название).
+  Попытка создать или переименовать грейд в уже существующее название в этой же школе вернёт ошибку
+  `StaffGradeNameIsNotUniq`.
+</Info>
+
+<Info>
+  Поле `extId` — внешний идентификатор грейда из системы клиента (CRM/1C, например GUID). Уникален в рамках
+  школы среди неудалённых записей. От 1 до 50 символов, не может содержать `/` и пробельные символы — значение
+  используется в путях `ext/{extId}`.
+</Info>
+
+## Список грейдов
+
+```
+GET /saas/v2/staff/grade/list
+```
+
+Требуется аутентификация и право **«Просмотр персонала»** (`StaffView`).
+
+<Info>
+  Эндпоинт возвращает пагинированный список грейдов, упорядоченный по `order` — от младшего грейда к старшему.
+  Параметры пагинации и фильтрации передаются как query-параметры.
+</Info>
+
+### Параметры
+
+<ParamField query="skip" type="integer" required={false}>
+  Количество пропускаемых записей (offset-пагинация). Минимум `0`.
+</ParamField>
+
+<ParamField query="take" type="integer" required={false}>
+  Количество возвращаемых записей на странице. От `1` до `1000`.
+</ParamField>
+
+<ParamField query="page" type="integer" required={false}>
+  Номер страницы (альтернатива `skip`). Минимум `1`.
+</ParamField>
+
+<ParamField query="gradeIds" type="integer[]" required={false}>
+  Фильтр по ID грейдов. До 250 значений.
+</ParamField>
+
+<ParamField query="extIds" type="string[]" required={false}>
+  Фильтр по списку внешних идентификаторов (`extId`). До 250 значений, каждое — максимум 50 символов.
+</ParamField>
+
+<ParamField query="positionId" type="integer" required={false}>
+  Грейды, подходящие должности: её собственный список грейдов, а если у должности нет ограничения — все грейды
+  школы.
+</ParamField>
+
+<ParamField query="search" type="string" required={false}>
+  Поиск по названию грейда. Максимум 50 символов. Поиск нечёткий (находит и частичные совпадения), поэтому для
+  поиска конкретного грейда по имени сравнивайте `name` найденных записей со своим значением без учёта регистра,
+  а надёжнее — ищите по `extIds`.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="payload" type="object" required>
+  Пагинированный объект: `items` (массив грейдов), `page`, `count`, `pages`, `isFirst`, `isLast`, `next`, `prev`.
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/grade/list?take=10&page=1' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function getGradeList() {
+  const { data } = await axios.get(
+    'https://api.exode.biz/saas/v2/staff/grade/list',
+    {
+      params: {
+        take: 10,
+        page: 1,
+      },
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+getGradeList();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "page": 1,
+    "count": 2,
+    "pages": 1,
+    "isFirst": true,
+    "isLast": true,
+    "items": [
+      {
+        "id": 7,
+        "createdAt": "2026-10-12T09:20:11.104Z",
+        "updatedAt": "2026-10-12T09:20:11.104Z",
+        "archivedAt": null,
+        "schoolId": 198,
+        "name": "Junior",
+        "order": 1,
+        "description": "Работает по готовым инструкциям под присмотром наставника",
+        "extId": null
+      },
+      {
+        "id": 8,
+        "createdAt": "2026-10-12T09:21:36.518Z",
+        "updatedAt": "2026-10-12T09:21:36.518Z",
+        "archivedAt": null,
+        "schoolId": 198,
+        "name": "Middle",
+        "order": 2,
+        "description": null,
+        "extId": "b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18"
+      }
+    ],
+    "next": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    },
+    "prev": {
+      "skip": 0,
+      "take": 10,
+      "page": 1
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Создание грейда
+
+```
+POST /saas/v2/staff/grade/create
+```
+
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
+
+<Info>
+  Новый грейд встаёт на вершину шкалы — получает наибольший `order` в школе. Чтобы поставить его на другое место,
+  измените порядок в интерфейсе.
+</Info>
+
+### Параметры запроса
+
+<ParamField body="name" type="string" required>
+  Название грейда. От 1 до 100 символов. Пробелы в начале и конце обрезаются автоматически. Должно быть
+  уникальным в рамках школы.
+</ParamField>
+
+<ParamField body="description" type="string | null" required={false}>
+  Описание грейда — чем он отличается от соседних. До 500 символов. Пробелы в начале и конце обрезаются
+  автоматически.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  Внешний идентификатор грейда из системы клиента (CRM/1C). От 1 до 50 символов, не может содержать `/` и
+  пробельные символы. Должен быть уникальным в рамках школы среди неудалённых записей.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location 'https://api.exode.biz/saas/v2/staff/grade/create' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Middle",
+    "extId": "b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function createGrade() {
+  const { data } = await axios.post(
+    'https://api.exode.biz/saas/v2/staff/grade/create',
+    {
+      name: 'Middle',
+      extId: 'b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+createGrade();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 201,
+  "payload": {
+    "id": 8,
+    "createdAt": "2026-10-12T09:21:36.518Z",
+    "updatedAt": "2026-10-12T09:21:36.518Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "name": "Middle",
+    "order": 2,
+    "description": null,
+    "extId": "b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18"
+  }
+}
+```
+```json Error - Name Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNameIsNotUniq",
+  "message": "Staff grade name is not uniq",
+  "error": "Staff grade name is not uniq"
+}
+```
+```json Error - ExtId Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeExtIdIsNotUniq",
+  "message": "Staff grade extId is not uniq",
+  "error": "Staff grade extId is not uniq"
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
+}
+```
+</ResponseExample>
+
+## Обновление грейда
+
+```
+PUT /saas/v2/staff/grade/{gradeId}/update
+```
+
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
+
+### Параметры
+
+<ParamField path="gradeId" type="integer" required>
+  ID обновляемого грейда в рамках школы.
+</ParamField>
+
+<ParamField body="name" type="string" required={false}>
+  Новое название грейда. От 1 до 100 символов. Пробелы в начале и конце обрезаются автоматически. Должно быть
+  уникальным в рамках школы.
+</ParamField>
+
+<ParamField body="description" type="string | null" required={false}>
+  Новое описание грейда. До 500 символов. `null` очищает описание.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  Внешний идентификатор грейда из системы клиента (CRM/1C). От 1 до 50 символов, не может содержать `/` и
+  пробельные символы. Должен быть уникальным в рамках школы среди неудалённых записей.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/grade/8/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "description": "Самостоятельно ведёт задачи среднего масштаба"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function updateGrade() {
+  const { data } = await axios.put(
+    'https://api.exode.biz/saas/v2/staff/grade/8/update',
+    {
+      description: 'Самостоятельно ведёт задачи среднего масштаба',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+updateGrade();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 8,
+    "createdAt": "2026-10-12T09:21:36.518Z",
+    "updatedAt": "2026-10-12T10:02:48.330Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "name": "Middle",
+    "order": 2,
+    "description": "Самостоятельно ведёт задачи среднего масштаба",
+    "extId": "b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18"
+  }
+}
+```
+```json Error - Name Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNameIsNotUniq",
+  "message": "Staff grade name is not uniq",
+  "error": "Staff grade name is not uniq"
+}
+```
+```json Error - ExtId Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeExtIdIsNotUniq",
+  "message": "Staff grade extId is not uniq",
+  "error": "Staff grade extId is not uniq"
+}
+```
+</ResponseExample>
+
+## Обновление грейда по extId
+
+```
+PUT /saas/v2/staff/grade/ext/{extId}/update
+```
+
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
+
+<Info>
+  Эндпоинт-аналог обновления по ID: грейд находится по внешнему идентификатору `extId` в рамках школы.
+  Значение `extId` в пути должно быть URL-encoded.
+</Info>
+
+### Параметры
+
+<ParamField path="extId" type="string" required>
+  Внешний идентификатор (`extId`) обновляемого грейда в рамках школы. Должен быть URL-encoded.
+</ParamField>
+
+<ParamField body="name" type="string" required={false}>
+  Новое название грейда. От 1 до 100 символов. Пробелы в начале и конце обрезаются автоматически. Должно быть
+  уникальным в рамках школы.
+</ParamField>
+
+<ParamField body="description" type="string | null" required={false}>
+  Новое описание грейда. До 500 символов. `null` очищает описание.
+</ParamField>
+
+<ParamField body="extId" type="string" required={false}>
+  Новый внешний идентификатор грейда. От 1 до 50 символов, не может содержать `/` и пробельные символы.
+  Должен быть уникальным в рамках школы среди неудалённых записей.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/grade/ext/b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "name": "Middle+"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function updateGradeByExtId() {
+  const extId = encodeURIComponent('b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18');
+
+  const { data } = await axios.put(
+    `https://api.exode.biz/saas/v2/staff/grade/ext/${extId}/update`,
+    {
+      name: 'Middle+',
+    },
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+updateGradeByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 8,
+    "createdAt": "2026-10-12T09:21:36.518Z",
+    "updatedAt": "2026-10-12T10:15:02.917Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "name": "Middle+",
+    "order": 2,
+    "description": null,
+    "extId": "b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18"
+  }
+}
+```
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNotFound",
+  "message": "Staff grade not found",
+  "error": "Staff grade not found"
+}
+```
+```json Error - Name Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNameIsNotUniq",
+  "message": "Staff grade name is not uniq",
+  "error": "Staff grade name is not uniq"
+}
+```
+```json Error - ExtId Is Not Unique
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeExtIdIsNotUniq",
+  "message": "Staff grade extId is not uniq",
+  "error": "Staff grade extId is not uniq"
+}
+```
+</ResponseExample>
+
+## Удаление грейда
+
+```
+DELETE /saas/v2/staff/grade/{gradeId}/delete
+```
+
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
+
+<Warning>
+  Грейд нельзя удалить, пока он присвоен сотрудникам в открытых занятостях — вернётся
+  `StaffGradeHasActiveEmployments`. Сначала смените сотрудникам грейд через
+  [`promote`](/ru/exode-api/school/staff/employment) (параметр `toGradeId`) или уволите их.
+</Warning>
+
+<Info>
+  При удалении грейд снимается со всех должностей, которым он был назначен, а его условия перехода удаляются.
+  Готовность сотрудников к следующему грейду пересчитывается.
+</Info>
+
+### Параметры
+
+<ParamField path="gradeId" type="integer" required>
+  ID удаляемого грейда в рамках школы.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="affected" type="integer" required>
+  Количество удалённых записей (`1` при успешном удалении).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/grade/8/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function deleteGrade() {
+  const { data } = await axios.delete(
+    'https://api.exode.biz/saas/v2/staff/grade/8/delete',
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+deleteGrade();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+```json Error - Has Active Employments
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeHasActiveEmployments",
+  "message": "Staff grade has active employments",
+  "error": "Staff grade has active employments"
+}
+```
+```json Error - Forbidden
+{
+  "code": 401,
+  "success": false,
+  "cause": "Forbidden",
+  "error": "Forbidden seller resource - permissions StaffManage",
+  "message": "Forbidden seller resource - permissions StaffManage"
+}
+```
+</ResponseExample>
+
+## Удаление грейда по extId
+
+```
+DELETE /saas/v2/staff/grade/ext/{extId}/delete
+```
+
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
+
+<Warning>
+  Грейд нельзя удалить, пока он присвоен сотрудникам в открытых занятостях — вернётся
+  `StaffGradeHasActiveEmployments`. Сначала смените сотрудникам грейд через
+  [`promote`](/ru/exode-api/school/staff/employment) (параметр `toGradeId`) или уволите их.
+</Warning>
+
+<Info>
+  Эндпоинт-аналог удаления по ID: грейд находится по внешнему идентификатору `extId` в рамках школы.
+  Значение `extId` в пути должно быть URL-encoded.
+</Info>
+
+### Параметры
+
+<ParamField path="extId" type="string" required>
+  Внешний идентификатор (`extId`) удаляемого грейда в рамках школы. Должен быть URL-encoded.
+</ParamField>
+
+### Ответ
+
+<ResponseField name="affected" type="integer" required>
+  Количество удалённых записей (`1` при успешном удалении).
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --location --request DELETE 'https://api.exode.biz/saas/v2/staff/grade/ext/b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18/delete' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Authorization: Bearer YOUR_TOKEN'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+async function deleteGradeByExtId() {
+  const extId = encodeURIComponent('b7c1e9d2-4a3f-4e8b-9f61-2d0a5c7e3b18');
+
+  const { data } = await axios.delete(
+    `https://api.exode.biz/saas/v2/staff/grade/ext/${extId}/delete`,
+    {
+      headers: {
+        'Seller-Id': '{{ sellerId }}',
+        'School-Id': '{{ schoolId }}',
+        'Authorization': 'Bearer YOUR_TOKEN',
+      },
+    }
+  );
+  console.log(data.payload);
+}
+
+deleteGradeByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "affected": 1
+  }
+}
+```
+```json Error - Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNotFound",
+  "message": "Staff grade not found",
+  "error": "Staff grade not found"
+}
+```
+```json Error - Has Active Employments
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeHasActiveEmployments",
+  "message": "Staff grade has active employments",
+  "error": "Staff grade has active employments"
+}
+```
+</ResponseExample>
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-10-16 13:24 UTC_

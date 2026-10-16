@@ -9,7 +9,7 @@ direct field in the API.
 
 <Info>
   Key principle: all entities are linked through **external identifiers** (`extId`) — GUIDs or codes from your
-  system. You don't need to store internal Exode IDs: departments, positions, employments, absences and
+  system. You don't need to store internal Exode IDs: departments, positions, grades, employments, absences and
   managers are addressed by `extId` (`ext/{extId}/...` routes), users — through
   [`user/find`](/en/exode-api/school/user/find), `user/ext/{extId}/update` and
   [`user/upsert`](/en/exode-api/school/user/upsert). This is especially important for employments: on a transfer or a
@@ -31,18 +31,25 @@ flowchart TD
     School[School] --> Department[Department]
     Department -->|parentId| Department
     School --> Position[Position]
+    School --> Grade[Grade]
+    Position -.->|departmentIds| Department
+    Position -.->|gradeIds| Grade
     School --> User[User]
     User --> Employment[Employment]
     Department --> Employment
     Position --> Employment
+    Grade --> Employment
     Employment --> Absence[Absence]
     Department --> Manager[Manager / DepartmentManager]
     Employment --> Manager
 ```
 
 - **Department** — a school's organizational unit; the hierarchy is built through `parentId` (`parentExtId`).
-- **Employment** — the central link: user + department + position, plus the employment
-  terms (`kind`, `type`, `rate`).
+- **A position** is common to the whole school by default. It can be limited to a list of departments
+  (`departmentIds`) and a list of grades (`gradeIds`) — both links are optional.
+- **Grade** — a level of the school's career ladder (Junior → Middle → Senior), shared by all positions.
+- **Employment** — the central link: user + department + position (and, when grades are enabled,
+  a grade), plus the employment terms (`kind`, `type`, `rate`).
 - **A department manager** is linked not to the user directly, but to their **active
   employment**.
 - **An absence** (vacation, sick leave, business trip) is also linked to an employment.
@@ -73,6 +80,17 @@ flowchart TD
   </Warning>
 </Step>
 
+<Step title="Grades (if you use them)">
+  If your system has a grade ladder, create it using the methods in the
+  [Grades](/en/exode-api/school/staff/grade) section — `name`, `extId` and, if needed, `description`. The pattern is the
+  same as for positions: `PUT /staff/grade/ext/{extId}/update`, and on `StaffGradeNotFound` — `POST /staff/grade/create`.
+  Each new grade is placed at the top of the ladder, so create them **from the most junior to the most senior**.
+
+  Create grades before positions if you limit positions to a list of grades (`gradeIds`). To assign grades
+  to employees, grades must be enabled in the school — otherwise passing a grade on hire or promotion
+  returns `StaffGradesDisabled`. If you don't use grades, you can skip this step.
+</Step>
+
 <Step title="Positions">
   Create positions using the methods in the [Positions](/en/exode-api/school/staff/position) section — `name` and `extId`.
   **The correct key is the position GUID from your system (`extId`), not the name**: the name is mutable and not unique on
@@ -89,6 +107,24 @@ flowchart TD
   If your positions have no codes at all (the export only has `job_position_name`), use the fallback: find
   the position by name through `GET /staff/position/list?search=...`, and create it if it doesn't exist. The `search`
   is fuzzy, so among the results pick the record whose `name` matches your value case-insensitively.
+
+  **Linking to departments is optional.** A position without links is common to the whole school, and employees
+  can be hired into it in any department. If in your system a position belongs only to certain
+  departments, pass `departmentIds` (up to 250 IDs) to `create` or `update`:
+
+  - the array **replaces the whole list**: `[]` removes the links (the position becomes common again), an omitted
+    field leaves the links unchanged;
+  - `departmentIds` accepts only **internal Exode department IDs** (there is no `extId` variant) — take
+    them from the `department/create` response or from `GET /staff/department/list?extIds=...`. So sync positions
+    with links **after** departments; an unknown ID or an ID from another school returns `StaffDepartmentNotFound`;
+  - the links are not returned in the position response — you can check them with
+    `GET /staff/position/list?departmentId=N`: it returns the positions available in the department (linked to it
+    and common ones);
+  - the links are checked on hire, promotion and transfer: a position that is not available in the department returns
+    `StaffPositionNotInDepartment`.
+
+  Similarly, `gradeIds` limits the grades that can be assigned to an employee in this position (omitted or
+  empty — any grade of the school fits).
 </Step>
 
 <Step title="Employees">
@@ -96,7 +132,7 @@ flowchart TD
   one to choose depends on your export — primarily on whether you need to set a password: see
   [Which method to use for creating an employee](#which-method-to-use-for-creating-an-employee) for details. In all cases, employments are
   passed as an array in `extra.staff.employments` (each element is `positionExtId` + `departmentExtId`,
-  optionally `extId`, `type`, `kind`, `startAt`, `rate`). For a corporate school, when **creating** a user
+  optionally `extId`, `gradeExtId`, `type`, `kind`, `startAt`, `rate`). For a corporate school, when **creating** a user
   the array is required and must contain at least one employment (otherwise `StaffEmploymentInputRequired`).
 
   If an employee belongs to **several departments**, pass several elements in
@@ -211,11 +247,18 @@ in the [Employments](/en/exode-api/school/staff/employment) section:
 | HR event | Endpoint |
 |---|---|
 | Transfer to another department | `POST /staff/employment/ext/{extId}/transfer` |
-| Position change (promotion) | `POST /staff/employment/ext/{extId}/promote` |
-| Both department and position changed | `transfer`, then `promote` with the same `extId` and the same `startAt` |
+| Position and/or grade change (promotion) | `POST /staff/employment/ext/{extId}/promote` (`toPositionExtId`, `toGradeExtId`) |
+| Both department and position changed | A single `transfer` with `toPositionId` (and `toGradeId` if needed) — get the position ID through `GET /staff/position/list?extIds=...` |
 | Termination from an assignment | `POST /staff/employment/ext/{extId}/terminate` |
 | New assignment / part-time | `POST /staff/employment/hire` (or an `employments` element) |
 | Rehiring a terminated employee | `user/ext/{extId}/update` with `extra.staff.employments` (or `hire`) — the `Active` status is restored automatically |
+
+<Info>
+  A transfer without `toPositionId` keeps the current position, so it must be available in the new
+  department. If the position is linked to other departments, such a `transfer` returns
+  `StaffPositionNotInDepartment` — in that case pass the new position in the same call (`toPositionId`).
+  If the position and grade don't change, `toDepartmentExtId` is enough.
+</Info>
 
 <Info>
   Practical takeaway for incremental exports: in `user/ext/{extId}/update` for an existing employee,
@@ -323,6 +366,22 @@ Fields that have **no direct counterpart** in the API:
     `extra.staff.employments` array (from 1 to 10 employments) is required when creating a user.
 </Warning>
 
+<Warning>
+  **If the school has an org-structure source app connected** (for example, the Verifix integration), it manages
+  the records that have an `extId`. For such records, the API returns `MiniappInstallationManagedEntity`:
+
+  - when creating a department, position or employment with an `extId`;
+  - when changing synced fields — the name and `extId`, and for a department also the parent (`parentId`,
+    `parentExtId`);
+  - when deleting a department or position;
+  - on transfer and termination of such employments, and on a promotion that changes the position (and the grade,
+    if the integration syncs grades).
+
+  You can still change a position's department and grade links (`departmentIds`, `gradeIds`) — send them
+  in a separate request, without `name` and `extId`. Records without an `extId`, as well as absences and department
+  managers, are not affected by the lock.
+</Warning>
+
 ## Minimal example: an employee with an employment
 
 ```bash cURL
@@ -381,4 +440,4 @@ curl --location 'https://api.exode.biz/saas/v2/form/custom-field/value/set-by-sl
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-10-16 13:24 UTC_

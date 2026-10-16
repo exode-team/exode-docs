@@ -20,6 +20,24 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
     вернёт `401` с `cause: "Forbidden"` и сообщением `Allowed only for Corporate school`.
 </Warning>
 
+<Warning>
+    Если в школе подключено приложение — источник оргструктуры (например, интеграция с Verifix), трудоустройствами
+    с `extId` управляет оно, и изменение таких записей через API вернёт `MiniappInstallationManagedEntity`
+    (в `data.installationId` — ID установки приложения). Ограничение действует для `hire` с `extId` в теле
+    (пространство `extId` принадлежит интеграции), для `transfer` и `terminate` записи с `extId`, а также для
+    `promote` записи с `extId`, если меняется должность (или грейд — когда интеграция синхронизирует грейды).
+    Записи без `extId` по-прежнему можно менять через API.
+</Warning>
+
+<Info>
+    Помимо должности, трудоустройству можно присвоить [грейд](/ru/exode-api/school/staff/grade) (`gradeId`) —
+    уровень карьерной шкалы школы. Грейд доступен, когда грейды включены в школе, иначе вернётся
+    `StaffGradesDisabled`. Если у должности задан ограниченный список грейдов, присвоить можно только грейд из
+    этого списка (`StaffGradeNotForPosition`). Если [должность привязана к подразделениям](/ru/exode-api/school/staff/position),
+    назначить её можно только в одном из них (`StaffPositionNotInDepartment`); должность без привязки — общая для
+    всей школы и доступна в любом департаменте.
+</Info>
+
 <Info>
     Перевод (`transfer`) и повышение (`promote`) не изменяют текущую запись, а **закрывают** её (`finishAt`, статус
     `Terminated`) и создают **новую** активную запись в целевом департаменте либо с новой должностью. Условия
@@ -45,8 +63,8 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 |---|---|
 | Приём на работу, новое совместительство | [`hire`](#нанять-сотрудника) — создаёт ещё одну активную запись |
 | Перевод в другой департамент (должность та же) | [`transfer`](#перевести-в-другой-департамент) |
-| Смена должности в том же департаменте | [`promote`](#сменить-должность) |
-| Сменились и департамент, и должность | `transfer`, затем `promote` по тому же `extId` с тем же `startAt` |
+| Смена должности и/или грейда в том же департаменте | [`promote`](#сменить-должность) |
+| Сменились и департамент, и должность (или грейд) | [`transfer`](#перевести-в-другой-департамент) с `toPositionId` / `toGradeId` — одной операцией |
 | Увольнение с одного места работы | [`terminate`](#уволить-сотрудника) |
 
 Удаления трудоустройства в API нет: запись закрывается только через `terminate` и остаётся в истории. Каждая
@@ -112,6 +130,15 @@ GET /saas/v2/staff/employment/list
     Фильтр по внешним идентификаторам (`extId`) должностей. До 250 значений, каждое до 50 символов.
 </ParamField>
 
+<ParamField query="gradeIds" type="integer[]" required={false}>
+    Фильтр по ID [грейдов](/ru/exode-api/school/staff/grade). До 100 значений.
+</ParamField>
+
+<ParamField query="readyForPromotion" type="boolean" required={false}>
+    `true` — только сотрудники, выполнившие все условия перехода на следующий грейд; `false` — только те, кто их
+    ещё не выполнил.
+</ParamField>
+
 <ParamField query="statuses" type="enum[]" required={false}>
     Фильтр по статусам трудоустройства. Возможные значения: `Active`, `Terminated`. До 250 значений.
 </ParamField>
@@ -147,6 +174,7 @@ GET /saas/v2/staff/employment/list
                 <ResponseField name="schoolId" type="integer">ID школы.</ResponseField>
                 <ResponseField name="userId" type="integer">ID пользователя-сотрудника.</ResponseField>
                 <ResponseField name="positionId" type="integer | null">ID должности или `null` — для трудоустройства без должности.</ResponseField>
+                <ResponseField name="gradeId" type="integer | null">ID [грейда](/ru/exode-api/school/staff/grade) или `null`, если грейд не присвоен.</ResponseField>
                 <ResponseField name="departmentId" type="integer">ID департамента.</ResponseField>
                 <ResponseField name="extId" type="string | null">Внешний идентификатор трудоустройства из системы клиента или `null`. Уникален в рамках школы среди открытых (не завершённых) записей; при переводе/повышении переносится на новую запись.</ResponseField>
                 <ResponseField name="startAt" type="string">Дата начала трудоустройства (ISO 8601).</ResponseField>
@@ -218,6 +246,7 @@ listEmployments();
         "schoolId": 198,
         "userId": 1683,
         "positionId": 4,
+        "gradeId": 2,
         "departmentId": 4,
         "extId": "emp-1683",
         "startAt": "2026-07-02T11:15:47.316Z",
@@ -235,6 +264,7 @@ listEmployments();
         "schoolId": 198,
         "userId": 1683,
         "positionId": 3,
+        "gradeId": null,
         "departmentId": 4,
         "extId": "emp-1683",
         "startAt": "2026-07-02T11:15:47.299Z",
@@ -286,7 +316,12 @@ POST /saas/v2/staff/employment/hire
 Департамент **обязателен** и указывается по ID или внешнему идентификатору: в паре `departmentId` /
 `departmentExtId` передаётся ровно один параметр. Должность **опциональна**: передайте ровно один параметр из
 пары `positionId` / `positionExtId`, либо не передавайте оба — тогда сотрудник нанимается без должности. Оба
-поля одной пары одновременно передавать нельзя.
+поля одной пары одновременно передавать нельзя. Если должность привязана к подразделениям, департамент найма
+должен быть среди них, иначе вернётся `StaffPositionNotInDepartment`.
+
+Грейд **опционален** и задаётся так же — одним параметром из пары `gradeId` / `gradeExtId`. Он проверяется на
+принадлежность школе (`StaffGradeNotFound`) и на соответствие списку грейдов должности
+(`StaffGradeNotForPosition`); при выключенных в школе грейдах вернётся `StaffGradesDisabled`.
 
 ### Параметры запроса
 
@@ -300,16 +335,28 @@ POST /saas/v2/staff/employment/hire
 
 <ParamField body="extId" type="string" required={false}>
     Внешний идентификатор трудоустройства из системы клиента. От 1 до 50 символов, без `/` и пробелов.
-    Должен быть уникален в рамках школы среди открытых (не завершённых) трудоустройств.
+    Должен быть уникален в рамках школы среди открытых (не завершённых) трудоустройств. Если в школе подключено
+    приложение — источник оргструктуры, найм с `extId` вернёт `MiniappInstallationManagedEntity`.
 </ParamField>
 
 <ParamField body="positionId" type="integer" required={false}>
-    ID должности. Должность должна принадлежать школе. Опционально: передайте один параметр из пары
+    ID должности. Должность должна принадлежать школе и быть доступна в департаменте найма (должность без
+    привязки к подразделениям доступна везде). Опционально: передайте один параметр из пары
     `positionId` / `positionExtId`, либо не передавайте оба — сотрудник будет нанят без должности.
 </ParamField>
 
 <ParamField body="positionExtId" type="string" required={false}>
     Внешний идентификатор (`extId`) должности — альтернатива `positionId`.
+</ParamField>
+
+<ParamField body="gradeId" type="integer" required={false}>
+    ID [грейда](/ru/exode-api/school/staff/grade). Грейд должен принадлежать школе и входить в список грейдов
+    должности (если список задан). Опционально: передайте один параметр из пары `gradeId` / `gradeExtId`, либо не
+    передавайте оба — сотрудник будет нанят без грейда.
+</ParamField>
+
+<ParamField body="gradeExtId" type="string" required={false}>
+    Внешний идентификатор (`extId`) грейда — альтернатива `gradeId`.
 </ParamField>
 
 <ParamField body="departmentId" type="integer" required={false}>
@@ -402,6 +449,7 @@ hireEmployment();
     "schoolId": 198,
     "userId": 1683,
     "positionId": 3,
+    "gradeId": null,
     "departmentId": 3,
     "extId": "emp-1683",
     "startAt": "2026-07-02T11:15:47.273Z",
@@ -454,6 +502,46 @@ hireEmployment();
 }
 ```
 
+```json Error - Position Not In Department
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotInDepartment",
+  "message": "Staff position is not available in the department",
+  "error": "Staff position is not available in the department"
+}
+```
+
+```json Error - Grade Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNotFound",
+  "message": "Staff grade not found",
+  "error": "Staff grade not found"
+}
+```
+
+```json Error - Grade Not For Position
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNotForPosition",
+  "message": "Staff grade is not a grade of the position",
+  "error": "Staff grade is not a grade of the position"
+}
+```
+
+```json Error - Grades Disabled
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradesDisabled",
+  "message": "Staff grades are disabled",
+  "error": "Staff grades are disabled"
+}
+```
+
 ```json Error - User Not Belongs To School
 {
   "code": 400,
@@ -461,6 +549,19 @@ hireEmployment();
   "cause": "UserNotBelongsToSchool",
   "message": "User does not belong to the school",
   "error": "User does not belong to the school"
+}
+```
+
+```json Error - Managed By Integration
+{
+  "code": 400,
+  "success": false,
+  "cause": "MiniappInstallationManagedEntity",
+  "message": "The record is managed by a miniapp",
+  "error": "The record is managed by a miniapp",
+  "data": {
+    "installationId": 12
+  }
 }
 ```
 </ResponseExample>
@@ -474,9 +575,14 @@ POST /saas/v2/staff/employment/transfer
 Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 Закрывает текущую активную запись трудоустройства (`finishAt`, статус `Terminated`) и создаёт **новую** активную
-запись в целевом департаменте с сохранением должности. Целевой департамент должен принадлежать школе. Если
-у сотрудника в целевом департаменте уже есть открытая запись с той же должностью, вернётся
-`StaffEmploymentAlreadyExists`.
+запись в целевом департаменте. Целевой департамент должен принадлежать школе. Если у сотрудника в целевом
+департаменте уже есть открытая запись с той же должностью, вернётся `StaffEmploymentAlreadyExists`.
+
+По умолчанию должность и грейд сохраняются; если текущая должность привязана к подразделениям и целевого
+департамента среди них нет, вернётся `StaffPositionNotInDepartment`. Чтобы одновременно сменить должность и/или
+грейд, передайте `toPositionId` и/или `toGradeId` — это одна операция вместо пары `transfer` + `promote`. Новые
+должность и грейд проверяются так же, как при [смене должности](#сменить-должность), но относительно целевого
+департамента.
 
 ### Параметры запроса
 
@@ -491,6 +597,16 @@ POST /saas/v2/staff/employment/transfer
 
 <ParamField body="toDepartmentExtId" type="string" required={false}>
     Внешний идентификатор (`extId`) целевого департамента — альтернатива `toDepartmentId`.
+</ParamField>
+
+<ParamField body="toPositionId" type="integer | null" required={false}>
+    ID новой должности в целевом департаменте. Значение `null` **снимает** должность. Не передан — должность
+    сохраняется. Указывается только по ID (варианта с `extId` нет).
+</ParamField>
+
+<ParamField body="toGradeId" type="integer | null" required={false}>
+    ID нового [грейда](/ru/exode-api/school/staff/grade). Значение `null` **снимает** грейд. Указывается только
+    по ID (варианта с `extId` нет).
 </ParamField>
 
 <ParamField body="startAt" type="string" required={false}>
@@ -549,6 +665,7 @@ transferEmployment();
     "schoolId": 198,
     "userId": 1683,
     "positionId": 3,
+    "gradeId": null,
     "departmentId": 4,
     "extId": "emp-1683",
     "startAt": "2026-07-02T11:15:47.299Z",
@@ -590,6 +707,16 @@ transferEmployment();
   "error": "Staff active employment already exists"
 }
 ```
+
+```json Error - Position Not In Department
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotInDepartment",
+  "message": "Staff position is not available in the department",
+  "error": "Staff position is not available in the department"
+}
+```
 </ResponseExample>
 
 ## Перевести по внешнему идентификатору
@@ -601,7 +728,8 @@ POST /saas/v2/staff/employment/ext/{extId}/transfer
 Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 Аналог перевода по `employmentId`, но активная запись трудоустройства находится по внешнему идентификатору
-`extId` в рамках школы. Тело запроса — как у обычного перевода, без поля `employmentId`.
+`extId` в рамках школы. Тело запроса — как у обычного перевода, без поля `employmentId`: при необходимости
+передайте `toPositionId` / `toGradeId`, чтобы сменить должность и грейд той же операцией.
 
 ### Параметры запроса
 
@@ -616,6 +744,16 @@ POST /saas/v2/staff/employment/ext/{extId}/transfer
 
 <ParamField body="toDepartmentExtId" type="string" required={false}>
     Внешний идентификатор (`extId`) целевого департамента — альтернатива `toDepartmentId`.
+</ParamField>
+
+<ParamField body="toPositionId" type="integer | null" required={false}>
+    ID новой должности в целевом департаменте. Значение `null` **снимает** должность. Не передан — должность
+    сохраняется. Указывается только по ID (варианта с `extId` нет).
+</ParamField>
+
+<ParamField body="toGradeId" type="integer | null" required={false}>
+    ID нового [грейда](/ru/exode-api/school/staff/grade). Значение `null` **снимает** грейд. Указывается только
+    по ID (варианта с `extId` нет).
 </ParamField>
 
 <ParamField body="startAt" type="string" required={false}>
@@ -674,6 +812,7 @@ transferEmploymentByExtId();
     "schoolId": 198,
     "userId": 1683,
     "positionId": 3,
+    "gradeId": null,
     "departmentId": 4,
     "extId": "emp-1683",
     "startAt": "2026-07-02T11:15:47.299Z",
@@ -706,12 +845,18 @@ POST /saas/v2/staff/employment/promote
 Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
 
 Закрывает текущую активную запись трудоустройства (`finishAt`, статус `Terminated`) и создаёт **новую** активную
-запись с новой должностью в том же департаменте. Целевая должность должна принадлежать школе. Если у сотрудника
-в этом департаменте уже есть открытая запись с новой должностью, вернётся `StaffEmploymentAlreadyExists`.
+запись с новой должностью и/или грейдом в том же департаменте. Целевая должность должна принадлежать школе и быть
+доступна в текущем департаменте (`StaffPositionNotInDepartment`). Если у сотрудника в этом департаменте уже есть
+открытая запись с новой должностью, вернётся `StaffEmploymentAlreadyExists`.
 
-Запрос должен явно выражать намерение: передайте должность (`toPositionId` **или** `toPositionExtId`), чтобы
-назначить её, либо `toPositionId: null`, чтобы **снять** должность (сотрудник останется в департаменте без
-должности). Если не передать ни одно из этих полей, вернётся ошибка `StaffEmploymentInputRequired`.
+Запрос должен явно выражать намерение: передайте должность (`toPositionId` **или** `toPositionExtId`) и/или
+грейд (`toGradeId` **или** `toGradeExtId`), чтобы назначить их, либо `null`, чтобы **снять** (сотрудник останется
+в департаменте без должности или без грейда). Если не передать ни одно из этих полей, вернётся ошибка
+`StaffEmploymentInputRequired`.
+
+Грейд проверяется так же, как при найме: `StaffGradeNotFound`, `StaffGradeNotForPosition`,
+`StaffGradesDisabled`. Если меняется только должность, текущий грейд сохраняется, когда он есть в списке грейдов
+новой должности, и сбрасывается в `null`, когда его там нет.
 
 ### Параметры запроса
 
@@ -729,6 +874,15 @@ POST /saas/v2/staff/employment/promote
     Внешний идентификатор (`extId`) целевой должности — альтернатива `toPositionId`.
 </ParamField>
 
+<ParamField body="toGradeId" type="integer | null" required={false}>
+    ID целевого [грейда](/ru/exode-api/school/staff/grade). Передаётся ровно один параметр из пары
+    `toGradeId` / `toGradeExtId`. Значение `null` **снимает** грейд.
+</ParamField>
+
+<ParamField body="toGradeExtId" type="string" required={false}>
+    Внешний идентификатор (`extId`) целевого грейда — альтернатива `toGradeId`.
+</ParamField>
+
 <ParamField body="startAt" type="string" required={false}>
     Дата смены должности в формате ISO 8601. Должна быть не раньше `startAt` текущей записи, иначе вернётся
     `StaffEmploymentInvalidTransitionDate`. По умолчанию — текущий момент.
@@ -744,6 +898,7 @@ curl --location 'https://api.exode.biz/saas/v2/staff/employment/promote' \
   --data-raw '{
     "employmentId": 8,
     "toPositionId": 4,
+    "toGradeId": 2,
     "startAt": "2026-07-02T00:00:00.000Z"
   }'
 ```
@@ -755,6 +910,7 @@ const promoteEmployment = async () => {
   const { data } = await axios.post('https://api.exode.biz/saas/v2/staff/employment/promote', {
     employmentId: 8,
     toPositionId: 4,
+    toGradeId: 2,
     startAt: '2026-07-02T00:00:00.000Z',
   }, {
     headers: {
@@ -785,6 +941,7 @@ promoteEmployment();
     "schoolId": 198,
     "userId": 1683,
     "positionId": 4,
+    "gradeId": 2,
     "departmentId": 4,
     "extId": "emp-1683",
     "startAt": "2026-07-02T11:15:47.316Z",
@@ -827,13 +984,46 @@ promoteEmployment();
 }
 ```
 
-```json Error - Target Position Required
+```json Error - Target Required
 {
   "code": 400,
   "success": false,
   "cause": "StaffEmploymentInputRequired",
-  "message": "Staff employment promote target position is required",
-  "error": "Staff employment promote target position is required"
+  "message": "Staff employment promote target position or grade is required",
+  "error": "Staff employment promote target position or grade is required"
+}
+```
+
+```json Error - Position Not In Department
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffPositionNotInDepartment",
+  "message": "Staff position is not available in the department",
+  "error": "Staff position is not available in the department"
+}
+```
+
+```json Error - Grade Not For Position
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffGradeNotForPosition",
+  "message": "Staff grade is not a grade of the position",
+  "error": "Staff grade is not a grade of the position"
+}
+```
+
+```json Error - Managed By Integration
+{
+  "code": 400,
+  "success": false,
+  "cause": "MiniappInstallationManagedEntity",
+  "message": "The record is managed by a miniapp",
+  "error": "The record is managed by a miniapp",
+  "data": {
+    "installationId": 12
+  }
 }
 ```
 </ResponseExample>
@@ -848,8 +1038,8 @@ POST /saas/v2/staff/employment/ext/{extId}/promote
 
 Аналог смены должности по `employmentId`, но активная запись трудоустройства находится по внешнему идентификатору
 `extId` в рамках школы. Тело запроса — как у обычной смены должности, без поля `employmentId`: передайте
-должность, чтобы назначить её, либо `toPositionId: null`, чтобы снять её; иначе — ошибка
-`StaffEmploymentInputRequired`.
+должность и/или грейд, чтобы назначить их, либо `null`, чтобы снять; если не передано ни одно из этих полей —
+ошибка `StaffEmploymentInputRequired`.
 
 ### Параметры запроса
 
@@ -865,6 +1055,15 @@ POST /saas/v2/staff/employment/ext/{extId}/promote
 
 <ParamField body="toPositionExtId" type="string" required={false}>
     Внешний идентификатор (`extId`) целевой должности — альтернатива `toPositionId`.
+</ParamField>
+
+<ParamField body="toGradeId" type="integer | null" required={false}>
+    ID целевого [грейда](/ru/exode-api/school/staff/grade). Передаётся ровно один параметр из пары
+    `toGradeId` / `toGradeExtId`. Значение `null` **снимает** грейд.
+</ParamField>
+
+<ParamField body="toGradeExtId" type="string" required={false}>
+    Внешний идентификатор (`extId`) целевого грейда — альтернатива `toGradeId`.
 </ParamField>
 
 <ParamField body="startAt" type="string" required={false}>
@@ -923,6 +1122,7 @@ promoteEmploymentByExtId();
     "schoolId": 198,
     "userId": 1683,
     "positionId": 4,
+    "gradeId": 2,
     "departmentId": 4,
     "extId": "emp-1683",
     "startAt": "2026-07-02T11:15:47.316Z",
@@ -1035,6 +1235,7 @@ terminateEmployment();
     "schoolId": 198,
     "userId": 1684,
     "positionId": 3,
+    "gradeId": null,
     "departmentId": 4,
     "extId": "emp-1684",
     "startAt": "2026-07-02T11:15:47.285Z",
@@ -1151,6 +1352,7 @@ terminateEmploymentByExtId();
     "schoolId": 198,
     "userId": 1684,
     "positionId": 3,
+    "gradeId": null,
     "departmentId": 4,
     "extId": "emp-1684",
     "startAt": "2026-07-02T11:15:47.285Z",
@@ -1190,4 +1392,4 @@ terminateEmploymentByExtId();
 
 ---
 
-_Обновлено: 2026-09-25 13:43 UTC_
+_Обновлено: 2026-10-16 13:24 UTC_
