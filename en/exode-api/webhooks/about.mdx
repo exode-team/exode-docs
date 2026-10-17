@@ -171,7 +171,7 @@ def exode_webhook():
 | Response timeout | 15 seconds |
 | Success codes | `200`, `201`, `202` |
 | Number of attempts | up to 5 (initial delivery + up to 4 retries) |
-| Delays between attempts | ≈ 11 → 33 → 77 → 165 minutes (the last attempt comes roughly 4 h 45 min after the first) |
+| Delays between attempts | ≈ 11 → 33 → 77 → 165 minutes (the last attempt comes roughly 4 h 46 min after the first) |
 | Delivery order | not guaranteed |
 | Deduplication | by `idempotencyKey` on your side |
 
@@ -193,7 +193,7 @@ You need the **School Settings Management** permission (`SchoolManageSettings`).
 For each endpoint you set:
 
 - `url` — the receiver address (up to 255 characters); use HTTPS;
-- `events` — the list of events it is subscribed to;
+- `events` — the list of events it is subscribed to (only from [Supported events](#supported-events));
 - `active` — the activity flag (`true` by default);
 - `note` — a free-form note (up to 255 characters);
 - `secretKey` — the secret for signature verification, **generated automatically** when the endpoint is created.
@@ -365,11 +365,10 @@ Below are the events that are actually delivered, along with the structure of th
 </AccordionGroup>
 
 <Note>
-    You can subscribe to `UserSignedIn`, `UserLoggedOut`, `UserJoinedByReferral`,
-    `CourseLessonPracticeDetailedSent`, `CourseLessonPracticeAutoVerifySent`, `ProductRefundCompleted`,
-    `ProductAccessSubscriptionEnding7Days` and `ProductAccessSubscriptionEnding1Day`, but
-    the formal `data` contract for them is not fixed yet, so the payload contents are not guaranteed.
-    Check with [support](https://t.me/exode_support_biz) before using them.
+    Only the 13 events listed here can be subscribed to. An endpoint with any other event — for example
+    `UserSignedIn`, `UserLoggedOut`, `UserJoinedByReferral`, `CourseLessonPracticeDetailedSent`,
+    `CourseLessonPracticeAutoVerifySent`, `ProductRefundCompleted`, `ProductAccessSubscriptionEnding7Days` or
+    `ProductAccessSubscriptionEnding1Day` — is not saved: the API returns a validation error.
 </Note>
 
 ### UTM attribution
@@ -636,4 +635,4 @@ The body below is a real test-delivery example (synthetic values, exact field se
 
 ---
 
-_Updated: 2026-09-28 05:04 UTC_
+_Updated: 2026-10-17 06:52 UTC_

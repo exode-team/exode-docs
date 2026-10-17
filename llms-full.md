@@ -211,7 +211,7 @@ Common audit fields on most entities: `id, createdAt, updatedAt, deletedAt?, arc
 - **Signature:** header `signature` = `HMAC-SHA256(secretKey, raw_body)` (the entire body is signed). `secretKey` is used as a literal ASCII/UTF-8 string of 64 characters, without decoding from hex/base64. The result is 64 lowercase hex characters without a `sha256=` prefix. The secret is in the webhook settings in the admin panel.
 - **Test delivery:** a saved endpoint uses the same `secretKey` and algorithm as production events — no separate verification logic is needed. An unsaved endpoint has no permanent secret yet, so save the endpoint first for a verifiable test.
 - **Success:** `200|201|202`. **Timeout:** 15s. **Attempts:** up to 5 in total (first + 4 retries, delays ≈11/33/77/165 min). An endpoint with no successful delivery for 14 days in a row is auto-disabled (`active=false`) and the seller owner is notified. Endpoints are managed only in the admin panel (**Manage → School → Webhooks**; RU UI: «Управление → Школа → Вебхуки»), not via the SaaS API. Order is not guaranteed; dedupe by `idempotencyKey`. Maximum 5 endpoints per seller.
-- **Events and `data`:**
+- **Events and `data`** (only these 13 seller events can be subscribed to; any other event name is rejected with a validation error):
   - `UserSignedUp` / `UserAcquainted`: `{ user, profile?, states?{utmSignupParams?} }`.
   - `UserTgConnected`: `{ user, profile?, prevTgId? }`.
   - `UserCreatedViaLms`: `{ user, profile? }` — a school employee created the user (admin panel, bulk import, API `user/create`, or `user/upsert` when it creates rather than updates). Self sign-up arrives as `UserSignedUp`.

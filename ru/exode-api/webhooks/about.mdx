@@ -171,7 +171,7 @@ def exode_webhook():
 | Таймаут ответа | 15 секунд |
 | Успешные коды | `200`, `201`, `202` |
 | Число попыток | до 5 (первая отправка + до 4 повторов) |
-| Задержки между попытками | ≈ 11 → 33 → 77 → 165 минут (последняя попытка — примерно через 4 ч 45 мин после первой) |
+| Задержки между попытками | ≈ 11 → 33 → 77 → 165 минут (последняя попытка — примерно через 4 ч 46 мин после первой) |
 | Порядок доставки | не гарантируется |
 | Дедупликация | по `idempotencyKey` на вашей стороне |
 
@@ -193,7 +193,7 @@ def exode_webhook():
 Для каждого эндпоинта задаётся:
 
 - `url` — адрес приёмника (до 255 символов); используйте HTTPS;
-- `events` — список событий, на которые он подписан;
+- `events` — список событий, на которые он подписан (только из раздела [«Поддерживаемые события»](#поддерживаемые-события));
 - `active` — флаг активности (по умолчанию `true`);
 - `note` — произвольная заметка (до 255 символов);
 - `secretKey` — секрет для проверки подписи, **генерируется автоматически** при создании эндпоинта.
@@ -365,11 +365,10 @@ def exode_webhook():
 </AccordionGroup>
 
 <Note>
-    На события `UserSignedIn`, `UserLoggedOut`, `UserJoinedByReferral`,
-    `CourseLessonPracticeDetailedSent`, `CourseLessonPracticeAutoVerifySent`, `ProductRefundCompleted`,
-    `ProductAccessSubscriptionEnding7Days` и `ProductAccessSubscriptionEnding1Day` можно подписаться, но
-    формальный контракт `data` для них ещё не зафиксирован — состав полезной нагрузки не гарантируется.
-    Перед использованием сверьтесь с [поддержкой](https://t.me/exode_support_biz).
+    Подписаться можно только на 13 событий из этого списка. Эндпоинт с другими событиями — например,
+    `UserSignedIn`, `UserLoggedOut`, `UserJoinedByReferral`, `CourseLessonPracticeDetailedSent`,
+    `CourseLessonPracticeAutoVerifySent`, `ProductRefundCompleted`, `ProductAccessSubscriptionEnding7Days` или
+    `ProductAccessSubscriptionEnding1Day` — не сохранится: API вернёт ошибку валидации.
 </Note>
 
 ### UTM-атрибуция
@@ -636,4 +635,4 @@ UTM-метки приходят в трёх местах в зависимост
 
 ---
 
-_Обновлено: 2026-09-28 05:04 UTC_
+_Обновлено: 2026-10-17 06:52 UTC_

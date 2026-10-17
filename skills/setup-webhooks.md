@@ -48,12 +48,13 @@ localhost); fails → Mode C.
   keyed with the endpoint's `secretKey` **used as-is** (a 64-character ASCII string —
   do not hex/base64-decode it).
 - Retries: any non-`200/201/202` response, timeout or network error counts as a
-  failure → up to **5 attempts** with growing delays (~11 → 22 → 44 → 88 → 176
-  minutes). After 5 failures the event is marked failed and is not sent again.
+  failure → up to **5 attempts** in total: the first send plus 4 retries after
+  ~11 → 33 → 77 → 165 minutes (the last one roughly 4 h 46 min after the first).
+  After 5 failures the event is marked failed and is not sent again.
 - Limit: **max 5 endpoints per seller**. Endpoint fields: `url` (https, ≤255 chars),
   `events` (subscription list), `active` flag, `note`, auto-generated `secretKey`.
 
-### Supported events (only these have a fixed `data` contract)
+### Supported events (only these 13 can be subscribed to)
 
 | Event | Fires when | Key `data` fields |
 |---|---|---|
@@ -78,12 +79,12 @@ Gotchas documented by Exode:
 - An invite-link enrollment sends **two** events: `ProductEnrolledToFree` **and**
   `ProductEnrolledByInviteLink` — distinguish by `inviteLinkId` and don't
   double-count enrollments.
-- Other events (`UserSignedIn`, `UserLoggedOut`, `UserJoinedByReferral`,
+- Any other event name (`UserSignedIn`, `UserLoggedOut`, `UserJoinedByReferral`,
   `CourseLessonPracticeDetailedSent`,
   `CourseLessonPracticeAutoVerifySent`, `ProductRefundCompleted`,
   `ProductAccessSubscriptionEnding7Days`, `ProductAccessSubscriptionEnding1Day`)
-  are subscribable but their `data` contract is **not fixed** — confirm with
-  [Exode support](https://t.me/exode_support_biz) before relying on them.
+  is rejected with a validation error — the endpoint is not saved. Subscribe only
+  to events from the table above.
 
 Nested entities (`user`, `payment`, `course`, ...) are described in the object
 reference: https://docs.exode.biz/en/exode-api/objects/entities/index. Full docs:
