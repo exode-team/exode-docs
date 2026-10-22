@@ -11,7 +11,7 @@ npm: https://www.npmjs.com/package/@exode-team/sdk
 
 ## 1. Package overview
 
-Official SDK for Exode (EdTech SaaS for online schools). Four independent subpath modules:
+Official SDK for Exode (EdTech SaaS for online schools). Five independent subpath modules:
 
 | Import | Purpose | Runtime |
 |--------|---------|---------|
@@ -19,6 +19,7 @@ Official SDK for Exode (EdTech SaaS for online schools). Four independent subpat
 | `@exode-team/sdk/miniapp` | Client-side bridge for iframe mini apps + `retrieveInitData()` | Browser |
 | `@exode-team/sdk/miniapp/react` | React hooks on top of the bridge | Browser + React >= 17 |
 | `@exode-team/sdk/miniapp/server` | `verifyInitData()`, `verifyWebhookSignature()` (uses Node `crypto`) | Node.js >= 18 |
+| `@exode-team/sdk/miniapp/devtools` | Loading-silhouette devtools (`installDevtools()`, `measureSkeleton()`), dev builds only | Browser |
 
 Requirements: Node.js >= 18; TypeScript >= 5.7 (optional, types ship with package);
 React >= 17 (optional peer dep, only for `miniapp/react`). Dependency: `zod@^4`.
@@ -357,13 +358,19 @@ import { ExodeMiniApp } from '@exode-team/sdk/miniapp'
 
 interface ExodeMiniAppConfig {
   appId: string              // required; any string for school custom pages (host trusts the iframe URL origin)
-  targetOrigin?: string      // origin of the school page, e.g. 'https://my-school.exode.biz'; default '*' (logs a warning)
-  timeout?: number           // ms, default 10000
+  targetOrigin?: string      // origin of the school page, e.g. 'https://my-school.exode.biz'; default — the origin of the
+                             // embedding page (location.ancestorOrigins / first-load referrer), '*' + warning only if unknown
+  timeout?: number           // ms, default 10000 (popups wait with no timeout)
+  edgeToEdge?: boolean | 'manual' // SDK 0.4+, default false: in the app the frame goes under the host chrome;
+                             // true — SDK pads <body> by --exode-inset-*, 'manual' — pad yourself
+  applyEnvironment?: boolean // default true: --exode-* CSS variables and data-exode-* attributes on <html>
+  applyTheme?: boolean       // default false: color-scheme, .dark on <html>, <body> background/text from school colors
 }
 
 const app = new ExodeMiniApp({ appId: 'my-app', targetOrigin: 'https://my-school.exode.biz' })
 const ctx: MiniAppContext = await app.init()   // must run inside an iframe; calling init() twice throws
 // ctx.user.id === 0 for an unauthenticated visitor; ctx is unsigned — for trusted identity use initData (3.5)
+app.isSupported('composer')  // host capability (3.6); false before the handshake and with hosts < 0.4
 ```
 
 ### 3.2 Commands (MiniApp -> Host)
@@ -387,8 +394,10 @@ await app.ui.close()
 ```ts
 const off = app.on('theme:changed', (theme) => { document.body.className = theme.scheme })
 off()  // unsubscribe
-app.getContext()  // MiniAppContext | null — handshake context patched ONLY by 'context:updated';
-                  // theme/user/school/config events do NOT update it — track them via app.on()
+app.getContext()  // MiniAppContext | null — kept current: theme/user/school/config/viewport events and
+                  // 'context:updated' are applied to it (SDK 0.4+)
+app.onContextChange((ctx) => {})  // any change of the context; returns an unsubscribe function
+app.getViewport() // MiniAppViewport | null;  app.getInsets() -> { top, right, bottom, left }
 app.destroy()
 ```
 
@@ -401,17 +410,30 @@ app.destroy()
 | `route:changed` | `{ path: string; params: Record<string, string> }` (path = route template) |
 | `context:updated` | `Partial<MiniAppContext>` (auto-merged into cache; current host does not emit it) |
 | `visibility:changed` | `{ visible: boolean }` |
+| `viewport:changed` | `MiniAppViewport` (host 0.4+) |
+| `header:button` | `{ id: string }` |
+| `backButton:pressed` / `mainButton:pressed` | `{}` |
+| `composer:submit` | `{ text: string; files: File[]; voice?: { file: File; duration: number } }` |
+| `composer:voice` | `{ file: File; duration: number }` (seconds) |
+| `composer:change` | `{ text: string }` (voice-only dictation, while speaking) |
+| `composer:stop` / `composer:scrollDown` | `{}` |
 
 ### 3.4 Types
 
 ```ts
-type Platform = 'web' | 'native'   // not exported — use MiniAppContext['platform']
-interface MiniAppContext { user: MiniAppUser; school: Record<string, unknown>; theme: MiniAppTheme; platform: Platform; config: MiniAppConfig }
+type Platform = 'web' | 'native'   // exported
+interface MiniAppContext { user: MiniAppUser; school: Record<string, unknown>; theme: MiniAppTheme; platform: Platform; config: MiniAppConfig
+  os?: 'ios' | 'android' | 'web'; viewport?: MiniAppViewport; capabilities?: MiniAppCapability[] }   // host 0.4+
 interface MiniAppUser { id: number; uuid: string | null; firstName: string | null; lastName: string | null
   avatar: { id: number; small: string | null; medium: string | null; maximum: string | null } | null
   email: string | null; phone: string | null; role: string; language: string | null }
-interface MiniAppTheme { scheme: 'light' | 'dark' }
+interface MiniAppTheme { scheme: 'light' | 'dark'; accent?: string; colors?: Partial<MiniAppThemeColors> }  // accent/colors: host 0.4+
+// MiniAppThemeColors: background, content, elevated, text, textSecondary, textTertiary, accent, accentForeground,
+//   separator, destructive, positive (CSS colors)
 interface MiniAppConfig { isDesktop: boolean; isMobile: boolean; language: string }
+interface MiniAppViewport { width: number; height: number; safeArea: MiniAppInsets; content: MiniAppInsets
+  isEdgeToEdge: boolean; isFullscreen: boolean; orientation: 'portrait' | 'landscape' }
+interface MiniAppInsets { top: number; right: number; bottom: number; left: number }
 ```
 
 ### 3.5 Init Data (signed identity) and server helpers (`@exode-team/sdk/miniapp/server`)
@@ -441,6 +463,63 @@ Signature: `data_check_string` = all fields except `hash`, sorted by key, `key=v
 plus `user` (JSON) and `session_uuid` for logged-in users; more may be added. Page secret: admin panel
 "Apps & pages" → page menu → "Show secret".
 
+### 3.6 Native chrome (SDK 0.4+): https://docs.exode.biz/en/exode-sdk/miniapp/native
+
+In the Exode mobile app these are native (as in the Exode AI chats); on the web — the school UI. Check
+`app.isSupported(cap)`; a host < 0.4 declares nothing: popup/prompt/share/clipboard/fullscreen/orientation/haptic fall
+back to the web APIs, header/backButton/mainButton/composer do nothing (render your own UI).
+
+```ts
+type MiniAppCapability = 'popup' | 'prompt' | 'haptic' | 'header' | 'backButton' | 'mainButton'
+  | 'composer' | 'composer.attachments' | 'composer.voice' | 'composer.dictation'
+  | 'composer.voiceOnly'            // SDK 0.5+
+  | 'composer.dictation.audio'      // SDK 0.6+
+  | 'composer.voiceOnly.review'     // SDK 0.7+
+  | 'composer.voiceOnly.noCancel'   // SDK 0.8+
+  | 'fullscreen' | 'orientation' | 'openLink' | 'share' | 'clipboard'
+// orientation — app only; composer.dictation — app, or a browser with the Web Speech API (not Firefox / desktop app)
+
+await app.popup.show({ title?, message, buttons?: [{ id?, type?: 'default'|'ok'|'close'|'cancel'|'destructive', text? }] }) // 1–3 buttons -> id | null
+await app.popup.alert(message, title?)
+await app.popup.confirm(message, { title?, okText?, cancelText?, destructive? })   // -> boolean
+await app.popup.prompt({ title?, message?, placeholder?, value?, multiline?, required?, minLength?, maxLength?, okText?, cancelText? }) // -> string | null
+app.haptic.impact('light'|'medium'|'heavy'|'rigid'|'soft'); app.haptic.notification('success'|'warning'|'error'); app.haptic.selection()
+app.header.set({ title?: string | null, left?: Btn[] /* ≤1 */, right?: Btn[] /* ≤6 */ })  // Btn = { id, icon: MiniAppIcon, label? }
+// the host shows all buttons as items of ONE "…" menu (label = item text); event 'header:button' { id }
+// MiniAppIcon: add more settings search share info help edit history filter sort refresh close check delete download
+//   upload favorite notifications user calendar list grid qr (other icons are dropped)
+app.backButton.show() / .hide()   // header "Back" -> 'backButton:pressed' instead of leaving; phone browser back too
+app.mainButton.set({ visible, text?, disabled?, loading?, color?, textColor? }) / .hide()  // no text -> not shown; 'mainButton:pressed'
+app.composer.set({ visible, placeholder?, value?, mic?: 'none'|'dictation'|'voice', attachments?: boolean | { media?, file? },
+  busy?, disabled?, scrollDown?, voiceOnly?, recordAudio?, liveTranscript?, review?, noCancel? }) / .hide() / .dismissKeyboard()
+// voiceOnly: no field, tap buttons; mic 'dictation' -> 'composer:change' while speaking + 'composer:submit',
+//   'voice' -> 'composer:voice'; recordAudio -> submit.voice; review -> text goes to a host field to edit;
+//   noCancel -> a speech begun cannot be dropped; liveTranscript default = !recordAudio
+await app.viewport.requestFullscreen() / exitFullscreen()   // -> isFullscreen; desktop: Fullscreen API of the frame
+await app.viewport.lockOrientation('portrait'|'landscape') / unlockOrientation()
+await app.ui.openLink(url, { external? })   // host opens only http:, https:, mailto:, tel: and passes new URL(url).href;
+                                            // other schemes / invalid URLs are ignored silently
+await app.ui.share({ url?, text?, title? })  // -> boolean; invalid url dropped; no url and no text -> false
+await app.ui.copyText(text)                  // -> boolean
+// A hidden app (user navigated away): popups -> null, links ignored, share/copy -> false
+```
+
+CSS on `<html>` (applyEnvironment): `--exode-inset-{top,right,bottom,left}` (max of host chrome and safe area),
+`--exode-safe-area-inset-*`, `--exode-content-inset-*`, `--exode-viewport-width|height`, `--exode-content-height`,
+`--exode-accent`, `--exode-color-{background,content,elevated,text,text-secondary,text-tertiary,accent,accent-foreground,separator,destructive,positive}`;
+attributes `data-exode-{platform,os,scheme,fullscreen,orientation,edge}`. Use `min-height: var(--exode-content-height, 100dvh)`.
+The host passes theme/insets in the frame name (`exode-miniapp:<json>`) before the handshake; SSR apps put
+`exodeBootScript()` (from `@exode-team/sdk/miniapp`) into `<head>` + `suppressHydrationWarning` on `<html>`.
+
+### 3.7 Loading silhouette devtools (SDK 0.9+, dev only)
+
+The custom page field "Loading silhouette" (`p12,16 g16; c48 208x28; 226 r16; ...`) is drawn by the host while the app
+loads. Measure it instead of writing it: console — load `https://static.exode.biz/sdk/latest/miniapp-devtools.global.js`,
+then `exodeDevtools.skeleton()` (line to console + clipboard), `.show(line?)`, `.hide()`; code —
+`if (process.env.NODE_ENV !== 'production') import('@exode-team/sdk/miniapp/devtools').then((d) => d.installDevtools())`;
+also `measureSkeleton({ root })`, `copySkeleton()`, `showSkeleton(line?)`, `hideSkeleton()`. Mark your own skeleton root
+with `data-exode-skeleton`.
+
 ---
 
 ## 4. React hooks (`@exode-team/sdk/miniapp/react`)
@@ -451,6 +530,7 @@ import { ExodeMiniAppProvider } from '@exode-team/sdk/miniapp/react'
 // config extends ExodeMiniAppConfig + renderMode?: 'defer' | 'immediate' (default 'defer')
 // 'defer'     -> children mount after handshake
 // 'immediate' -> children mount on first render (SSR-safe); hooks return defaults until ready
+// the PROVIDER defaults edgeToEdge: true and applyTheme: true (ExodeMiniApp defaults both to false)
 <ExodeMiniAppProvider config={{ appId: 'my-app' }}>
   <App />
 </ExodeMiniAppProvider>
@@ -459,11 +539,22 @@ import { ExodeMiniAppProvider } from '@exode-team/sdk/miniapp/react'
 ```ts
 useExodeApp():        { app: ExodeMiniApp; isReady: boolean; error: Error | null }
 useExodeUser():       { user: MiniAppUser | null; isLoggedIn: boolean }   // isLoggedIn = user.id > 0
-useExodeTheme():      { scheme: 'light' | 'dark'; isDark: boolean; isReady: boolean }
+useExodeTheme():      { scheme: 'light' | 'dark'; isDark: boolean; accent: string | null; colors: Partial<MiniAppThemeColors> | null; isReady: boolean }
 useExodeSchool():     { school: Record<string, unknown> | null }
-useExodeConfig():     { isDesktop: boolean; isMobile: boolean; language: string; platform: Platform }
+useExodeConfig():     { isDesktop: boolean; isMobile: boolean; language: string; platform: Platform; os: 'ios' | 'android' | 'web' | null }
 useExodeNavigation(): { navigate: (path, params?) => Promise<void>; back: () => Promise<void> }
-useExodeUI():         { showSnackbar; setTabbarVisible; setHeaderVisible; minimize; close }
+useExodeUI():         { showSnackbar; setTabbarVisible; setHeaderVisible; minimize; close; openLink; share; copyText }
+// SDK 0.4+ native chrome (3.6):
+useExodeSupports():   (capability: MiniAppCapability) => boolean
+useExodeViewport():   { viewport; insets; isFullscreen; isEdgeToEdge; orientation; requestFullscreen; exitFullscreen; lockOrientation; unlockOrientation }
+useExodeHeader({ title?, left?, right?, onButton?(id) }):                                  { isSupported }
+useExodeBackButton(handler | null):                                                        { isSupported }
+useExodeMainButton({ text?, loading?, disabled?, color?, textColor?, visible?, onClick? }): { isSupported }
+useExodeComposer({ ...MiniAppComposerParams without value (visible optional, default true), onSubmit?, onVoice?, onChange?, onStop?, onScrollDown? }):
+  { isSupported; canDictate; canRecordVoice; canVoiceOnly; canDictateAudio; canReview; canNoCancel; canAttach; setText(text); dismissKeyboard() }
+useExodePopup():      app.popup  ({ show, alert, confirm, prompt })
+useExodeHaptic():     app.haptic ({ impact, notification, selection })
+// header / main button / composer: one per screen (the host has one; the last mounted hook wins); they reset on unmount
 useExodeVisibility(): { visible: boolean }
 useExodeInitData():   { initData: string | null }
 ```
@@ -487,6 +578,8 @@ address fragment and needs no provider. `user` is `null` until handshake (only v
 | Export data | `@exode-team/sdk/api` | `queryExport.generate` + `getResult` |
 | Widget embedded in Exode | `@exode-team/sdk/miniapp` | `new ExodeMiniApp({ appId })` |
 | Same, with React | `@exode-team/sdk/miniapp/react` | `<ExodeMiniAppProvider>` + hooks |
+| Native header / main button / composer / popups in the Exode app | `@exode-team/sdk/miniapp/react` | `useExodeHeader`, `useExodeMainButton`, `useExodeComposer`, `useExodePopup` |
+| Loading silhouette line of the first screen (dev only) | `@exode-team/sdk/miniapp/devtools` | `installDevtools()` -> `exodeDevtools.skeleton()` |
 | Trust the mini app user on your server | `@exode-team/sdk/miniapp/server` | `verifyInitData(initData, { secret })` |
 | Verify an Exode webhook | `@exode-team/sdk/miniapp/server` | `verifyWebhookSignature(rawBody, { secret, signature })` |
 
@@ -500,6 +593,9 @@ address fragment and needs no provider. `user` is `null` until handshake (only v
 - `QueryExportType` / `QueryExportFormat` are prefixed enums — do not pass raw strings without the prefix.
 - `ExodeMiniApp.init()` only works inside an iframe and only once.
 - `targetOrigin: '*'` is for local dev only; pin the exact origin in production.
+- Check `app.isSupported(...)` / the hooks' `isSupported` before relying on the host chrome; render your own UI otherwise.
+- `app.ui.openLink` / `share` accept only `http:`, `https:`, `mailto:`, `tel:` URLs — anything else is silently ignored.
+- Never import `@exode-team/sdk/miniapp/devtools` into a production build.
 - Required REST headers (`Seller-Id`, `School-Id`, `Authorization: Bearer <token>`) are set by `ExodeAPI` automatically.
 
 ## 7. Links

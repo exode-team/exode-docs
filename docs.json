@@ -182,6 +182,7 @@
                   "en/exode-sdk/miniapp/context",
                   "en/exode-sdk/miniapp/init-data",
                   "en/exode-sdk/miniapp/react",
+                  "en/exode-sdk/miniapp/native",
                   "en/exode-sdk/miniapp/create-miniapp"
                 ]
               }
@@ -196,7 +197,8 @@
                   "en/customization/custom-pages",
                   "en/customization/tg-mini-app",
                   "en/customization/mobile-app",
-                  "en/customization/js-config"
+                  "en/customization/js-config",
+                  "en/customization/search-indexing"
                 ]
               },
               {
@@ -387,6 +389,7 @@
                   "ru/exode-sdk/miniapp/context",
                   "ru/exode-sdk/miniapp/init-data",
                   "ru/exode-sdk/miniapp/react",
+                  "ru/exode-sdk/miniapp/native",
                   "ru/exode-sdk/miniapp/create-miniapp"
                 ]
               }
@@ -401,7 +404,8 @@
                   "ru/customization/custom-pages",
                   "ru/customization/tg-mini-app",
                   "ru/customization/mobile-app",
-                  "ru/customization/js-config"
+                  "ru/customization/js-config",
+                  "ru/customization/search-indexing"
                 ]
               },
               {

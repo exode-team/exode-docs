@@ -39,13 +39,14 @@ pnpm add @exode-team/sdk
 
 ## Imports
 
-The package has four subpath exports — import only the one you need:
+The package has five subpath exports — import only the one you need:
 
 ```ts
-import { ExodeAPI }        from '@exode-team/sdk/api'             // server (Node.js)
-import { ExodeMiniApp }    from '@exode-team/sdk/miniapp'         // browser, inside an iframe
-import { useExodeUser }    from '@exode-team/sdk/miniapp/react'   // browser + React
-import { verifyInitData }  from '@exode-team/sdk/miniapp/server'  // server (Node.js)
+import { ExodeAPI }        from '@exode-team/sdk/api'               // server (Node.js)
+import { ExodeMiniApp }    from '@exode-team/sdk/miniapp'           // browser, inside an iframe
+import { useExodeUser }    from '@exode-team/sdk/miniapp/react'     // browser + React
+import { verifyInitData }  from '@exode-team/sdk/miniapp/server'    // server (Node.js)
+import { installDevtools } from '@exode-team/sdk/miniapp/devtools'  // browser, development only (SDK 0.9+)
 ```
 
 <Warning>
@@ -61,7 +62,8 @@ import { verifyInitData }  from '@exode-team/sdk/miniapp/server'  // server (Nod
 ## Using a CDN
 
 For static pages without a build step, an IIFE bundle of the MiniApp module (`ExodeMiniApp`, `retrieveInitData`) is available.
-React hooks and server functions are not shipped via the CDN.
+React hooks and server functions are not shipped via the CDN. The devtools for development (the loading silhouette)
+are a separate bundle, `miniapp-devtools.global.js` — see [Native look](/en/exode-sdk/miniapp/native#loading-silhouette-and-devtools).
 
 
 <CodeGroup>
@@ -110,19 +112,17 @@ Types ship with the package; no additional `@types/...` package is required.
 import type { ExodeAPIConfig, User } from '@exode-team/sdk/api'
 
 import type {
+  Platform,          // 'web' | 'native'
   ExodeMiniAppConfig,
   MiniAppContext,
   MiniAppUser,
 } from '@exode-team/sdk/miniapp'
 
 import type { InitDataPayload } from '@exode-team/sdk/miniapp/server'
-
-// The Platform type is not exported separately — take it from the context:
-type Platform = MiniAppContext['platform'] // 'web' | 'native'
 ```
 
 {/* updated-stamp */}
 
 ---
 
-_Updated: 2026-10-22 10:32 UTC_
+_Updated: 2026-10-22 23:06 UTC_

@@ -14,6 +14,9 @@ interface MiniAppContext {
   theme: MiniAppTheme
   platform: Platform
   config: MiniAppConfig
+  os?: 'ios' | 'android' | 'web'      // host 0.4+
+  viewport?: MiniAppViewport          // host 0.4+
+  capabilities?: MiniAppCapability[]  // host 0.4+
 }
 ```
 
@@ -61,6 +64,22 @@ interface MiniAppContext {
 ```ts
 interface MiniAppTheme {
   scheme: 'light' | 'dark'
+  accent?: string                       // host 0.4+: the school accent (CSS color)
+  colors?: Partial<MiniAppThemeColors>  // host 0.4+: the host colors for the scheme shown
+}
+
+interface MiniAppThemeColors {
+  background: string        // page background
+  content: string           // cards and lists on the page
+  elevated: string          // what floats over the page (menus, sheets)
+  text: string
+  textSecondary: string
+  textTertiary: string
+  accent: string
+  accentForeground: string  // text and icons over the accent
+  separator: string
+  destructive: string
+  positive: string
 }
 ```
 
@@ -82,7 +101,34 @@ type Platform = 'web' | 'native'
 
 <Info>
   `native` означает, что Exode запущен внутри нативной оболочки (например, iOS/Android-приложение). В остальных случаях `web`.
+  Систему устройства (`ios` / `android` / `web`) хост 0.4+ передаёт в поле `os`.
 </Info>
+
+### MiniAppViewport
+
+Где стоит фрейм и что его закрывает (хост 0.4+). Обновляется событием `viewport:changed`.
+
+```ts
+interface MiniAppViewport {
+  width: number                 // размер фрейма, CSS px
+  height: number
+  safeArea: MiniAppInsets       // safe area устройства над фреймом: статус-бар, вырез, индикатор «домой»
+  content: MiniAppInsets        // хром хоста над фреймом
+  isEdgeToEdge: boolean         // фрейм уходит под хром хоста
+  isFullscreen: boolean         // фрейм во весь экран: без шапки и нижнего меню
+  orientation: 'portrait' | 'landscape'
+}
+
+interface MiniAppInsets { top: number; right: number; bottom: number; left: number }
+```
+
+### MiniAppCapability
+
+Что хост умеет для приложения (хост 0.4+): `popup`, `prompt`, `haptic`, `header`, `backButton`, `mainButton`,
+`composer`, `composer.attachments`, `composer.voice`, `composer.dictation`, `composer.voiceOnly`,
+`composer.dictation.audio`, `composer.voiceOnly.review`, `composer.voiceOnly.noCancel`, `fullscreen`, `orientation`,
+`openLink`, `share`, `clipboard`. Проверка — `app.isSupported(capability)`; где какая возможность есть — на странице
+[Нативный вид](/ru/exode-sdk/miniapp/native#что-умеет-хост).
 
 ### school
 
@@ -103,15 +149,26 @@ type Platform = 'web' | 'native'
 | `route:changed` | `{ path, params }` | Хост изменил маршрут; `path` — шаблон маршрута, например `/course/:courseId([0-9_A-Za-z]+)` |
 | `context:updated` | `Partial<MiniAppContext>` | Частичное обновление контекста (зарезервировано: текущая версия хоста это событие не отправляет) |
 | `visibility:changed` | `{ visible: boolean }` | Iframe стал видимым/невидимым |
+| `viewport:changed` | `MiniAppViewport` | Сдвинулся хром хоста, изменился размер фрейма, включился весь экран, повернулся экран (хост 0.4+) |
+| `header:button` | `{ id }` | Нажат пункт меню «…» шапки |
+| `backButton:pressed` | — | Нажата «Назад», пока приложение её держит |
+| `mainButton:pressed` | — | Нажата главная кнопка |
+| `composer:submit` | `{ text, files, voice? }` | Отправлено поле ввода |
+| `composer:voice` | `{ file, duration }` | Записано голосовое сообщение (`File`, секунды) |
+| `composer:change` | `{ text }` | Речь услышана в режиме «только голос» (`mic: 'dictation'`) |
+| `composer:stop` | — | Нажат «стоп», пока поле `busy` |
+| `composer:scrollDown` | — | Нажата кнопка «вниз» над полем |
 
 <Tip>
-  Событие `context:updated` применяется к внутреннему кэшу автоматически. Остальные события кэш `app.getContext()`
-  не обновляют — см. [Получение текущего контекста](/ru/exode-sdk/miniapp/client#получение-текущего-контекста).
+  События `theme:changed`, `user:updated`, `school:updated`, `config:updated`, `viewport:changed` и `context:updated`
+  bridge применяет к контексту из `app.getContext()` сам — см.
+  [Получение текущего контекста](/ru/exode-sdk/miniapp/client#получение-текущего-контекста).
 </Tip>
 
 ## Команды MiniApp → хост (MiniAppCommandMap)
 
-Вызываются через namespaces `app.route` и `app.ui`.
+Вызываются через namespaces `app.route` и `app.ui`, а с SDK 0.4 — `app.popup`, `app.haptic`, `app.header`,
+`app.backButton`, `app.mainButton`, `app.composer` и `app.viewport`.
 
 | Команда | Payload | Метод SDK |
 |---------|---------|-----------|
@@ -122,6 +179,20 @@ type Platform = 'web' | 'native'
 | `setHeaderVisible` | `{ visible }` | `app.ui.setHeaderVisible()` (на кастомных страницах пока без эффекта) |
 | `minimize` | — | `app.ui.minimize()` |
 | `close` | — | `app.ui.close()` |
+| `popup:show` | `{ title?, message, buttons? }` → `{ buttonId }` | `app.popup.show()`, `alert()`, `confirm()` |
+| `popup:prompt` | `MiniAppPromptParams` → `{ value }` | `app.popup.prompt()` |
+| `haptic` | `{ type, style? }` | `app.haptic.impact()`, `notification()`, `selection()` |
+| `header:set` | `{ title?, left?, right? }` | `app.header.set()` |
+| `backButton:set` | `{ visible }` | `app.backButton.show()`, `hide()` |
+| `mainButton:set` | `{ visible, text?, disabled?, loading?, color?, textColor? }` | `app.mainButton.set()`, `hide()` |
+| `composer:set` | `MiniAppComposerParams` | `app.composer.set()`, `hide()` |
+| `composer:dismissKeyboard` | — | `app.composer.dismissKeyboard()` |
+| `fullscreen:set` | `{ fullscreen }` → `{ isFullscreen }` | `app.viewport.requestFullscreen()`, `exitFullscreen()` |
+| `orientation:lock` | `{ orientation }` | `app.viewport.lockOrientation()` |
+| `orientation:unlock` | — | `app.viewport.unlockOrientation()` |
+| `link:open` | `{ url, external? }` | `app.ui.openLink()` — только `http`, `https`, `mailto`, `tel` |
+| `share` | `{ url?, text?, title? }` → `{ shared }` | `app.ui.share()` |
+| `clipboard:write` | `{ text }` → `{ copied }` | `app.ui.copyText()` |
 
 <Note>
   `minimize` сворачивает окно приложения и работает только для страниц с типом окна
@@ -151,21 +222,29 @@ interface BridgeMessage<T = unknown> {
 
 ```ts
 import type {
+  Platform,
   MiniAppContext,
   MiniAppUser,
   MiniAppTheme,
+  MiniAppThemeColors,
   MiniAppConfig,
+  MiniAppViewport,
+  MiniAppInsets,
+  MiniAppCapability,
+  MiniAppIcon,
+  MiniAppHeaderParams,
+  MiniAppMainButtonParams,
+  MiniAppComposerParams,
+  MiniAppPopupParams,
+  MiniAppPromptParams,
   MiniAppEventMap,
   MiniAppCommandMap,
   BridgeMessage,
 } from '@exode-team/sdk/miniapp'
-
-// Platform отдельно не экспортируется:
-type Platform = MiniAppContext['platform']
 ```
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-09-28 05:04 UTC_
+_Обновлено: 2026-10-22 23:06 UTC_

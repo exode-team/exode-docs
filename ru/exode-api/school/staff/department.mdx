@@ -629,6 +629,11 @@ DELETE /saas/v2/staff/department/{departmentId}/delete
     (уволенные) трудоустройства удалению не мешают.
 </Warning>
 
+<Info>
+  При удалении департамент снимается со всех [должностей](/ru/exode-api/school/staff/position#привязка-к-подразделениям-и-грейдам),
+  которые к нему привязаны. Должность, у которой не осталось ни одного подразделения, становится общей для школы.
+</Info>
+
 ### Параметры
 
 <ParamField path="departmentId" type="integer" required>
@@ -720,9 +725,9 @@ DELETE /saas/v2/staff/department/ext/{extId}/delete
 <Info>
   Аналог обычного удаления, но департамент ищется по внешнему идентификатору (`extId`) в рамках школы. Действуют
   те же правила: удалить можно только «листовой» департамент без дочерних подразделений и активных сотрудников
-  (иначе — `StaffDepartmentHasChildren` / `StaffDepartmentHasActiveEmployments`). Значение `extId` в пути должно
-  быть URL-encoded. Если департамент с таким `extId` не найден в рамках школы — будет возвращена ошибка
-  `StaffDepartmentNotFound`.
+  (иначе — `StaffDepartmentHasChildren` / `StaffDepartmentHasActiveEmployments`), а привязка департамента к
+  должностям снимается. Значение `extId` в пути должно быть URL-encoded. Если департамент с таким `extId` не найден
+  в рамках школы — будет возвращена ошибка `StaffDepartmentNotFound`.
 </Info>
 
 ### Параметры
@@ -811,4 +816,4 @@ deleteDepartmentByExtId();
 
 ---
 
-_Обновлено: 2026-10-22 10:32 UTC_
+_Обновлено: 2026-10-22 23:06 UTC_

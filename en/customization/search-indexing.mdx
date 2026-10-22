@@ -1,0 +1,80 @@
+---
+title: 'Search engine indexing'
+description: 'School site visibility in search: the switch, X-Robots-Tag, sitemap.xml and robots.txt'
+---
+
+A school site is open to search engines by default: the platform serves `robots.txt` and `sitemap.xml` itself, and the
+server puts the page meta tags (title, description, canonical) into the `<head>` of the initial HTML — before the code
+from [Custom HTML](/en/customization/js-config). The `lang` attribute of `<html>` is the page language: the user's
+language if the school supports it, otherwise the school's main language.
+
+## The "The school is visible in search engines" switch
+
+1. Open the control panel → **"Login and registration"** (the "Privacy and registration" page,
+   `https://<school-domain>/manage/school/privacy`).
+2. Expand **"Advanced settings"** and turn **"The school is visible in search engines"** on or off
+   ("The company is visible in search engines" in a corporate school).
+3. Save the changes.
+
+<Info>
+  The switch is on by default for every school, both public and private: finding a school in search does not mean
+  entering it. While the switch is off, the "Advanced settings" block opens by itself. The setting can be changed by a
+  manager with the **"School Settings Management"** permission (`SchoolManageSettings`).
+</Info>
+
+When the school site is closed to indexing:
+
+- every page of the site is served with the `X-Robots-Tag: noindex, nofollow` header — search engines drop the site
+  from results;
+- `sitemap.xml` answers `404`, and `robots.txt` has no `Sitemap` line.
+
+The site is closed the same way when the school is inactive or has no active subscription, regardless of the switch.
+
+## sitemap.xml
+
+The sitemap is built on the fly at `https://<school-domain>/sitemap.xml` (cached for an hour). Only an indexable school
+serves it, and only on its **canonical domain**: if the school has its own domain connected, the sitemap exists only
+there, and the base `*.exode.biz` address answers `404` — so the sitemap never lists URLs of another host.
+
+| School | What the sitemap lists |
+|--------|------------------------|
+| Public | The main page (`/`), the catalog (`/catalog`), the courses shown in the catalog (`/courses/1/<id>`, with `lastmod` from the course update date), the sign-in page `/login/signin` and the pages of the school site |
+| Private | Only the sign-in page `/login/signin` — a private school opens only the sign-in to a guest |
+
+The pages of the school site in the sitemap are [custom pages](/en/customization/custom-pages) with the "Page" window
+type that open without sign-in ("Require sign-in" is off in the page form), except the one assigned as the main page
+(it is already listed as `/`).
+Windows ("Floating window", "Side panel", "Fullscreen"), system pages and control panel pages are not listed.
+
+## robots.txt
+
+`robots.txt` is one file for all platform hosts and is built for the domain of the request:
+
+```txt robots.txt of an indexable school
+Sitemap: https://my-school.exode.biz/sitemap.xml
+
+User-agent: *
+Allow: /
+Disallow: /invite/
+```
+
+Only an indexable school on its canonical domain gets the `Sitemap` line. Crawling of non-indexable hosts is not
+disallowed: under `Disallow` a search engine would not open the page and would not see `noindex`, so the
+`X-Robots-Tag` header removes them from results. If building the file fails, `robots.txt` still answers `200` —
+without the `Sitemap` line.
+
+## Response codes
+
+The school site server answers with honest status codes, so search engines do not index placeholders:
+
+| Code | When |
+|------|------|
+| `404` | No school with this domain; no such route; no course, the course is not published, or no custom page at this address. The "not found" page is rendered at the same address, without a redirect |
+| `410` | The school is archived: a page with the school's support contacts is served |
+| `503` | A temporary server or API failure; with the `Retry-After: 120` header — the search engine comes back later |
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-10-22 23:06 UTC_

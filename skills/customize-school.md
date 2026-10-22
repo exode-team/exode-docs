@@ -1,6 +1,6 @@
 ---
 name: exode-customize-school
-description: Customize an Exode school's look and behavior end-to-end for a non-technical owner — custom code (JS) tweaks, custom pages with embedded mini apps, auto-login into the school's Telegram Mini App, and deep links into the ExodeBiz mobile app. Use when a user wants to customize their Exode school's look and behavior — JS config tweaks, custom pages, a Telegram mini app for the school, or mobile app setup.
+description: Customize an Exode school's look and behavior end-to-end for a non-technical owner — custom code (JS) tweaks, custom pages with embedded mini apps, auto-login into the school's Telegram Mini App, deep links into the ExodeBiz mobile app, and the school's visibility in search engines. Use when a user wants to customize their Exode school's look and behavior — JS config tweaks, custom pages, a Telegram mini app for the school, mobile app setup, or hiding/showing the school in Google and Yandex.
 ---
 
 # Customize an Exode School
@@ -28,6 +28,7 @@ Match what the user wants to the right mechanism before doing anything:
 | Build the website/app that the custom page embeds | **Hand off to the `exode-create-miniapp` skill** — it covers scaffold, initData verification, deploy | §2 |
 | Students to open the school inside Telegram, logged in automatically | **Telegram Mini App auto-auth** (`___uat` token) | §3 |
 | Their own native app to open a lesson/course in the ExodeBiz mobile app | **Mobile deep link** (`exodebizapp://`) | §4 |
+| Hide the school from Google/Yandex, or find out why it is (not) in search, sitemap/robots | **Search indexing switch** (admin panel) | §5 |
 
 If the request mixes several (common: "make a custom page" → also needs the mini app
 built), do the school-side steps here and delegate the app build to `exode-create-miniapp`.
@@ -89,7 +90,10 @@ Create one (user does this in the browser — guide click by click):
    - **App URL (iframe)** — the https address of the mini app (opens in the iframe);
    - **Window type** — `Page` (a normal platform page), `Floating window` (overlay that can be minimized), `Side panel` (panel next to the content), `Fullscreen` (a window over the whole screen, also minimizable); on a phone every type opens as a page. Query parameters of the page address (`/<slug>?courseId=5`) are passed to the iframe URL query, except `modal`, `popup`, `appId`;
    - **Layout** — `Page` window type only: `Full width` or `Island` (a card with padding);
-   - **Available without login** — whether unauthenticated visitors can see it.
+   - **Available without login** — whether unauthenticated visitors can see it;
+   - **Loading silhouette** (optional) — one line the host draws while the app loads, e.g.
+     `p12,16 g16; c48 208x28; 226 r16` (format: `/en/customization/custom-pages#loading-silhouette`);
+     the SDK devtools measure it from the app's first screen (`exodeDevtools.skeleton()`).
 3. Page row menu «⋯» → **Show secret** («Показать секрет») — the mini app's server needs it to verify Init Data. Store it only on the server; never print it into chat. **Regenerate secret** («Перевыпустить секрет») invalidates the old one immediately.
 4. Add a left-menu item for the page in **Settings → Left menu of the site** («Настройки» → «Левое меню сайта») with link `/<slug>` — navigation stays internal, no reload.
 5. The embedded site must allow framing: no `X-Frame-Options` header; if it sends a CSP `frame-ancestors`, that list must include the school's domain.
@@ -162,6 +166,24 @@ Rules that actually bite:
   (`ActivityNotFoundException` / `success == false`) and show a store or website fallback.
 - If the school is not yet added in the app, it is added automatically and becomes active.
 - `login-by-token` links log anyone in as that user — short-lived, personal, never published.
+
+## §5. Search engine indexing
+
+Where: control panel → **«Вход и регистрация»** (EN UI: Login and registration;
+`https://<school-domain>/manage/school/privacy`) → **«Расширенные настройки»** → toggle
+**«Школа видна в поисковых системах»** («Компания…» in a corporate school; EN: "The school is
+visible in search engines"). Requires **"School Settings Management"** (`SchoolManageSettings`).
+On by default for every school, public and private.
+
+- Off (or the school inactive / without an active subscription) → every page is served with
+  `X-Robots-Tag: noindex, nofollow`, `sitemap.xml` answers 404, `robots.txt` has no `Sitemap` line.
+- `sitemap.xml` / the `Sitemap` line exist only on the school's canonical domain (its custom
+  domain when one is connected; the base `*.exode.biz` host then answers 404). A public school
+  lists `/`, `/catalog`, the catalog courses, `/login/signin` and its public custom pages of the "Page"
+  type; a private school lists only `/login/signin`.
+- Honest statuses: 404 (no school / route / course / custom page), 410 (archived school), 503 with
+  `Retry-After: 120` (temporary failure).
+- Docs: `/en/customization/search-indexing`.
 
 ## Verification
 

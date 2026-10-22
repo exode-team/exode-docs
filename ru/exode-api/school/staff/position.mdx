@@ -61,7 +61,8 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
   [`department/list?extIds=...`](/ru/exode-api/school/staff/department). В ответе должности возвращается
   `departmentIds` — подразделения, к которым она привязана (`[]` — общая для школы); список должностей
   подразделения отдаёт `position/list?departmentId={id}`. Привязка к грейдам в ответе не возвращается — грейды
-  должности отдаёт [`grade/list?positionId={id}`](/ru/exode-api/school/staff/grade).
+  должности отдаёт [`grade/list?positionId={id}`](/ru/exode-api/school/staff/grade). Удалённое подразделение
+  снимается со всех должностей: должность, у которой не осталось подразделений, становится общей для школы.
 </Info>
 
 <Warning>
@@ -783,4 +784,4 @@ deletePositionByExtId();
 
 ---
 
-_Обновлено: 2026-10-22 10:32 UTC_
+_Обновлено: 2026-10-22 23:06 UTC_

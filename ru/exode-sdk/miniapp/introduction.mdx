@@ -49,8 +49,9 @@ Exode App (host)          ◄── postMessage ──►      MiniApp (iframe)
   <Accordion title="Контекст хоста" icon="database">
     - Профиль пользователя (имя, аватар, email, роль, язык)
     - Объект школы
-    - Текущая тема (`light` / `dark`)
-    - Платформа (`web` / `native`) и устройство (`isDesktop` / `isMobile`)
+    - Текущая тема (`light` / `dark`), с хостом 0.4+ — акцент и цвета школы
+    - Платформа (`web` / `native`), система (`ios` / `android` / `web`) и устройство (`isDesktop` / `isMobile`)
+    - Положение фрейма и отступы под хром хоста, список возможностей хоста
   </Accordion>
 
   <Accordion title="Команды к хосту" icon="paper-plane">
@@ -58,12 +59,15 @@ Exode App (host)          ◄── postMessage ──►      MiniApp (iframe)
     - Показ snackbar-уведомлений
     - Управление видимостью tabbar / header
     - Закрытие мини-приложения
+    - С SDK 0.4 — [нативный хром](/ru/exode-sdk/miniapp/native): шапка с меню «…», «Назад», главная кнопка, поле
+      ввода с микрофоном, попапы, вибрация, весь экран, ссылки и «Поделиться»
   </Accordion>
 
   <Accordion title="Реактивные события" icon="bolt">
     - Смена темы, пользователя, школы, конфига
     - Изменение маршрута хоста
-    - Изменение видимости iframe
+    - Изменение видимости iframe и его положения (`viewport:changed`)
+    - Нажатия в хроме хоста: пункты меню «…», «Назад», главная кнопка, отправка поля ввода
   </Accordion>
 </AccordionGroup>
 
@@ -82,6 +86,10 @@ Exode App (host)          ◄── postMessage ──►      MiniApp (iframe)
     Provider и реактивные хуки для React-приложений.
   </Card>
 
+  <Card title="Нативный вид" icon="mobile" href="/ru/exode-sdk/miniapp/native">
+    Шапка, «Назад», главная кнопка, поле ввода, попапы и вибрация хоста.
+  </Card>
+
   <Card title="Init Data" icon="shield-check" href="/ru/exode-sdk/miniapp/init-data">
     Подписанные данные пользователя и их проверка на вашем сервере.
   </Card>
@@ -95,4 +103,4 @@ Exode App (host)          ◄── postMessage ──►      MiniApp (iframe)
 
 ---
 
-_Обновлено: 2026-09-25 13:43 UTC_
+_Обновлено: 2026-10-22 23:06 UTC_

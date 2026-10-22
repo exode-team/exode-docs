@@ -99,13 +99,44 @@ Two commands are available from the mini app itself ([MiniApp SDK](/en/exode-sdk
   on your server.
 </Note>
 
+If an app that has already done the handshake at this address does not answer within 15 seconds this time, a
+**Reload** button is shown in its place. The app can also be loaded anew with the **Reload** item of the "…" menu in the page
+header, next to the app's own actions (see [Native look](/en/exode-sdk/miniapp/native)).
+
+## Loading silhouette
+
+While the code and the data of the mini app load, the platform draws a **loading silhouette** in place of the frame:
+blocks that repeat the first screen of the app — no blank screen, no spinner, no jump when the silhouette gives way to
+the content. The silhouette is set in the page form, in the **Loading silhouette** field — one line of up to 1024
+characters, with a preview on a phone screen next to it. An empty field means a loading indicator. The field exists
+for the pages of installed mini apps too.
+
+```txt Example
+p12,16 g16; c48 208x28 g12; 226 r16; 96x22; 180*2; #2 120*2
+```
+
+- Rows are separated by `;`, the blocks of a row by spaces.
+- The first row holds page options only: `p12,16` — the padding (vertical, horizontal), `g16` — the gap between rows.
+- Blocks: `226` — full width, 226 px high; `208x28` — width × height (the width in px or as a share of the row —
+  `50%x20`); `c48` — a circle; a block with no width in a row with others takes what is left. `~` is a spring: what
+  follows goes to the right edge (`c40 140x20 ~ 64x28` — an avatar and a title, a button on the right); `_16` — an
+  empty 16 px space.
+- Row modifiers: `r16` — the radius of its blocks, `g12` — the gap between them, `m0,24` — the row margin (vertical,
+  horizontal), `al` / `ac` / `ar` / `as` — blocks at the start, center, end, apart, `vt` / `vc` / `vb` — at the top,
+  middle, bottom of the row, `#2` — the row's block twice side by side (a grid), `*3` — the row three times (also at
+  the end of its last block: `180*2`).
+
+The form does not save a line that cannot be parsed. You do not have to write it by hand: the SDK devtools measure the
+first screen of the app and give you the line — see [Loading silhouette and devtools](/en/exode-sdk/miniapp/native#loading-silhouette-and-devtools).
+
 ## What's next
 
 - [Introduction to MiniApp SDK](/en/exode-sdk/miniapp/introduction): the bridge, context, commands and events;
+- [Native look](/en/exode-sdk/miniapp/native): the host header, "Back", main button, composer and popups;
 - [Init Data](/en/exode-sdk/miniapp/init-data): verifying signed data on your server.
 
 {/* updated-stamp */}
 
 ---
 
-_Updated: 2026-09-28 05:04 UTC_
+_Updated: 2026-10-22 23:06 UTC_

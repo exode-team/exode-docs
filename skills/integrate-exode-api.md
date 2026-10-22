@@ -225,7 +225,8 @@ name the checkbox, and add the code only for reference (the API returns the code
 | `StaffView` | Staff browsing | «Просмотр персонала» | Staff Management / Управление персоналом |
 | `StaffManage` | Staff Management | «Управление персоналом» | Staff Management / Управление персоналом |
 
-**Rate limit.** Some methods are rate-limited per token. On excess you get HTTP
+**Rate limit.** Some methods are rate-limited per token, each method on its own counter
+(by its route). On excess you get HTTP
 `429`, `cause: "Rate"`, and `data.retryAfter` — an ISO timestamp for when to
 retry. Implement retries that honor `retryAfter`, with exponential backoff for
 transient errors (`429`, `5xx`). Limits are stated on method pages (e.g. export

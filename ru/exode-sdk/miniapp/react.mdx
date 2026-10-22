@@ -28,7 +28,12 @@ function App() {
 ### Параметры
 
 <ResponseField name="config" type="ExodeMiniAppProviderConfig" required>
-  Конфигурация клиента: `appId`, `targetOrigin?`, `timeout?` (см. [параметры `ExodeMiniApp`](/ru/exode-sdk/miniapp/client#параметры-конфигурации)) плюс `renderMode?`.
+  Конфигурация клиента: `appId`, `targetOrigin?`, `timeout?`, `edgeToEdge?`, `applyEnvironment?`, `applyTheme?`
+  (см. [параметры `ExodeMiniApp`](/ru/exode-sdk/miniapp/client#параметры-конфигурации)) плюс `renderMode?`.
+  В отличие от `ExodeMiniApp`, у провайдера `edgeToEdge` и `applyTheme` по умолчанию включены (SDK 0.4+): в
+  приложении фрейм уходит под шапку и нижнее меню хоста, `<body>` получает отступы по `--exode-inset-*`, фон и цвет
+  текста — из цветов школы. Чтобы вести отступы или тему самому, передайте `edgeToEdge: 'manual'` или
+  `applyTheme: false` — см. [Нативный вид](/ru/exode-sdk/miniapp/native#края-и-тема).
 
   <Expandable title="renderMode">
     Режим рендеринга детей:
@@ -83,7 +88,9 @@ function Greeting() {
 
 ## useExodeTheme
 
-Текущая тема. Обновляется на событии `theme:changed`. Также возвращает `isReady` — получена ли тема от хоста.
+Текущая тема. Обновляется на событии `theme:changed`. Также возвращает `isReady` — получена ли тема от хоста, и
+с хостом 0.4+ — `accent` (акцент школы, CSS-цвет) и `colors` (цвета хоста, `MiniAppThemeColors`); со старым хостом
+они `null`. До handshake схема берётся из имени фрейма, которое хост задаёт при открытии.
 
 ```jsx
 function ThemedBox() {
@@ -111,7 +118,8 @@ function SchoolInfo() {
 
 ## useExodeConfig
 
-Конфигурация окружения. Обновляется на событии `config:updated`.
+Конфигурация окружения. Обновляется на событии `config:updated`. Поле `os` (`ios` / `android` / `web`) передаёт
+хост 0.4+, со старым хостом — `null`.
 
 ```jsx
 function Layout({ children }) {
@@ -147,7 +155,8 @@ function NavButtons() {
 
 ## useExodeUI
 
-UI-команды к хосту.
+UI-команды к хосту. С SDK 0.4 хук возвращает и `openLink(url, { external? })`, `share({ url?, text?, title? })` и
+`copyText(text)` — см. [Нативный вид](/ru/exode-sdk/miniapp/native).
 
 ```jsx
 function Controls() {
@@ -219,6 +228,24 @@ function Session() {
 }
 ```
 
+## Хуки нативного вида (SDK 0.4+)
+
+Хуки хрома хоста подробно описаны на странице [Нативный вид](/ru/exode-sdk/miniapp/native).
+
+| Хук | Что даёт |
+|-----|----------|
+| `useExodeSupports()` | Функция `(capability) => boolean`: умеет ли хост это (до handshake и со старым хостом — `false`) |
+| `useExodeViewport()` | `viewport`, `insets`, `isFullscreen`, `isEdgeToEdge`, `orientation`, `requestFullscreen`, `exitFullscreen`, `lockOrientation`, `unlockOrientation` |
+| `useExodeHeader({ title, left, right, onButton })` | Заголовок и пункты меню «…» шапки, пока компонент смонтирован |
+| `useExodeBackButton(handler \| null)` | «Назад» ведёт по экранам приложения, пока передан обработчик |
+| `useExodeMainButton({ text, loading, disabled, color, textColor, visible, onClick })` | Главная кнопка у низа экрана |
+| `useExodeComposer({ ...params, onSubmit, onVoice, onChange, onStop, onScrollDown })` | Поле ввода с микрофоном, в том числе «только голос» |
+| `useExodePopup()` | `show`, `alert`, `confirm`, `prompt` |
+| `useExodeHaptic()` | `impact`, `notification`, `selection` |
+
+`useExodeHeader`, `useExodeBackButton`, `useExodeMainButton` и `useExodeComposer` возвращают `isSupported` — если
+`false`, отрисуйте свой интерфейс. Шапка, главная кнопка и поле ввода у хоста одни: один такой хук на экран.
+
 ## Требования
 
 <Warning>
@@ -269,4 +296,4 @@ export default function App() {
 
 ---
 
-_Обновлено: 2026-09-28 05:04 UTC_
+_Обновлено: 2026-10-22 23:06 UTC_

@@ -28,7 +28,12 @@ function App() {
 ### Parameters
 
 <ResponseField name="config" type="ExodeMiniAppProviderConfig" required>
-  Client configuration: `appId`, `targetOrigin?`, `timeout?` (see [`ExodeMiniApp` parameters](/en/exode-sdk/miniapp/client#configuration-parameters)) plus `renderMode?`.
+  Client configuration: `appId`, `targetOrigin?`, `timeout?`, `edgeToEdge?`, `applyEnvironment?`, `applyTheme?`
+  (see [`ExodeMiniApp` parameters](/en/exode-sdk/miniapp/client#configuration-parameters)) plus `renderMode?`.
+  Unlike `ExodeMiniApp`, the provider has `edgeToEdge` and `applyTheme` on by default (SDK 0.4+): in the app the frame
+  goes under the host header and bottom menu, `<body>` gets padding by `--exode-inset-*`, and its background and text
+  color come from the school colors. To handle the insets or the theme yourself, pass `edgeToEdge: 'manual'` or
+  `applyTheme: false` — see [Native look](/en/exode-sdk/miniapp/native#edges-and-theme).
 
   <Expandable title="renderMode">
     Children rendering mode:
@@ -83,7 +88,10 @@ function Greeting() {
 
 ## useExodeTheme
 
-The current theme. Updated on the `theme:changed` event. Also returns `isReady` — whether the theme has been received from the host.
+The current theme. Updated on the `theme:changed` event. Also returns `isReady` — whether the theme has been received
+from the host, and with a host 0.4+ — `accent` (the school accent, a CSS color) and `colors` (the host colors,
+`MiniAppThemeColors`); with an older host they are `null`. Before the handshake the scheme comes from the frame name the
+host sets when opening the app.
 
 ```jsx
 function ThemedBox() {
@@ -111,7 +119,8 @@ function SchoolInfo() {
 
 ## useExodeConfig
 
-Environment configuration. Updated on the `config:updated` event.
+Environment configuration. Updated on the `config:updated` event. The `os` field (`ios` / `android` / `web`) comes
+from a host 0.4+, with an older host it is `null`.
 
 ```jsx
 function Layout({ children }) {
@@ -147,7 +156,8 @@ function NavButtons() {
 
 ## useExodeUI
 
-UI commands to the host.
+UI commands to the host. Since SDK 0.4 the hook also returns `openLink(url, { external? })`,
+`share({ url?, text?, title? })` and `copyText(text)` — see [Native look](/en/exode-sdk/miniapp/native).
 
 ```jsx
 function Controls() {
@@ -219,6 +229,24 @@ function Session() {
 }
 ```
 
+## Native look hooks (SDK 0.4+)
+
+The host chrome hooks are described in detail on the [Native look](/en/exode-sdk/miniapp/native) page.
+
+| Hook | What it gives |
+|------|---------------|
+| `useExodeSupports()` | A `(capability) => boolean` function: whether the host can do it (`false` before the handshake and with an older host) |
+| `useExodeViewport()` | `viewport`, `insets`, `isFullscreen`, `isEdgeToEdge`, `orientation`, `requestFullscreen`, `exitFullscreen`, `lockOrientation`, `unlockOrientation` |
+| `useExodeHeader({ title, left, right, onButton })` | The title and the items of the header "…" menu while the component is mounted |
+| `useExodeBackButton(handler \| null)` | "Back" goes through the app's screens while a handler is given |
+| `useExodeMainButton({ text, loading, disabled, color, textColor, visible, onClick })` | The main button at the bottom of the screen |
+| `useExodeComposer({ ...params, onSubmit, onVoice, onChange, onStop, onScrollDown })` | The composer with the mic, including voice-only |
+| `useExodePopup()` | `show`, `alert`, `confirm`, `prompt` |
+| `useExodeHaptic()` | `impact`, `notification`, `selection` |
+
+`useExodeHeader`, `useExodeBackButton`, `useExodeMainButton` and `useExodeComposer` return `isSupported` — when it is
+`false`, render your own UI. The host has one header, one main button and one composer: one such hook per screen.
+
 ## Requirements
 
 <Warning>
@@ -269,4 +297,4 @@ export default function App() {
 
 ---
 
-_Updated: 2026-09-28 05:04 UTC_
+_Updated: 2026-10-22 23:06 UTC_

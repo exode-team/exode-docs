@@ -14,6 +14,9 @@ interface MiniAppContext {
   theme: MiniAppTheme
   platform: Platform
   config: MiniAppConfig
+  os?: 'ios' | 'android' | 'web'      // host 0.4+
+  viewport?: MiniAppViewport          // host 0.4+
+  capabilities?: MiniAppCapability[]  // host 0.4+
 }
 ```
 
@@ -61,6 +64,22 @@ interface MiniAppContext {
 ```ts
 interface MiniAppTheme {
   scheme: 'light' | 'dark'
+  accent?: string                       // host 0.4+: the school accent (CSS color)
+  colors?: Partial<MiniAppThemeColors>  // host 0.4+: the host colors for the scheme shown
+}
+
+interface MiniAppThemeColors {
+  background: string        // page background
+  content: string           // cards and lists on the page
+  elevated: string          // what floats over the page (menus, sheets)
+  text: string
+  textSecondary: string
+  textTertiary: string
+  accent: string
+  accentForeground: string  // text and icons over the accent
+  separator: string
+  destructive: string
+  positive: string
 }
 ```
 
@@ -82,7 +101,34 @@ type Platform = 'web' | 'native'
 
 <Info>
   `native` means Exode is running inside a native shell (for example, an iOS/Android app). Otherwise it is `web`.
+  A host 0.4+ passes the device system (`ios` / `android` / `web`) in the `os` field.
 </Info>
+
+### MiniAppViewport
+
+Where the frame stands and what covers it (host 0.4+). Updated by the `viewport:changed` event.
+
+```ts
+interface MiniAppViewport {
+  width: number                 // frame size, CSS px
+  height: number
+  safeArea: MiniAppInsets       // device safe area over the frame: status bar, notch, home indicator
+  content: MiniAppInsets        // host chrome over the frame
+  isEdgeToEdge: boolean         // the frame goes under the host chrome
+  isFullscreen: boolean         // the frame covers the whole screen: no header, no bottom menu
+  orientation: 'portrait' | 'landscape'
+}
+
+interface MiniAppInsets { top: number; right: number; bottom: number; left: number }
+```
+
+### MiniAppCapability
+
+What the host can do for the app (host 0.4+): `popup`, `prompt`, `haptic`, `header`, `backButton`, `mainButton`,
+`composer`, `composer.attachments`, `composer.voice`, `composer.dictation`, `composer.voiceOnly`,
+`composer.dictation.audio`, `composer.voiceOnly.review`, `composer.voiceOnly.noCancel`, `fullscreen`, `orientation`,
+`openLink`, `share`, `clipboard`. Check with `app.isSupported(capability)`; where each capability is available — on the
+[Native look](/en/exode-sdk/miniapp/native#what-the-host-can-do) page.
 
 ### school
 
@@ -103,15 +149,26 @@ Sent by the host when data changes. The MiniApp subscribes via `app.on(event, ha
 | `route:changed` | `{ path, params }` | The host changed the route; `path` is the route template, for example `/course/:courseId([0-9_A-Za-z]+)` |
 | `context:updated` | `Partial<MiniAppContext>` | Partial context update (reserved: the current host version does not send this event) |
 | `visibility:changed` | `{ visible: boolean }` | The iframe became visible/hidden |
+| `viewport:changed` | `MiniAppViewport` | The host chrome moved, the frame was resized, fullscreen was turned on, the screen rotated (host 0.4+) |
+| `header:button` | `{ id }` | An item of the header "…" menu was pressed |
+| `backButton:pressed` | — | "Back" was pressed while the app holds it |
+| `mainButton:pressed` | — | The main button was pressed |
+| `composer:submit` | `{ text, files, voice? }` | The composer was sent |
+| `composer:voice` | `{ file, duration }` | A voice message was recorded (`File`, seconds) |
+| `composer:change` | `{ text }` | Speech was heard in voice-only mode (`mic: 'dictation'`) |
+| `composer:stop` | — | "Stop" was pressed while the field is `busy` |
+| `composer:scrollDown` | — | The "scroll down" button above the field was pressed |
 
 <Tip>
-  The `context:updated` event is applied to the internal cache automatically. Other events do not update the
-  `app.getContext()` cache; see [Getting the current context](/en/exode-sdk/miniapp/client#getting-the-current-context).
+  The bridge applies the `theme:changed`, `user:updated`, `school:updated`, `config:updated`, `viewport:changed` and
+  `context:updated` events to the context from `app.getContext()` itself; see
+  [Getting the current context](/en/exode-sdk/miniapp/client#getting-the-current-context).
 </Tip>
 
 ## MiniApp → host commands (MiniAppCommandMap)
 
-Called via the `app.route` and `app.ui` namespaces.
+Called via the `app.route` and `app.ui` namespaces, and since SDK 0.4 also `app.popup`, `app.haptic`, `app.header`,
+`app.backButton`, `app.mainButton`, `app.composer` and `app.viewport`.
 
 | Command | Payload | SDK method |
 |---------|---------|-----------|
@@ -122,6 +179,20 @@ Called via the `app.route` and `app.ui` namespaces.
 | `setHeaderVisible` | `{ visible }` | `app.ui.setHeaderVisible()` (no effect on custom pages yet) |
 | `minimize` | — | `app.ui.minimize()` |
 | `close` | — | `app.ui.close()` |
+| `popup:show` | `{ title?, message, buttons? }` → `{ buttonId }` | `app.popup.show()`, `alert()`, `confirm()` |
+| `popup:prompt` | `MiniAppPromptParams` → `{ value }` | `app.popup.prompt()` |
+| `haptic` | `{ type, style? }` | `app.haptic.impact()`, `notification()`, `selection()` |
+| `header:set` | `{ title?, left?, right? }` | `app.header.set()` |
+| `backButton:set` | `{ visible }` | `app.backButton.show()`, `hide()` |
+| `mainButton:set` | `{ visible, text?, disabled?, loading?, color?, textColor? }` | `app.mainButton.set()`, `hide()` |
+| `composer:set` | `MiniAppComposerParams` | `app.composer.set()`, `hide()` |
+| `composer:dismissKeyboard` | — | `app.composer.dismissKeyboard()` |
+| `fullscreen:set` | `{ fullscreen }` → `{ isFullscreen }` | `app.viewport.requestFullscreen()`, `exitFullscreen()` |
+| `orientation:lock` | `{ orientation }` | `app.viewport.lockOrientation()` |
+| `orientation:unlock` | — | `app.viewport.unlockOrientation()` |
+| `link:open` | `{ url, external? }` | `app.ui.openLink()` — `http`, `https`, `mailto`, `tel` only |
+| `share` | `{ url?, text?, title? }` → `{ shared }` | `app.ui.share()` |
+| `clipboard:write` | `{ text }` → `{ copied }` | `app.ui.copyText()` |
 
 <Note>
   `minimize` collapses the app window and works only for pages with the
@@ -151,21 +222,29 @@ interface BridgeMessage<T = unknown> {
 
 ```ts
 import type {
+  Platform,
   MiniAppContext,
   MiniAppUser,
   MiniAppTheme,
+  MiniAppThemeColors,
   MiniAppConfig,
+  MiniAppViewport,
+  MiniAppInsets,
+  MiniAppCapability,
+  MiniAppIcon,
+  MiniAppHeaderParams,
+  MiniAppMainButtonParams,
+  MiniAppComposerParams,
+  MiniAppPopupParams,
+  MiniAppPromptParams,
   MiniAppEventMap,
   MiniAppCommandMap,
   BridgeMessage,
 } from '@exode-team/sdk/miniapp'
-
-// Platform is not exported separately:
-type Platform = MiniAppContext['platform']
 ```
 
 {/* updated-stamp */}
 
 ---
 
-_Updated: 2026-09-28 05:04 UTC_
+_Updated: 2026-10-22 23:06 UTC_

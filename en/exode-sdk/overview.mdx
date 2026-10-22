@@ -12,7 +12,7 @@ description: 'Exode SDK — a package for integrating with the Exode platform'
   </Card>
 
   <Card title="MiniApp Bridge" icon="window-restore" href="/en/exode-sdk/miniapp/introduction">
-    Client SDK for iframe apps: handshake with the host, navigation, UI commands, events, React hooks.
+    Client SDK for iframe apps: handshake with the host, navigation, UI commands, the native host chrome, events, React hooks.
   </Card>
 </CardGroup>
 
@@ -24,6 +24,7 @@ description: 'Exode SDK — a package for integrating with the Exode platform'
 | `@exode-team/sdk/miniapp` | Bridge for iframe mini apps | Browser |
 | `@exode-team/sdk/miniapp/react` | React hooks on top of the bridge | Browser + React ≥17 |
 | `@exode-team/sdk/miniapp/server` | Signature verification for [Init Data](/en/exode-sdk/miniapp/init-data) and webhooks (`verifyInitData`, `verifyWebhookSignature`) | Node.js ≥18 |
+| `@exode-team/sdk/miniapp/devtools` | Measuring the [loading silhouette](/en/exode-sdk/miniapp/native#loading-silhouette-and-devtools) of the first screen — development only | Browser |
 
 <Info>
   The package is split into independent subpath exports. Import only the module you need — tree-shaking removes the rest from the bundle.
@@ -70,4 +71,4 @@ description: 'Exode SDK — a package for integrating with the Exode platform'
 
 ---
 
-_Updated: 2026-10-22 10:32 UTC_
+_Updated: 2026-10-22 23:06 UTC_

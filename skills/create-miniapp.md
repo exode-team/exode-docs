@@ -524,6 +524,17 @@ offers `useExodeNavigation` (navigate the host, go back), `setTabbarVisible` /
 polling/video while the keep-alive iframe is hidden) — reference:
 https://docs.exode.biz/en/exode-sdk/miniapp/react
 
+**Native look in the Exode app (SDK 0.4+).** In the mobile app the host can draw its own
+chrome for the mini app: `useExodeHeader` (title + items of one "…" menu), `useExodeBackButton`,
+`useExodeMainButton`, `useExodeComposer` (field with a mic, voice-only mode for speech trainers),
+`useExodePopup`, `useExodeHaptic`, `useExodeViewport` (fullscreen, orientation) and
+`openLink` / `share` / `copyText` in `useExodeUI` (links: `http`/`https`/`mailto`/`tel` only).
+Each hook returns `isSupported` — render your own UI when it is `false`. The provider turns on
+`edgeToEdge` and `applyTheme` by default: in the app the frame goes under the host header and
+bottom menu and `<body>` is padded by `--exode-inset-*`; give your own fixed bars
+`bottom: var(--exode-inset-bottom)` or pass `edgeToEdge: 'manual'`. Reference:
+https://docs.exode.biz/en/exode-sdk/miniapp/native
+
 ### 2.3 `app/page.tsx` — the page
 
 ```tsx
@@ -942,8 +953,9 @@ when it does, and switch it to the production URL before going live.
   e.g. `frame-ancestors https://my-school.exode.biz`. (Next.js and Vercel add neither by
   default.)
 - Optionally pin the bridge to the school: pass `targetOrigin: 'https://<school-domain>'`
-  in the `ExodeMiniAppProvider` config — without it the SDK accepts messages from any
-  parent page and logs a console warning.
+  in the `ExodeMiniAppProvider` config — without it the SDK talks to the origin of the page
+  the frame is embedded in, and falls back to any parent page (with a console warning) only
+  when that origin cannot be determined.
 
 ## Troubleshooting
 

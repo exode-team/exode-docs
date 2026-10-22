@@ -95,7 +95,8 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 - [Telegram Mini App](https://docs.exode.biz/en/customization/tg-mini-app): auto-authorization via `?___uat=<token>`.
 - [Mobile app deep link](https://docs.exode.biz/en/customization/mobile-app): auto-login into the mobile app via a session token.
 - [Custom JS code](https://docs.exode.biz/en/customization/js-config): customizing the platform interface.
-- [Custom pages](https://docs.exode.biz/en/customization/custom-pages): school pages with a mini app in an iframe at `/<slug>`; window types Page, Floating window, Side panel, Fullscreen; query parameters of the page address (`/<slug>?courseId=5`) are passed to the iframe URL.
+- [Custom pages](https://docs.exode.biz/en/customization/custom-pages): school pages with a mini app in an iframe at `/<slug>`; window types Page, Floating window, Side panel, Fullscreen; query parameters of the page address (`/<slug>?courseId=5`) are passed to the iframe URL; a one-line loading silhouette drawn while the app loads.
+- [Search engine indexing](https://docs.exode.biz/en/customization/search-indexing): the "The school is visible in search engines" switch (on by default; off — `X-Robots-Tag: noindex, nofollow`), per-school `sitemap.xml` and `robots.txt` on the canonical domain only, status codes 404/410/503.
 
 ## Analytics
 
@@ -114,6 +115,7 @@ Official npm package: a typed server-side REST API client plus a bridge for embe
 - [Installation](https://docs.exode.biz/en/exode-sdk/installation): npm/CDN, imports.
 - [API Client](https://docs.exode.biz/en/exode-sdk/api-client): `ExodeAPI` — 7 `school.*` resources, validation, errors.
 - [MiniApp](https://docs.exode.biz/en/exode-sdk/miniapp/introduction): bridge, commands, events, [React hooks](https://docs.exode.biz/en/exode-sdk/miniapp/react).
+- [Native look](https://docs.exode.biz/en/exode-sdk/miniapp/native): the host chrome for a mini app (SDK 0.4+) — header with the "…" menu, "Back", main button, composer with a mic and voice-only mode, popups, haptics, fullscreen, links (`http`/`https`/`mailto`/`tel` only) and "Share"; loading-silhouette devtools.
 - npm: https://www.npmjs.com/package/@exode-team/sdk
 
 ## Optional

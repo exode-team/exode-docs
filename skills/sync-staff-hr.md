@@ -59,7 +59,10 @@ and users are all addressed via `ext/{extId}` routes. `extId` rules: 1–50 char
 and no whitespace (URL-safe; URL-encode it in paths — Cyrillic is allowed), unique per
 school (for employments — among open ones; a terminated employment frees its `extId`).
 Store the employment `extId`, not its `id`: transfer/promote close the record and open a
-new one with a new `id`, while the `extId` moves to the new record.
+new one with a new `id`, while the `extId` moves to the new record. The `extId` is set only
+through the API (or by an org-structure source app such as Verifix) — the admin panel has no
+such field: a department, position, grade or absence created by hand gets one via
+`PUT .../{id}/update`, an employment only at hire (`employment/update` does not change it).
 
 An **employment** is the central record: user + department + optional position (+ optional
 grade), with `kind` (`Main` / `InternalSecondary` / `ExternalSecondary`), `type`
@@ -129,7 +132,9 @@ All paths relative to `https://api.exode.biz/saas/v2`. `{extId}` in paths is URL
 **1. Departments** — `GET /staff/department/tree` (flat array, hierarchy via
 `parentId`), `GET /staff/department/list`, `POST /staff/department/create`,
 `PUT /staff/department/ext/{extId}/update`, `DELETE /staff/department/ext/{extId}/delete`
-(leaf-only: `StaffDepartmentHasChildren` / `StaffDepartmentHasActiveEmployments`).
+(leaf-only: `StaffDepartmentHasChildren` / `StaffDepartmentHasActiveEmployments`; the deleted
+department is removed from the positions linked to it — a position left with none becomes common
+to the school).
 
 ```json
 { "name": "Отдел продаж", "extId": "ПОДР-001", "parentExtId": "ПОДР-000" }
@@ -340,7 +345,7 @@ them from HR events or derive them from the full-sync diff.
 | `StaffCannotTerminateSelf` / `StaffCannotTerminateSchoolOwner` | Last-employment protection — skip the token's own user and the school owner in the termination diff. |
 | `StaffPositionNotInDepartment` on hire/promote/transfer | The position is linked to other departments (`departmentIds`). Add the department to the position's list (send the full array), or use another position. |
 | `StaffGradesDisabled` / `StaffGradeNotForPosition` | Grades are off in the school, or the grade is not in the position's `gradeIds`. Enable grades / fix the position's list, or omit the grade. |
-| `MiniappInstallationManagedEntity` | The school has an org-structure source app connected (e.g. the Verifix integration) that imports this kind of records: records with an `extId` are managed by it. Creating with an `extId`, changing name/`extId`/department parent, deleting, transferring, terminating, changing an employment's `startAt`, and promotions that change the position (or the grade, if the app syncs grades) are refused. `departmentIds`/`gradeIds` of a position and an employment's `rate`/`type`/`kind` can still be changed. Departments, positions and employees are each imported unless turned off in the app settings — a kind turned off is edited by hand. Don't run a parallel HR sync over the same records. |
+| `MiniappInstallationManagedEntity` | The school has an org-structure source app connected (e.g. the Verifix integration) that imports this kind of records: records with an `extId` are managed by it. Creating with an `extId`, changing name/`extId`/department parent, deleting, transferring, terminating, changing an employment's `startAt`, and promotions that change the position (or the grade, if the app syncs grades) are refused. `departmentIds`/`gradeIds` of a position and an employment's `rate`/`type`/`kind` can still be changed. Departments, positions and employees are each imported unless turned off in the app settings (employees only together with departments) — a kind turned off is edited by hand, and the sync neither reads, changes nor deletes it. Don't run a parallel HR sync over the same records. |
 | `429` `cause: "Rate"` | Rate limit — wait until `data.retryAfter`, retry with backoff. |
 | `validation` errors on names | `firstName`/`lastName` >15 chars, or `extId` with `/`/spaces, or `domain` digits-only — trim/sanitize on your side. |
 

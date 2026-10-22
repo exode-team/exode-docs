@@ -61,7 +61,8 @@ be created without them, this affects nothing, and they can be linked later.
   [`department/list?extIds=...`](/en/exode-api/school/staff/department). The position response carries
   `departmentIds` — the departments it is linked to (`[]` — common to the school); `position/list?departmentId={id}`
   returns the positions of a department. The grade links are not returned in the response — the grades of a position
-  are returned by [`grade/list?positionId={id}`](/en/exode-api/school/staff/grade).
+  are returned by [`grade/list?positionId={id}`](/en/exode-api/school/staff/grade). A deleted department is removed
+  from every position: a position with no departments left becomes common to the whole school.
 </Info>
 
 <Warning>
@@ -784,4 +785,4 @@ deletePositionByExtId();
 
 ---
 
-_Updated: 2026-10-22 10:32 UTC_
+_Updated: 2026-10-22 23:06 UTC_

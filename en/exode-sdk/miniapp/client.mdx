@@ -1,6 +1,6 @@
 ---
 title: 'ExodeMiniApp client'
-description: 'Vanilla JS API: init, route, ui, events'
+description: 'Vanilla JS API: init, route, ui, native chrome, events'
 ---
 
 `ExodeMiniApp` is the main client class. Use one instance per app. All methods are typed and return a `Promise`.
@@ -12,8 +12,11 @@ import { ExodeMiniApp } from '@exode-team/sdk/miniapp'
 
 const app = new ExodeMiniApp({
   appId: 'my-app',                             // required
-  targetOrigin: 'https://my-school.exode.biz', // origin of the school; default '*'
+  targetOrigin: 'https://my-school.exode.biz', // origin of the school; default — the page the frame is embedded in
   timeout: 10_000,                             // ms, default 10000
+  edgeToEdge: false,                           // true / 'manual' — the frame under the host chrome (SDK 0.4+)
+  applyEnvironment: true,                      // --exode-* variables and data-exode-* attributes on <html>
+  applyTheme: false,                           // color-scheme, .dark, background and text of <body>
 })
 ```
 
@@ -28,12 +31,29 @@ const app = new ExodeMiniApp({
 <ResponseField name="targetOrigin" type="string">
   The origin of the school page the app is opened in, for example `https://my-school.exode.biz` or your
   school's own domain. The SDK sends messages only to this origin and accepts responses only from it.
-  Defaults to `*` (any origin); in this case the SDK writes a warning to the console. In production, specify
-  the origin explicitly.
+  When it is not set, the SDK takes the origin of the page the frame is embedded in (`location.ancestorOrigins`, in
+  Firefox — the referrer of the first load). Only if that cannot be determined does it stay `*` (any origin), and the
+  SDK writes a warning to the console. In production, specify the origin explicitly.
 </ResponseField>
 
 <ResponseField name="timeout" type="number">
-  Timeout for the handshake and all commands (ms). Defaults to `10000`.
+  Timeout for the handshake and the commands (ms). Defaults to `10000`. Popups (`app.popup`) wait for the user's answer
+  with no timeout.
+</ResponseField>
+
+<ResponseField name="edgeToEdge" type="boolean | 'manual'">
+  SDK 0.4+. In the app on a phone the frame goes under the header and the bottom menu of the host: `true` — the SDK
+  pads `<body>` by `--exode-inset-*`, `'manual'` — the app pads itself, `false` (default) — the host lays the frame
+  between its chrome. See [Native look](/en/exode-sdk/miniapp/native#edges-and-theme).
+</ResponseField>
+
+<ResponseField name="applyEnvironment" type="boolean">
+  SDK 0.4+. The host `--exode-*` variables and `data-exode-*` attributes on `<html>`. Defaults to `true`.
+</ResponseField>
+
+<ResponseField name="applyTheme" type="boolean">
+  SDK 0.4+. The school scheme and colors on the page: `color-scheme`, the `dark` class on `<html>`, the background and
+  the text color of `<body>` (the app's styles win). Defaults to `false`; `ExodeMiniAppProvider` uses `true`.
 </ResponseField>
 
 <Warning>
@@ -118,6 +138,28 @@ await app.ui.close()
   do nothing in the current context, so a resolved Promise does not guarantee a visible effect.
 </Info>
 
+## Native chrome (SDK 0.4+)
+
+The host can do more than navigation and snackbars: the header with the "…" menu, "Back", a main button, a composer
+with a mic, popups, haptics, fullscreen, links and "Share". In the Exode app all of these are native. What a particular
+host can do is shown by `app.isSupported(capability)`.
+
+```ts
+app.isSupported('composer')                        // what the host can do
+await app.popup.confirm('Delete?')                 // app.popup: show, alert, confirm, prompt
+app.header.set({ title: 'Catalog', right: [ { id: 'search', icon: 'search', label: 'Search' } ] })
+app.backButton.show()                              // "Back" goes through the app's screens
+app.mainButton.set({ visible: true, text: 'Done' })
+app.composer.set({ visible: true, mic: 'dictation', placeholder: 'Ask…' })
+app.haptic.impact('medium')
+await app.viewport.requestFullscreen()
+await app.ui.openLink('https://example.com')       // also app.ui.share(...) and app.ui.copyText(...)
+app.getViewport()                                  // MiniAppViewport | null
+app.getInsets()                                    // { top, right, bottom, left }
+```
+
+Details are on the [Native look](/en/exode-sdk/miniapp/native) page.
+
 ## Events (app.on)
 
 Subscribe to host events. Returns an unsubscribe function.
@@ -145,15 +187,9 @@ unsubscribe()
 
 ## Getting the current context
 
-`init()` returns the context once. For later access, use `getContext()`: it returns the
-context from the handshake, to which the bridge applies only `context:updated` events.
-
-<Warning>
-  The `theme:changed`, `user:updated`, `school:updated` and `config:updated` events do **not** update the object from
-  `getContext()`. If you need the current theme, user or config, subscribe to these events via
-  `app.on(...)` and store the values yourself, or use the [React hooks](/en/exode-sdk/miniapp/react), which
-  do this automatically.
-</Warning>
+`init()` returns the context once. For later access, use `getContext()`: since SDK 0.4 the bridge applies the
+`theme:changed`, `user:updated`, `school:updated`, `config:updated`, `viewport:changed` and `context:updated` events to
+it, so the object is always current. To learn about any change of the context, use `onContextChange(listener)`.
 
 ```ts
 const ctx = app.getContext()
@@ -161,6 +197,8 @@ const ctx = app.getContext()
 if (ctx) {
   console.log(ctx.user.firstName)
 }
+
+const off = app.onContextChange((context) => render(context))
 ```
 
 ## Shutting down
@@ -207,4 +245,4 @@ window.addEventListener('beforeunload', () => app.destroy())
 
 ---
 
-_Updated: 2026-09-28 05:04 UTC_
+_Updated: 2026-10-22 23:06 UTC_

@@ -39,13 +39,14 @@ pnpm add @exode-team/sdk
 
 ## Импорты
 
-У пакета четыре subpath-экспорта — импортируйте только нужный:
+У пакета пять subpath-экспортов — импортируйте только нужный:
 
 ```ts
-import { ExodeAPI }        from '@exode-team/sdk/api'             // сервер (Node.js)
-import { ExodeMiniApp }    from '@exode-team/sdk/miniapp'         // браузер, внутри iframe
-import { useExodeUser }    from '@exode-team/sdk/miniapp/react'   // браузер + React
-import { verifyInitData }  from '@exode-team/sdk/miniapp/server'  // сервер (Node.js)
+import { ExodeAPI }        from '@exode-team/sdk/api'               // сервер (Node.js)
+import { ExodeMiniApp }    from '@exode-team/sdk/miniapp'           // браузер, внутри iframe
+import { useExodeUser }    from '@exode-team/sdk/miniapp/react'     // браузер + React
+import { verifyInitData }  from '@exode-team/sdk/miniapp/server'    // сервер (Node.js)
+import { installDevtools } from '@exode-team/sdk/miniapp/devtools'  // браузер, только для разработки (SDK 0.9+)
 ```
 
 <Warning>
@@ -61,7 +62,8 @@ import { verifyInitData }  from '@exode-team/sdk/miniapp/server'  // серве�
 ## Подключение через CDN
 
 Для статических страниц без сборки доступен IIFE-бандл MiniApp-модуля (`ExodeMiniApp`, `retrieveInitData`).
-React-хуки и серверные функции через CDN не поставляются.
+React-хуки и серверные функции через CDN не поставляются. Devtools для разработки (силуэт загрузки) — отдельный
+бандл `miniapp-devtools.global.js`, см. [Нативный вид](/ru/exode-sdk/miniapp/native#силуэт-загрузки-и-devtools).
 
 
 <CodeGroup>
@@ -110,19 +112,17 @@ React-хуки и серверные функции через CDN не пост
 import type { ExodeAPIConfig, User } from '@exode-team/sdk/api'
 
 import type {
+  Platform,          // 'web' | 'native'
   ExodeMiniAppConfig,
   MiniAppContext,
   MiniAppUser,
 } from '@exode-team/sdk/miniapp'
 
 import type { InitDataPayload } from '@exode-team/sdk/miniapp/server'
-
-// Тип Platform отдельно не экспортируется — берите его из контекста:
-type Platform = MiniAppContext['platform'] // 'web' | 'native'
 ```
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-10-22 10:32 UTC_
+_Обновлено: 2026-10-22 23:06 UTC_

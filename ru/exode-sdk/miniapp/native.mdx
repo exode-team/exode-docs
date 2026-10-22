@@ -1,0 +1,329 @@
+---
+title: 'Нативный вид'
+description: 'Хром хоста для мини-приложения: шапка и меню «…», «Назад», главная кнопка, поле ввода, попапы, вибрация, весь экран'
+---
+
+С SDK 0.4 мини-приложение может пользоваться хромом хоста, как встроенные AI-чаты Exode: шапкой с меню «…», кнопкой
+«Назад», главной кнопкой у низа экрана, полем ввода с микрофоном, попапами, вибрацией, полноэкранным режимом и
+окном «Поделиться». В мобильном приложении Exode всё это нативное, в вебе — интерфейс школы.
+
+## Что умеет хост
+
+При handshake хост передаёт в контексте список возможностей (`capabilities`). Проверяйте их через
+`app.isSupported(capability)` или хук `useExodeSupports()`:
+
+```ts
+const ctx = await app.init()
+
+if (app.isSupported('composer')) {
+  app.composer.set({ visible: true, mic: 'dictation', placeholder: 'Спросите…' })
+}
+```
+
+| Возможность | Что даёт | Где есть |
+|-------------|----------|----------|
+| `popup`, `prompt` | Алерт, подтверждение, выбор и поле для текста хоста | Везде |
+| `haptic` | Вибрация | Везде |
+| `header`, `backButton`, `mainButton` | Шапка с меню «…», «Назад», главная кнопка | Везде |
+| `composer`, `composer.attachments`, `composer.voice` | Поле ввода, вложения, голосовое сообщение | Везде |
+| `composer.dictation` | Речь в текст | В приложении; в браузере — где есть Web Speech API (нет в Firefox и в приложении для ПК) |
+| `composer.voiceOnly` | Режим «только голос» (SDK 0.5+) | Везде |
+| `composer.dictation.audio` | Запись речи вместе с текстом (SDK 0.6+) | В сборке приложения, которая это умеет; в браузере — с распознаванием речи и `MediaRecorder` |
+| `composer.voiceOnly.review` | Правка сказанного перед отправкой (SDK 0.7+) | В сборке приложения, которая это умеет; в браузере — всегда |
+| `composer.voiceOnly.noCancel` | Начатую речь нельзя сбросить (SDK 0.8+) | В сборке приложения, которая это умеет; в браузере — всегда |
+| `fullscreen` | Весь экран | Везде |
+| `orientation` | Поворот экрана | Только в приложении |
+| `openLink`, `share`, `clipboard` | Ссылки, «Поделиться», буфер обмена | Везде |
+
+Хост до 0.4 ничего не объявляет. Тогда методы SDK падают обратно на веб (`window.alert` / `confirm` / `prompt`,
+`navigator.share`, `navigator.clipboard`, Fullscreen API, `navigator.vibrate`), а шапка, «Назад», главная кнопка и
+поле ввода ничего не делают — хуки возвращают `isSupported: false`, и приложение рисует свой интерфейс.
+
+## Края и тема
+
+`ExodeMiniAppProvider` сразу включает нативный вид; у `ExodeMiniApp` его включают параметры конструктора:
+
+| Параметр | `ExodeMiniApp` | `ExodeMiniAppProvider` | Что делает |
+|----------|----------------|------------------------|------------|
+| `edgeToEdge` | `false` | `true` | В приложении на телефоне фрейм уходит под стеклянную шапку и нижнее меню хоста, а `<body>` получает `padding` по `--exode-inset-*`. `'manual'` — отступы приложение делает само по переменным, `false` — хост кладёт фрейм между своим хромом |
+| `applyTheme` | `false` | `true` | `color-scheme`, класс `dark` на `<html>`, фон и цвет текста `<body>` из цветов школы. Стили приложения сильнее. Хост до 0.4 передаёт только схему |
+| `applyEnvironment` | `true` | `true` | Переменные `--exode-*` и атрибуты `data-exode-*` на `<html>` |
+
+Переменные на `<html>`:
+
+- `--exode-inset-{top,right,bottom,left}` — что держать свободным у каждого края (больший из хрома хоста и safe area);
+- `--exode-safe-area-inset-*`, `--exode-content-inset-*` — safe area устройства и хром хоста по отдельности;
+- `--exode-viewport-width`, `--exode-viewport-height`, `--exode-content-height` — размер фрейма и высота без хрома;
+- `--exode-accent` и `--exode-color-*`: `background`, `content`, `elevated`, `text`, `text-secondary`,
+  `text-tertiary`, `accent`, `accent-foreground`, `separator`, `destructive`, `positive`.
+
+Атрибуты `<html>`: `data-exode-platform` (`native` / `web`), `data-exode-os` (`ios` / `android` / `web`),
+`data-exode-scheme`, `data-exode-fullscreen`, `data-exode-orientation`, `data-exode-edge`.
+
+Высоту экрана задавайте как `min-height: var(--exode-content-height, 100dvh)`, а свои панели с `position: fixed` —
+с `bottom: var(--exode-inset-bottom)`.
+
+### Без вспышки при загрузке
+
+Хост кладёт тему и края в имя фрейма (`window.name` с префиксом `exode-miniapp:`) — SDK применяет их ещё до
+handshake. Приложению с SSR добавьте в `<head>` скрипт `exodeBootScript()` — тема и отступы окажутся на странице до
+первой отрисовки. Скрипт меняет атрибуты `<html>` до React, поэтому нужен `suppressHydrationWarning`:
+
+```tsx
+import { exodeBootScript } from '@exode-team/sdk/miniapp'
+
+<html suppressHydrationWarning>
+  <head>
+    <script dangerouslySetInnerHTML={{ __html: exodeBootScript() }}/>
+  </head>
+</html>
+```
+
+Скрипт принимает те же параметры, что провайдер (по умолчанию `{ edgeToEdge: true, applyTheme: true }`).
+
+## Шапка и меню «…»
+
+```tsx
+useExodeHeader({
+  title: 'AI-тренажёр',
+  right: [
+    { id: 'settings', icon: 'settings', label: 'Настройки' },
+    { id: 'share', icon: 'share', label: 'Поделиться' },
+  ],
+  onButton: (id) => (id === 'settings' ? openSettings() : share()),
+})
+
+// Без React
+app.header.set({ title: 'Каталог', right: [ { id: 'search', icon: 'search', label: 'Поиск' } ] })
+app.on('header:button', ({ id }) => {})
+```
+
+- `title` — заголовок страницы; `null` — название, которое школа дала странице.
+- Кнопки (`left` — до одной, `right` — до шести) хост показывает пунктами одного меню «…» справа, `left` первым:
+  ряд кнопок у заголовка теснил бы длинное название. `label` — текст пункта (без него показывается `id`),
+  `icon` — одна из иконок `MiniAppIcon`: `add`, `more`, `settings`, `search`, `share`, `info`, `help`, `edit`,
+  `history`, `filter`, `sort`, `refresh`, `close`, `check`, `delete`, `download`, `upload`, `favorite`,
+  `notifications`, `user`, `calendar`, `list`, `grid`, `qr`. Кнопка с другой иконкой отбрасывается.
+- В вебе в меню «…» за разделителем — пункты хоста «На главную» и «Обновить» (мини-приложение загружается заново).
+  В окне страницы на ПК кнопки стоят иконками в шапке окна, `label` — подсказка.
+- Хук действует, пока компонент смонтирован: после размонтирования — заголовок страницы и никаких кнопок. Шапка у
+  хоста одна — используйте один такой хук на экран (побеждает последний смонтированный).
+
+## «Назад»
+
+```tsx
+// «Назад» ведёт по экранам приложения, пока передан обработчик; null — «Назад» уходит из приложения
+useExodeBackButton(screen !== 'home' ? () => setScreen('home') : null)
+
+// Без React
+app.backButton.show()
+app.on('backButton:pressed', () => goBack())
+app.backButton.hide()
+```
+
+Пока приложение держит «Назад», кнопка «Назад» шапки присылает `backButton:pressed` вместо ухода со страницы. На
+телефоне туда же ведут кнопка и свайп «Назад» браузера, а в приложении на iOS свайп назад выключается.
+
+## Главная кнопка
+
+```tsx
+useExodeMainButton({ text: 'Продолжить', loading, disabled, onClick: next })
+
+// Без React
+app.mainButton.set({ visible: true, text: 'Готово' })
+app.on('mainButton:pressed', () => {})
+app.mainButton.hide()
+```
+
+Кнопка закреплена у низа экрана (в приложении — нативная). Без `text` хост её не показывает. `loading` — спиннер
+вместо текста, `disabled` — приглушена и не нажимается, `color` и `textColor` — CSS-цвета фона и текста (по
+умолчанию — акцент школы). Одна главная кнопка на экран.
+
+## Поле ввода
+
+Поле внизу экрана, как в чатах: клавиатура, вложения, микрофон.
+
+```tsx
+const composer = useExodeComposer({
+  placeholder: 'Ваш ответ…',
+  mic: 'voice',          // 'voice' — голосовое сообщение файлом; 'dictation' — речь в текст поля; 'none'
+  attachments: true,     // или { media: true, file: false }
+  busy,                  // приложение отвечает: «стоп» вместо отправки (onStop), поле подсвечено
+  onSubmit: ({ text, files }) => send(text, files),
+  onVoice: ({ file, duration }) => transcribe(file),
+  onStop: () => cancel(),
+})
+
+if (!composer.isSupported) {
+  return <MyOwnInput/>
+}
+```
+
+| Параметр | Что делает |
+|----------|------------|
+| `placeholder` | Подсказка пустого поля (в режиме `voiceOnly` — подпись кнопки микрофона) |
+| `mic` | `none`, `dictation` — речь печатается в поле, `voice` — запись приходит файлом (`composer:voice`) |
+| `attachments` | Можно прикреплять файлы: `true` или `{ media, file }` — фото и видео, любые файлы |
+| `busy` | Приложение отвечает: кнопка «стоп» вместо отправки (`composer:stop`) |
+| `disabled` | Поле не принимает ввод |
+| `scrollDown` | Кнопка «вниз» над полем (`composer:scrollDown`) |
+| `voiceOnly`, `recordAudio`, `liveTranscript`, `review`, `noCancel` | Режим «только голос», см. ниже |
+
+События: `composer:submit` (`{ text, files, voice? }`), `composer:voice` (`{ file, duration }` — `File` и секунды),
+`composer:change` (`{ text }`), `composer:stop`, `composer:scrollDown`. Хук возвращает `isSupported`, `canDictate`,
+`canRecordVoice`, `canVoiceOnly`, `canDictateAudio`, `canReview`, `canNoCancel`, `canAttach`, а также `setText(text)`
+(`''` очищает поле) и `dismissKeyboard()`.
+
+Пока поле показано, нижнее меню хоста скрыто. Поле у хоста одно — один такой хук на экран. В приложении протягивание
+ленты вниз прячет клавиатуру нативного поля, как в чатах.
+
+### Только голос
+
+Для тренажёров речи: ни поля, ни клавиатуры — только кнопки, которые говорят, что делают. Нажать — слушать (на
+кнопке — ваш `placeholder`), «Отправить» — отправить, крестик — сбросить; пауза в речи ничего не отправляет.
+Вложения в этом режиме не предлагаются, `busy` превращает кнопку в «Остановить» (`composer:stop`).
+
+```tsx
+const [ heard, setHeard ] = useState('')
+
+const composer = useExodeComposer({
+  voiceOnly: true,
+  mic: 'dictation',                // речь текстом; 'voice' — записью в onVoice
+  recordAudio: true,               // и запись сказанного вместе с текстом (SDK 0.6+)
+  placeholder: 'Ответьте клиенту',
+  busy,
+  onChange: setHeard,              // что услышано, пока говорят
+  onSubmit: ({ text, voice }) => reply(text, voice?.file),
+  onStop: () => cancel(),
+  liveTranscript: true,            // хост сам показывает услышанное над кнопками (SDK 0.7+)
+  review: true,                    // «Готово» кладёт текст в поле хоста на правку (SDK 0.7+)
+  noCancel: true,                  // начатую речь не сбросить: каждая попытка уходит (SDK 0.8+)
+})
+```
+
+- `mic: 'dictation'` — пока говорят, услышанное приходит в `composer:change`, целиком — в `composer:submit`. Где
+  речь в текст не распознаётся (браузер без Web Speech API), остаётся обычное поле.
+- `mic: 'voice'` — запись приходит в `composer:voice`.
+- `recordAudio` (`composer.dictation.audio`) — с диктовкой приходит и запись речи (`voice` в `composer:submit`),
+  например для модели, которая слушает произношение. Где хост не может её записать, `voice` не будет.
+- `liveTranscript` — хост показывает услышанное над кнопками. Не задано — показывает, только если нет `recordAudio`.
+- `review` (`composer.voiceOnly.review`) — сказанное попадает в поле хоста на правку, отправляет пользователь. Хост
+  без этой возможности отправит сразу.
+- `noCancel` (`composer.voiceOnly.noCancel`) — для тренажёров, которые считают попытки: ни крестика, пока слушает,
+  ни «Заново» при правке. В браузере это действует для диктовки; у записи голосом (`mic: 'voice'`) крестик рекордера
+  остаётся.
+
+## Попапы
+
+```ts
+const popup = useExodePopup() // без React — app.popup
+
+await popup.alert('Сохранено')
+const ok = await popup.confirm('Удалить черновик?', { destructive: true, okText: 'Удалить' })
+const name = await popup.prompt({ title: 'Как вас зовут?', placeholder: 'Имя', required: true }) // null — отмена
+const id = await popup.show({
+  title: 'Выберите',
+  message: 'Что сделать с файлом?',
+  buttons: [
+    { id: 'open', text: 'Открыть' },
+    { id: 'delete', type: 'destructive', text: 'Удалить' },
+    { type: 'cancel' },
+  ],
+}) // id нажатой кнопки или null
+```
+
+- `show` — от одной до трёх кнопок (по умолчанию одна `close`). Типы кнопок: `default`, `ok`, `close`, `cancel`,
+  `destructive`; для `default` и `destructive` нужен `text`, у остальных текст хоста. `id` по умолчанию — тип кнопки.
+- `prompt` принимает `title`, `message`, `placeholder`, `value`, `multiline`, `required`, `minLength`, `maxLength`,
+  `okText`, `cancelText`.
+- В приложении алерт с одной-двумя кнопками и `prompt` — нативные. Ответа ждут сколько угодно, без таймаута.
+- Скрытое мини-приложение (пользователь ушёл на другую страницу) попап не покажет — придёт `null`.
+
+## Весь экран и поворот
+
+```ts
+const { insets, isFullscreen, requestFullscreen, exitFullscreen, lockOrientation, unlockOrientation } = useExodeViewport()
+
+await requestFullscreen()          // true — получилось
+await lockOrientation('landscape') // экран повернётся и останется так, пока приложение открыто
+await unlockOrientation()          // экран снова следует за устройством
+```
+
+- На телефоне весь экран — без шапки и нижнего меню хоста, на ПК — Fullscreen API самого фрейма (выход по Esc
+  приложение узнает из `viewport:changed`).
+- Поворот экрана (`orientation`) есть только в приложении. Без этой возможности SDK пробует `screen.orientation.lock`
+  браузера — обычно он работает только в полноэкранном режиме.
+- Без хука: `app.viewport.requestFullscreen()`, `app.getViewport()`, `app.getInsets()` и событие
+  `viewport:changed` (`MiniAppViewport`).
+
+## Вибрация
+
+```ts
+const haptic = useExodeHaptic() // без React — app.haptic
+
+haptic.impact('light')          // light | medium | heavy | rigid | soft (по умолчанию medium)
+haptic.notification('success')  // success | warning | error
+haptic.selection()
+```
+
+В приложении — нативная вибрация телефона, в вебе — вибрация браузера; где её нет, вызов ничего не делает. Хост без
+возможности `haptic` заменяется на `navigator.vibrate` (браузер разрешает её только после жеста пользователя).
+
+## Ссылки, «Поделиться», буфер обмена
+
+```ts
+const { openLink, share, copyText } = useExodeUI()
+
+openLink('https://example.com')                    // в приложении — браузер внутри приложения
+openLink('https://example.com', { external: true }) // системный браузер
+const shared = await share({ url, text, title })   // true — поделились
+const copied = await copyText('Промокод: EXODE')   // true — скопировано
+```
+
+- Хост открывает только ссылки `http:`, `https:`, `mailto:` и `tel:` и передаёт адрес так, как его разобрал браузер
+  (`new URL(url).href`). Ссылки с другой схемой и невалидные адреса хост молча игнорирует. В вебе ссылка открывается
+  в новой вкладке.
+- У `share` адрес проверяется так же: невалидный отбрасывается, и если не остаётся `text`, `share` вернёт `false`. В
+  приложении открывается нативное окно «Поделиться», в вебе — `navigator.share`. Без возможности `share` и без
+  «Поделиться» браузера `share` возвращает `false` — текст при этом не копируется.
+- `copyText` в приложении пишет в буфер нативно, в вебе — через `navigator.clipboard`.
+- Скрытое мини-приложение ссылку не откроет, а `share` и `copyText` вернут `false`.
+
+## Силуэт загрузки и devtools
+
+Пока грузится код мини-приложения, хост рисует [силуэт загрузки](/ru/customization/custom-pages#силуэт-загрузки)
+страницы. Строку силуэта не нужно писать руками: devtools SDK (0.9+) измеряют первый экран и собирают её сами. В
+продакшен-сборку они не попадают — это отдельный модуль, в `@exode-team/sdk/miniapp` и `miniapp.global.js` их нет.
+
+Из консоли браузера, без изменений в коде (во фрейме школы переключите консоль на контекст фрейма):
+
+```js
+const s = document.createElement('script')
+s.src = 'https://static.exode.biz/sdk/latest/miniapp-devtools.global.js'
+document.head.append(s)
+
+// скрипт ставит себя сам:
+exodeDevtools.skeleton()                          // строка первого экрана — в консоль и в буфер обмена
+exodeDevtools.show()                              // силуэт поверх страницы, чтобы сравнить с содержимым
+exodeDevtools.show('p12,16 g16; c48 208x28; 226') // предпросмотр своей строки
+exodeDevtools.hide()
+```
+
+В коде — только для разработки:
+
+```ts
+if (process.env.NODE_ENV !== 'production') {
+  import('@exode-team/sdk/miniapp/devtools').then((devtools) => devtools.installDevtools())
+}
+```
+
+Из модуля доступны и сами функции: `measureSkeleton({ root })` — строка, `copySkeleton()` — строка в консоль и
+буфер, `showSkeleton(line?)`, `hideSkeleton()`. Если у приложения есть свой скелетон, пометьте его корень атрибутом
+`data-exode-skeleton` — devtools возьмут силуэт с него (скелетон должен быть на экране во время замера). Готовую
+строку вставьте в поле «Силуэт загрузки» страницы школы.
+
+{/* updated-stamp */}
+
+---
+
+_Обновлено: 2026-10-22 23:06 UTC_

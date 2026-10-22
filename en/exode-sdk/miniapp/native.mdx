@@ -1,0 +1,337 @@
+---
+title: 'Native look'
+description: 'Host chrome for a mini app: header and the "…" menu, "Back", main button, composer, popups, haptics, fullscreen'
+---
+
+Since SDK 0.4 a mini app can use the host chrome, as the built-in Exode AI chats do: the header with the "…" menu, the
+"Back" button, a main button at the bottom of the screen, a composer with a mic, popups, haptics, fullscreen and the
+"Share" sheet. In the Exode mobile app all of these are native; on the web they are the school interface.
+
+## What the host can do
+
+On the handshake the host passes the list of its capabilities (`capabilities`) in the context. Check them with
+`app.isSupported(capability)` or the `useExodeSupports()` hook:
+
+```ts
+const ctx = await app.init()
+
+if (app.isSupported('composer')) {
+  app.composer.set({ visible: true, mic: 'dictation', placeholder: 'Ask…' })
+}
+```
+
+| Capability | What it gives | Where |
+|------------|---------------|-------|
+| `popup`, `prompt` | Host alert, confirm, choice and text field | Everywhere |
+| `haptic` | Haptics | Everywhere |
+| `header`, `backButton`, `mainButton` | Header with the "…" menu, "Back", main button | Everywhere |
+| `composer`, `composer.attachments`, `composer.voice` | Composer, attachments, voice message | Everywhere |
+| `composer.dictation` | Speech to text | In the app; in a browser — where the Web Speech API exists (not in Firefox or the desktop app) |
+| `composer.voiceOnly` | Voice-only mode (SDK 0.5+) | Everywhere |
+| `composer.dictation.audio` | The speech recording along with the text (SDK 0.6+) | In an app build that supports it; in a browser — with speech recognition and `MediaRecorder` |
+| `composer.voiceOnly.review` | Editing what was said before sending (SDK 0.7+) | In an app build that supports it; in a browser — always |
+| `composer.voiceOnly.noCancel` | A speech once begun cannot be dropped (SDK 0.8+) | In an app build that supports it; in a browser — always |
+| `fullscreen` | Fullscreen | Everywhere |
+| `orientation` | Screen rotation | Only in the app |
+| `openLink`, `share`, `clipboard` | Links, "Share", clipboard | Everywhere |
+
+A host older than 0.4 declares nothing. Then the SDK methods fall back to the web (`window.alert` / `confirm` /
+`prompt`, `navigator.share`, `navigator.clipboard`, the Fullscreen API, `navigator.vibrate`), while the header, "Back",
+the main button and the composer do nothing — the hooks return `isSupported: false`, and the app renders its own UI.
+
+## Edges and theme
+
+`ExodeMiniAppProvider` turns the native look on right away; for `ExodeMiniApp` it is turned on by constructor options:
+
+| Option | `ExodeMiniApp` | `ExodeMiniAppProvider` | What it does |
+|--------|----------------|------------------------|--------------|
+| `edgeToEdge` | `false` | `true` | In the app on a phone the frame goes under the glass header and the bottom menu of the host, and `<body>` gets `padding` by `--exode-inset-*`. `'manual'` — the app pads itself by the variables, `false` — the host lays the frame between its chrome |
+| `applyTheme` | `false` | `true` | `color-scheme`, the `dark` class on `<html>`, the background and the text color of `<body>` in the school colors. The app's own styles win. A host older than 0.4 passes the scheme only |
+| `applyEnvironment` | `true` | `true` | The `--exode-*` variables and the `data-exode-*` attributes on `<html>` |
+
+Variables on `<html>`:
+
+- `--exode-inset-{top,right,bottom,left}` — what to keep free at each edge (the larger of the host chrome and the safe
+  area);
+- `--exode-safe-area-inset-*`, `--exode-content-inset-*` — the device safe area and the host chrome separately;
+- `--exode-viewport-width`, `--exode-viewport-height`, `--exode-content-height` — the frame size and the height
+  without the chrome;
+- `--exode-accent` and `--exode-color-*`: `background`, `content`, `elevated`, `text`, `text-secondary`,
+  `text-tertiary`, `accent`, `accent-foreground`, `separator`, `destructive`, `positive`.
+
+`<html>` attributes: `data-exode-platform` (`native` / `web`), `data-exode-os` (`ios` / `android` / `web`),
+`data-exode-scheme`, `data-exode-fullscreen`, `data-exode-orientation`, `data-exode-edge`.
+
+Set the screen height as `min-height: var(--exode-content-height, 100dvh)`, and your own `position: fixed` panels with
+`bottom: var(--exode-inset-bottom)`.
+
+### No flash on load
+
+The host puts the theme and the edges into the frame name (`window.name` prefixed with `exode-miniapp:`) — the SDK
+applies them before the handshake. For a server-rendered app add the `exodeBootScript()` script to `<head>`: the theme
+and the insets are on the page before the first paint. The script changes the `<html>` attributes before React, hence
+`suppressHydrationWarning`:
+
+```tsx
+import { exodeBootScript } from '@exode-team/sdk/miniapp'
+
+<html suppressHydrationWarning>
+  <head>
+    <script dangerouslySetInnerHTML={{ __html: exodeBootScript() }}/>
+  </head>
+</html>
+```
+
+The script takes the same options as the provider (`{ edgeToEdge: true, applyTheme: true }` by default).
+
+## Header and the "…" menu
+
+```tsx
+useExodeHeader({
+  title: 'AI trainer',
+  right: [
+    { id: 'settings', icon: 'settings', label: 'Settings' },
+    { id: 'share', icon: 'share', label: 'Share' },
+  ],
+  onButton: (id) => (id === 'settings' ? openSettings() : share()),
+})
+
+// Without React
+app.header.set({ title: 'Catalog', right: [ { id: 'search', icon: 'search', label: 'Search' } ] })
+app.on('header:button', ({ id }) => {})
+```
+
+- `title` — the page title; `null` — the title the school gave the page.
+- The host shows the buttons (`left` — up to one, `right` — up to six) as items of one "…" menu on the right, `left`
+  first: a row of buttons next to the title would crowd out a long title. `label` is the item text (without it the
+  `id` is shown), `icon` is one of the `MiniAppIcon` icons: `add`, `more`, `settings`, `search`, `share`, `info`,
+  `help`, `edit`, `history`, `filter`, `sort`, `refresh`, `close`, `check`, `delete`, `download`, `upload`,
+  `favorite`, `notifications`, `user`, `calendar`, `list`, `grid`, `qr`. A button with another icon is dropped.
+- On the web the "…" menu also has the host items **Home** and **Reload** (the mini app loads anew) after a separator.
+  In a page window on desktop the buttons are icons in the window header, with `label` as the tooltip.
+- The hook acts while the component is mounted: after unmount — the page title and no buttons. The host has one
+  header, so use one such hook per screen (the last mounted one wins).
+
+## "Back"
+
+```tsx
+// "Back" goes through the app's screens while a handler is given; null — "Back" leaves the app
+useExodeBackButton(screen !== 'home' ? () => setScreen('home') : null)
+
+// Without React
+app.backButton.show()
+app.on('backButton:pressed', () => goBack())
+app.backButton.hide()
+```
+
+While the app holds "Back", the header "Back" button sends `backButton:pressed` instead of leaving the page. On a phone
+the browser "Back" button and swipe lead there too, and in the iOS app the back swipe is turned off.
+
+## Main button
+
+```tsx
+useExodeMainButton({ text: 'Continue', loading, disabled, onClick: next })
+
+// Without React
+app.mainButton.set({ visible: true, text: 'Done' })
+app.on('mainButton:pressed', () => {})
+app.mainButton.hide()
+```
+
+The button is pinned to the bottom of the screen (native in the app). Without `text` the host does not show it.
+`loading` — a spinner instead of the text, `disabled` — dimmed and not pressable, `color` and `textColor` — CSS colors of
+the background and the text (the school accent by default). One main button per screen.
+
+## Composer
+
+A field at the bottom of the screen, as in the chats: the keyboard, attachments, the mic.
+
+```tsx
+const composer = useExodeComposer({
+  placeholder: 'Your answer…',
+  mic: 'voice',          // 'voice' — a voice message as a file; 'dictation' — speech into the field text; 'none'
+  attachments: true,     // or { media: true, file: false }
+  busy,                  // the app is answering: "stop" instead of send (onStop), the field glows
+  onSubmit: ({ text, files }) => send(text, files),
+  onVoice: ({ file, duration }) => transcribe(file),
+  onStop: () => cancel(),
+})
+
+if (!composer.isSupported) {
+  return <MyOwnInput/>
+}
+```
+
+| Option | What it does |
+|--------|--------------|
+| `placeholder` | The hint of an empty field (in `voiceOnly` mode — the label of the mic button) |
+| `mic` | `none`, `dictation` — speech is typed into the field, `voice` — the recording comes as a file (`composer:voice`) |
+| `attachments` | Files can be attached: `true` or `{ media, file }` — photos and videos, any files |
+| `busy` | The app is answering: a "stop" button instead of send (`composer:stop`) |
+| `disabled` | The field takes no input |
+| `scrollDown` | A "scroll down" button above the field (`composer:scrollDown`) |
+| `voiceOnly`, `recordAudio`, `liveTranscript`, `review`, `noCancel` | Voice-only mode, see below |
+
+Events: `composer:submit` (`{ text, files, voice? }`), `composer:voice` (`{ file, duration }` — a `File` and seconds),
+`composer:change` (`{ text }`), `composer:stop`, `composer:scrollDown`. The hook returns `isSupported`, `canDictate`,
+`canRecordVoice`, `canVoiceOnly`, `canDictateAudio`, `canReview`, `canNoCancel`, `canAttach`, plus `setText(text)`
+(`''` clears the field) and `dismissKeyboard()`.
+
+While the field is shown, the host bottom menu is hidden. The host has one field, so use one such hook per screen. In
+the app dragging the content down hides the keyboard of the native field, as in the chats.
+
+### Voice only
+
+For speech trainers: no field and no keyboard, only buttons that say what they do. Tap to listen (the button shows your
+`placeholder`), "Send" to send, the cross to drop; a pause in the speech sends nothing. Attachments are not offered in
+this mode, and `busy` turns the button into "Stop" (`composer:stop`).
+
+```tsx
+const [ heard, setHeard ] = useState('')
+
+const composer = useExodeComposer({
+  voiceOnly: true,
+  mic: 'dictation',                // speech as text; 'voice' — as a recording in onVoice
+  recordAudio: true,               // and the recording of what was said along with the text (SDK 0.6+)
+  placeholder: 'Answer the client',
+  busy,
+  onChange: setHeard,              // what is heard while speaking
+  onSubmit: ({ text, voice }) => reply(text, voice?.file),
+  onStop: () => cancel(),
+  liveTranscript: true,            // the host shows what is heard above its buttons (SDK 0.7+)
+  review: true,                    // "Done" puts the text into the host field to edit (SDK 0.7+)
+  noCancel: true,                  // a speech once begun cannot be dropped: every attempt is sent (SDK 0.8+)
+})
+```
+
+- `mic: 'dictation'` — while speaking, what is heard comes in `composer:change`, the whole text in `composer:submit`.
+  Where speech cannot be recognized (a browser without the Web Speech API), the regular field stays.
+- `mic: 'voice'` — the recording comes in `composer:voice`.
+- `recordAudio` (`composer.dictation.audio`) — the speech recording comes along with the dictation (`voice` in
+  `composer:submit`), for example for a model that listens to pronunciation. Where the host cannot record it, there is
+  no `voice`.
+- `liveTranscript` — the host shows what is heard above its buttons. Not set — shown only without `recordAudio`.
+- `review` (`composer.voiceOnly.review`) — what was said goes into a host field to edit, the user sends it. A host
+  without this capability sends at once.
+- `noCancel` (`composer.voiceOnly.noCancel`) — for trainers that count attempts: no cross while listening and no
+  "Again" in the review. In a browser it applies to dictation; a voice recording (`mic: 'voice'`) keeps the cross of
+  the recorder.
+
+## Popups
+
+```ts
+const popup = useExodePopup() // without React — app.popup
+
+await popup.alert('Saved')
+const ok = await popup.confirm('Delete the draft?', { destructive: true, okText: 'Delete' })
+const name = await popup.prompt({ title: 'What is your name?', placeholder: 'Name', required: true }) // null — cancelled
+const id = await popup.show({
+  title: 'Choose',
+  message: 'What to do with the file?',
+  buttons: [
+    { id: 'open', text: 'Open' },
+    { id: 'delete', type: 'destructive', text: 'Delete' },
+    { type: 'cancel' },
+  ],
+}) // the id of the pressed button, or null
+```
+
+- `show` — one to three buttons (one `close` by default). Button types: `default`, `ok`, `close`, `cancel`,
+  `destructive`; `default` and `destructive` need `text`, the others have the host text. `id` defaults to the button
+  type.
+- `prompt` takes `title`, `message`, `placeholder`, `value`, `multiline`, `required`, `minLength`, `maxLength`,
+  `okText`, `cancelText`.
+- In the app an alert with one or two buttons and `prompt` are native. The answer is awaited for as long as it takes,
+  with no timeout.
+- A hidden mini app (the user went to another page) shows no popup — it gets `null`.
+
+## Fullscreen and rotation
+
+```ts
+const { insets, isFullscreen, requestFullscreen, exitFullscreen, lockOrientation, unlockOrientation } = useExodeViewport()
+
+await requestFullscreen()          // true — it worked
+await lockOrientation('landscape') // the screen rotates and stays so while the app is open
+await unlockOrientation()          // the screen follows the device again
+```
+
+- On a phone fullscreen hides the host header and bottom menu; on desktop it is the Fullscreen API of the frame itself
+  (the app learns about an exit by Esc from `viewport:changed`).
+- Screen rotation (`orientation`) is available only in the app. Without this capability the SDK tries the browser's
+  `screen.orientation.lock` — it usually works only in fullscreen.
+- Without the hook: `app.viewport.requestFullscreen()`, `app.getViewport()`, `app.getInsets()` and the
+  `viewport:changed` event (`MiniAppViewport`).
+
+## Haptics
+
+```ts
+const haptic = useExodeHaptic() // without React — app.haptic
+
+haptic.impact('light')          // light | medium | heavy | rigid | soft (medium by default)
+haptic.notification('success')  // success | warning | error
+haptic.selection()
+```
+
+In the app — the phone's native haptics, on the web — browser vibration; where there is none, the call does nothing. A
+host without the `haptic` capability is replaced by `navigator.vibrate` (the browser allows it only after a user
+gesture).
+
+## Links, "Share", clipboard
+
+```ts
+const { openLink, share, copyText } = useExodeUI()
+
+openLink('https://example.com')                    // in the app — the in-app browser
+openLink('https://example.com', { external: true }) // the system browser
+const shared = await share({ url, text, title })   // true — shared
+const copied = await copyText('Promo code: EXODE') // true — copied
+```
+
+- The host opens only `http:`, `https:`, `mailto:` and `tel:` links and passes the address as the browser parsed it
+  (`new URL(url).href`). The host silently ignores links with another scheme and invalid addresses. On the web the link
+  opens in a new tab.
+- `share` checks the address the same way: an invalid one is dropped, and if no `text` is left, `share` returns
+  `false`. In the app the native "Share" sheet opens, on the web — `navigator.share`. Without the `share` capability and
+  without the browser "Share", `share` returns `false` — the text is not copied instead.
+- `copyText` writes to the clipboard natively in the app, via `navigator.clipboard` on the web.
+- A hidden mini app does not open a link, and `share` and `copyText` return `false`.
+
+## Loading silhouette and devtools
+
+While the mini app code loads, the host draws the page's [loading silhouette](/en/customization/custom-pages#loading-silhouette).
+You do not have to write the silhouette line by hand: the SDK devtools (0.9+) measure the first screen and build it
+for you. They never get into a production build — it is a separate module, `@exode-team/sdk/miniapp` and
+`miniapp.global.js` do not contain it.
+
+From the browser console, with no code changes (inside the school frame, switch the console to the frame context):
+
+```js
+const s = document.createElement('script')
+s.src = 'https://static.exode.biz/sdk/latest/miniapp-devtools.global.js'
+document.head.append(s)
+
+// the script installs itself:
+exodeDevtools.skeleton()                          // the first screen line — to the console and the clipboard
+exodeDevtools.show()                              // the silhouette over the page, to compare with the content
+exodeDevtools.show('p12,16 g16; c48 208x28; 226') // a preview of your own line
+exodeDevtools.hide()
+```
+
+In code — for development only:
+
+```ts
+if (process.env.NODE_ENV !== 'production') {
+  import('@exode-team/sdk/miniapp/devtools').then((devtools) => devtools.installDevtools())
+}
+```
+
+The module also exports the functions themselves: `measureSkeleton({ root })` — the line, `copySkeleton()` — the line
+to the console and the clipboard, `showSkeleton(line?)`, `hideSkeleton()`. If the app has its own skeleton, mark its
+root with the `data-exode-skeleton` attribute — the devtools take the silhouette from it (the skeleton must be on
+screen while measuring). Paste the finished line into the **Loading silhouette** field of the school page.
+
+{/* updated-stamp */}
+
+---
+
+_Updated: 2026-10-22 23:06 UTC_

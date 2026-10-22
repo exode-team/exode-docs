@@ -340,7 +340,8 @@ checked for belonging to the school (`StaffGradeNotFound`) and against the posit
 
 <ParamField body="extId" type="string" required={false}>
     External identifier of the employment from the client's system. From 1 to 50 characters, without `/` or whitespace.
-    Must be unique within the school among open (not finished) employments. If the school has an org-structure
+    Must be unique within the school among open (not finished) employments. It is set only at hire: `update` of the
+    employment does not change the `extId`, and the admin panel has no such field. If the school has an org-structure
     source app connected and it imports employees, a hire with an `extId` returns `MiniappInstallationManagedEntity`.
 </ParamField>
 
@@ -1661,4 +1662,4 @@ terminateEmploymentByExtId();
 
 ---
 
-_Updated: 2026-10-22 10:32 UTC_
+_Updated: 2026-10-22 23:06 UTC_

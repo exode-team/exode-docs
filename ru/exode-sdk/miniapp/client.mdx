@@ -1,6 +1,6 @@
 ---
 title: 'Клиент ExodeMiniApp'
-description: 'Ванильный JS API: init, route, ui, события'
+description: 'Ванильный JS API: init, route, ui, нативный хром, события'
 ---
 
 `ExodeMiniApp` — основной класс клиента. Один экземпляр на приложение. Все методы типизированы и возвращают `Promise`.
@@ -12,8 +12,11 @@ import { ExodeMiniApp } from '@exode-team/sdk/miniapp'
 
 const app = new ExodeMiniApp({
   appId: 'my-app',                             // required
-  targetOrigin: 'https://my-school.exode.biz', // origin of the school; default '*'
+  targetOrigin: 'https://my-school.exode.biz', // origin of the school; default — the page the frame is embedded in
   timeout: 10_000,                             // ms, default 10000
+  edgeToEdge: false,                           // true / 'manual' — the frame under the host chrome (SDK 0.4+)
+  applyEnvironment: true,                      // --exode-* variables and data-exode-* attributes on <html>
+  applyTheme: false,                           // color-scheme, .dark, background and text of <body>
 })
 ```
 
@@ -28,12 +31,28 @@ const app = new ExodeMiniApp({
 <ResponseField name="targetOrigin" type="string">
   Origin страницы школы, внутри которой открыто приложение, — например `https://my-school.exode.biz` или ваш
   собственный домен школы. SDK отправляет сообщения только на этот origin и принимает ответы только от него.
-  По умолчанию `*` (любой origin) — в этом случае SDK пишет предупреждение в консоль. В продакшене указывайте
-  origin явно.
+  Если не указан, SDK берёт origin страницы, в которую встроен фрейм (`location.ancestorOrigins`, в Firefox —
+  referrer первой загрузки). Только если его не определить, остаётся `*` (любой origin) и SDK пишет
+  предупреждение в консоль. В продакшене указывайте origin явно.
 </ResponseField>
 
 <ResponseField name="timeout" type="number">
-  Таймаут handshake и всех команд (мс). По умолчанию `10000`.
+  Таймаут handshake и команд (мс). По умолчанию `10000`. Попапы (`app.popup`) ждут ответа пользователя без таймаута.
+</ResponseField>
+
+<ResponseField name="edgeToEdge" type="boolean | 'manual'">
+  SDK 0.4+. В приложении на телефоне фрейм уходит под шапку и нижнее меню хоста: `true` — SDK даёт `<body>`
+  отступы по `--exode-inset-*`, `'manual'` — отступы приложение делает само, `false` (по умолчанию) — хост кладёт
+  фрейм между своим хромом. См. [Нативный вид](/ru/exode-sdk/miniapp/native#края-и-тема).
+</ResponseField>
+
+<ResponseField name="applyEnvironment" type="boolean">
+  SDK 0.4+. Переменные `--exode-*` и атрибуты `data-exode-*` хоста на `<html>`. По умолчанию `true`.
+</ResponseField>
+
+<ResponseField name="applyTheme" type="boolean">
+  SDK 0.4+. Схема и цвета школы на странице: `color-scheme`, класс `dark` на `<html>`, фон и цвет текста `<body>`
+  (стили приложения сильнее). По умолчанию `false`; у `ExodeMiniAppProvider` — `true`.
 </ResponseField>
 
 <Warning>
@@ -118,6 +137,28 @@ await app.ui.close()
   в текущем контексте ничего не делают, поэтому успешное выполнение Promise не гарантирует видимого эффекта.
 </Info>
 
+## Нативный хром (SDK 0.4+)
+
+Хост умеет больше, чем навигация и snackbar: шапка с меню «…», «Назад», главная кнопка, поле ввода с микрофоном,
+попапы, вибрация, весь экран, ссылки и «Поделиться». В приложении Exode всё это нативное. Что умеет конкретный хост,
+показывает `app.isSupported(capability)`.
+
+```ts
+app.isSupported('composer')                        // что умеет хост
+await app.popup.confirm('Удалить?')                // app.popup: show, alert, confirm, prompt
+app.header.set({ title: 'Каталог', right: [ { id: 'search', icon: 'search', label: 'Поиск' } ] })
+app.backButton.show()                              // «Назад» ведёт по экранам приложения
+app.mainButton.set({ visible: true, text: 'Готово' })
+app.composer.set({ visible: true, mic: 'dictation', placeholder: 'Спросите…' })
+app.haptic.impact('medium')
+await app.viewport.requestFullscreen()
+await app.ui.openLink('https://example.com')       // а также app.ui.share(...) и app.ui.copyText(...)
+app.getViewport()                                  // MiniAppViewport | null
+app.getInsets()                                    // { top, right, bottom, left }
+```
+
+Подробно — на странице [Нативный вид](/ru/exode-sdk/miniapp/native).
+
 ## События (app.on)
 
 Подписка на события хоста. Возвращает функцию отписки.
@@ -145,15 +186,10 @@ unsubscribe()
 
 ## Получение текущего контекста
 
-`init()` возвращает контекст один раз. Для последующего доступа используйте `getContext()`: он возвращает
-контекст из handshake, к которому bridge применяет только события `context:updated`.
-
-<Warning>
-  События `theme:changed`, `user:updated`, `school:updated` и `config:updated` **не** обновляют объект из
-  `getContext()`. Если вам нужны актуальные тема, пользователь или конфиг, подпишитесь на эти события через
-  `app.on(...)` и храните значения у себя — или используйте [React-хуки](/ru/exode-sdk/miniapp/react), которые
-  делают это автоматически.
-</Warning>
+`init()` возвращает контекст один раз. Для последующего доступа используйте `getContext()`: с SDK 0.4 bridge
+применяет к нему события `theme:changed`, `user:updated`, `school:updated`, `config:updated`, `viewport:changed` и
+`context:updated`, так что объект всегда актуален. Узнать о любом изменении контекста можно через
+`onContextChange(listener)`.
 
 ```ts
 const ctx = app.getContext()
@@ -161,6 +197,8 @@ const ctx = app.getContext()
 if (ctx) {
   console.log(ctx.user.firstName)
 }
+
+const off = app.onContextChange((context) => render(context))
 ```
 
 ## Завершение работы
@@ -207,4 +245,4 @@ window.addEventListener('beforeunload', () => app.destroy())
 
 ---
 
-_Обновлено: 2026-09-28 05:04 UTC_
+_Обновлено: 2026-10-22 23:06 UTC_
