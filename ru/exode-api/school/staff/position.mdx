@@ -58,15 +58,18 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
   Массив **заменяет список целиком**: чтобы добавить подразделение, передайте полный новый список. `[]` снимает
   привязку, а если поле не передано при обновлении — привязка не меняется. Передаются внутренние ID подразделений
   и грейдов (не `extId`): ID подразделения по его `extId` можно получить через
-  [`department/list?extIds=...`](/ru/exode-api/school/staff/department). В ответе должности привязки не
-  возвращаются — список должностей подразделения отдаёт `position/list?departmentId={id}`.
+  [`department/list?extIds=...`](/ru/exode-api/school/staff/department). В ответе должности возвращается
+  `departmentIds` — подразделения, к которым она привязана (`[]` — общая для школы); список должностей
+  подразделения отдаёт `position/list?departmentId={id}`. Привязка к грейдам в ответе не возвращается — грейды
+  должности отдаёт [`grade/list?positionId={id}`](/ru/exode-api/school/staff/grade).
 </Info>
 
 <Warning>
-  Если в школе подключено приложение — источник оргструктуры (например, интеграция с Verifix), должности с
-  `extId` управляются им: создание должности с `extId`, изменение `name` и `extId` такой должности и её удаление
-  через API вернут ошибку `MiniappInstallationManagedEntity`. Привязку к подразделениям и грейдам
-  (`departmentIds`, `gradeIds`) при этом менять можно.
+  Если в школе подключено приложение — источник оргструктуры (например, интеграция с Verifix) и оно импортирует
+  должности, должности с `extId` управляются им: создание должности с `extId`, изменение `name` и `extId` такой
+  должности и её удаление через API вернут ошибку `MiniappInstallationManagedEntity`. Привязку к подразделениям и
+  грейдам (`departmentIds`, `gradeIds`) при этом менять можно. Если импорт должностей в настройках приложения
+  выключен, ограничение снимается: должности остаются связанными с интеграцией, но меняются вручную.
 </Warning>
 
 ## Список должностей
@@ -180,7 +183,8 @@ getPositionList();
         "archivedAt": null,
         "schoolId": 198,
         "name": "Staff Backend Engineer",
-        "extId": "e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47"
+        "extId": "e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47",
+        "departmentIds": [12]
       },
       {
         "id": 3,
@@ -189,7 +193,8 @@ getPositionList();
         "archivedAt": null,
         "schoolId": 198,
         "name": "Backend Engineer",
-        "extId": null
+        "extId": null,
+        "departmentIds": [12, 15]
       }
     ],
     "next": {
@@ -290,7 +295,8 @@ createPosition();
     "archivedAt": null,
     "schoolId": 198,
     "name": "Backend Engineer",
-    "extId": null
+    "extId": null,
+    "departmentIds": [12, 15]
   }
 }
 ```
@@ -439,7 +445,8 @@ updatePosition();
     "archivedAt": null,
     "schoolId": 198,
     "name": "Staff Backend Engineer",
-    "extId": null
+    "extId": null,
+    "departmentIds": [12]
   }
 }
 ```
@@ -561,7 +568,8 @@ updatePositionByExtId();
     "archivedAt": null,
     "schoolId": 198,
     "name": "Staff Backend Engineer",
-    "extId": "e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47"
+    "extId": "e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47",
+    "departmentIds": [12]
   }
 }
 ```
@@ -775,4 +783,4 @@ deletePositionByExtId();
 
 ---
 
-_Обновлено: 2026-10-16 13:24 UTC_
+_Обновлено: 2026-10-22 10:32 UTC_

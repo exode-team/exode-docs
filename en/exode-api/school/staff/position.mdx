@@ -58,15 +58,19 @@ be created without them, this affects nothing, and they can be linked later.
   The array **replaces the whole list**: to add a department, pass the full new list. `[]` removes the link, and a
   field omitted on update keeps the link unchanged. Pass the internal IDs of departments and grades (not `extId`):
   a department ID by its `extId` is available via
-  [`department/list?extIds=...`](/en/exode-api/school/staff/department). The links are not returned in the position
-  response — `position/list?departmentId={id}` returns the positions of a department.
+  [`department/list?extIds=...`](/en/exode-api/school/staff/department). The position response carries
+  `departmentIds` — the departments it is linked to (`[]` — common to the school); `position/list?departmentId={id}`
+  returns the positions of a department. The grade links are not returned in the response — the grades of a position
+  are returned by [`grade/list?positionId={id}`](/en/exode-api/school/staff/grade).
 </Info>
 
 <Warning>
-  If the school has an org-structure source app connected (for example, the Verifix integration), positions with an
-  `extId` are managed by it: creating a position with an `extId`, changing the `name` or `extId` of such a position
-  and deleting it via the API return the `MiniappInstallationManagedEntity` error. The links to departments and
-  grades (`departmentIds`, `gradeIds`) can still be changed.
+  If the school has an org-structure source app connected (for example, the Verifix integration) and it imports
+  positions, positions with an `extId` are managed by it: creating a position with an `extId`, changing the `name` or
+  `extId` of such a position and deleting it via the API return the `MiniappInstallationManagedEntity` error. The
+  links to departments and grades (`departmentIds`, `gradeIds`) can still be changed. If the import of positions is
+  turned off in the app settings, the restriction is lifted: the positions stay linked to the integration but are
+  changed by hand.
 </Warning>
 
 ## List positions
@@ -180,7 +184,8 @@ getPositionList();
         "archivedAt": null,
         "schoolId": 198,
         "name": "Staff Backend Engineer",
-        "extId": "e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47"
+        "extId": "e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47",
+        "departmentIds": [12]
       },
       {
         "id": 3,
@@ -189,7 +194,8 @@ getPositionList();
         "archivedAt": null,
         "schoolId": 198,
         "name": "Backend Engineer",
-        "extId": null
+        "extId": null,
+        "departmentIds": [12, 15]
       }
     ],
     "next": {
@@ -290,7 +296,8 @@ createPosition();
     "archivedAt": null,
     "schoolId": 198,
     "name": "Backend Engineer",
-    "extId": null
+    "extId": null,
+    "departmentIds": [12, 15]
   }
 }
 ```
@@ -439,7 +446,8 @@ updatePosition();
     "archivedAt": null,
     "schoolId": 198,
     "name": "Staff Backend Engineer",
-    "extId": null
+    "extId": null,
+    "departmentIds": [12]
   }
 }
 ```
@@ -561,7 +569,8 @@ updatePositionByExtId();
     "archivedAt": null,
     "schoolId": 198,
     "name": "Staff Backend Engineer",
-    "extId": "e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47"
+    "extId": "e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47",
+    "departmentIds": [12]
   }
 }
 ```
@@ -775,4 +784,4 @@ deletePositionByExtId();
 
 ---
 
-_Updated: 2026-10-16 13:24 UTC_
+_Updated: 2026-10-22 10:32 UTC_

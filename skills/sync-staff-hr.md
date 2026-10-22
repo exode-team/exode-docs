@@ -87,8 +87,10 @@ Violating the order fails loudly: creating an employee with an unknown
 - **Departments, positions, absences and users upsert by extId:**
   `PUT .../ext/{extId}/update` → on `*NotFound` → `POST .../create` with the same
   `extId`. Re-running the whole sync is safe — run it hourly if you like. Employments
-  have no update-by-extId: they are created via `extra.staff.employments`/`hire` and
-  changed only via transfer/promote/terminate. Note: department update also returns
+  are not upserted: they are created via `extra.staff.employments`/`hire`; their terms
+  (`startAt`, `rate`, `type`, `kind`) are corrected in place via
+  `PUT /staff/employment/ext/{extId}/update`, the department/position/grade change only
+  via transfer/promote, and they close via terminate. Note: department update also returns
   `StaffDepartmentNotFound` when the `parentExtId` is unknown — keep the top-down order.
 - **Employees — pick the method by password policy:**
   - You do **not** set passwords → `PUT /user/upsert` (finds by login/`tgId`/`extId`;
@@ -151,8 +153,9 @@ Optional links on create/update: `departmentIds` (integer[], ≤250) and `gradeI
 `departmentIds` the position is common to the whole school — this is the default and is
 fine. The array **replaces** the whole list; `[]` clears it; an omitted field keeps it.
 Unknown/foreign IDs → `StaffDepartmentNotFound` / `StaffGradeNotFound`. The position
-response does not echo the links: verify with `GET /staff/position/list?departmentId=N`
-(returns positions available in the department — linked to it plus common ones). Links
+response echoes `departmentIds` (not `gradeIds` — use `GET /staff/grade/list?positionId=N`);
+`GET /staff/position/list?departmentId=N` returns positions available in the department
+(linked to it plus common ones). Links
 are enforced on hire/promote/transfer → `StaffPositionNotInDepartment` /
 `StaffGradeNotForPosition`.
 
@@ -202,6 +205,7 @@ old record closes, a new one opens, and the `extId` moves to the new active reco
 | Transfer to another department | `POST /staff/employment/ext/{extId}/transfer` `{ "toDepartmentExtId": "ПОДР-002" }` |
 | Position change (promotion) | `POST /staff/employment/ext/{extId}/promote` `{ "toPositionExtId": "<GUID>" }` (or `"toPositionId": null` to clear) |
 | Grade change | `POST /staff/employment/ext/{extId}/promote` `{ "toGradeExtId": "<grade code>" }` (can be combined with a position change) |
+| Rate, employment type/kind or hiring date changed (or entered wrong) | `PUT /staff/employment/ext/{extId}/update` `{ "rate": 0.5 }` — in place, no history, the `id` stays; only `startAt`/`rate`/`type`/`kind`. A new `startAt` of a transferred/promoted record moves the end of the previous one (not earlier than its start — `StaffEmploymentInvalidTransitionDate`) |
 | Fired | `POST /staff/employment/ext/{extId}/terminate` `{}` (optional `finishAt`) |
 | New secondary job | `POST /staff/employment/hire` or another `employments` item |
 | Transfer + position change at once | one `transfer` `{ "toDepartmentExtId": "...", "toPositionId": <id> }` (+ `toGradeId`); transfer takes position/grade by **internal ID only** — resolve via `position/list?extIds=`. A plain transfer keeps the position, so if it is linked to other departments it fails with `StaffPositionNotInDepartment` — pass `toPositionId` then |
@@ -336,7 +340,7 @@ them from HR events or derive them from the full-sync diff.
 | `StaffCannotTerminateSelf` / `StaffCannotTerminateSchoolOwner` | Last-employment protection — skip the token's own user and the school owner in the termination diff. |
 | `StaffPositionNotInDepartment` on hire/promote/transfer | The position is linked to other departments (`departmentIds`). Add the department to the position's list (send the full array), or use another position. |
 | `StaffGradesDisabled` / `StaffGradeNotForPosition` | Grades are off in the school, or the grade is not in the position's `gradeIds`. Enable grades / fix the position's list, or omit the grade. |
-| `MiniappInstallationManagedEntity` | The school has an org-structure source app connected (e.g. the Verifix integration): records with an `extId` are managed by it. Creating with an `extId`, changing name/`extId`/department parent, deleting, transferring, terminating, and promotions that change the position (or the grade, if the app syncs grades) are refused. `departmentIds`/`gradeIds` of a position can still be changed — send them without `name`/`extId`. Don't run a parallel HR sync over the same records. |
+| `MiniappInstallationManagedEntity` | The school has an org-structure source app connected (e.g. the Verifix integration) that imports this kind of records: records with an `extId` are managed by it. Creating with an `extId`, changing name/`extId`/department parent, deleting, transferring, terminating, changing an employment's `startAt`, and promotions that change the position (or the grade, if the app syncs grades) are refused. `departmentIds`/`gradeIds` of a position and an employment's `rate`/`type`/`kind` can still be changed. Departments, positions and employees are each imported unless turned off in the app settings — a kind turned off is edited by hand. Don't run a parallel HR sync over the same records. |
 | `429` `cause: "Rate"` | Rate limit — wait until `data.retryAfter`, retry with backoff. |
 | `validation` errors on names | `firstName`/`lastName` >15 chars, or `extId` with `/`/spaces, or `domain` digits-only — trim/sanitize on your side. |
 

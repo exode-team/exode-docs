@@ -63,9 +63,9 @@ The client exposes a `school` namespace with nine resources:
 
 <CardGroup cols={2}>
   <Card title="school.user" icon="user">User CRUD, search, state, deletion, auth tokens.</Card>
-  <Card title="school.staff" icon="sitemap">Org structure (HR): departments, positions, employments, managers, absences.</Card>
+  <Card title="school.staff" icon="sitemap">Org structure (HR): departments, positions, grades, employments, managers, absences.</Card>
   <Card title="school.group" icon="users">Lists of groups and members, bulk adding/removing members.</Card>
-  <Card title="school.course" icon="graduation-cap">List of courses and members' course progress.</Card>
+  <Card title="school.course" icon="graduation-cap">Creating, updating and getting a course, list of courses, members' progress.</Card>
   <Card title="school.certificate" icon="award">List of issued certificates.</Card>
   <Card title="school.productAccess" icon="box">List of product accesses.</Card>
   <Card title="school.invoice" icon="receipt">List of invoices.</Card>
@@ -91,6 +91,14 @@ await exodeApi.school.user.update(user.id, { profile: { lastName: 'Smith' } })
 
 // Update by external id (extId from your CRM/LMS)
 await exodeApi.school.user.updateByExtId('crm_12345', { profile: { lastName: 'Smith' } })
+
+// Corporate school: an employee is created together with an employment (extra.staff is required)
+const employee = await exodeApi.school.user.create({
+  email: 'employee@example.com',
+  extId: 'emp-1683',
+  profile: { firstName: 'Anna' },
+  extra: { staff: { employments: [{ departmentExtId: 'dep_engineering', positionExtId: 'pos_backend' }] } },
+})
 
 // Upsert (create or update by email/phone/tgId/extId)
 const { user: u, isCreated } = await exodeApi.school.user.upsert({
@@ -139,7 +147,7 @@ const { session } = await exodeApi.school.user.createAuthToken({ userId: user.id
 
 ## Staff (`school.staff`)
 
-The org structure for HR integrations (1C, HRM): departments, positions, employments, department managers
+The org structure for HR integrations (1C, HRM): departments, positions, grades, employments, department managers
 and absences. Most methods have `...ByExtId` variants for syncing by your external identifier.
 The methods are available only to schools in the corporate segment (`Corporate`).
 
@@ -150,13 +158,21 @@ const tree = await exodeApi.school.staff.department.tree()
 
 const department = await exodeApi.school.staff.department.create({ name: 'Engineering', extId: 'dep_engineering' })
 const position = await exodeApi.school.staff.position.create({ name: 'Backend Developer' })
+const grade = await exodeApi.school.staff.grade.create({ name: 'Middle', extId: 'grade_middle' })
 
 const employment = await exodeApi.school.staff.employment.hire({
   userId: 123,
   departmentId: department.id,
   positionId: position.id,
+  gradeId: grade.id,
   type: EmploymentType.FullTime,
 })
+
+// Correct the terms in place (startAt, rate, type, kind) — no transition, the id stays
+await exodeApi.school.staff.employment.update(employment.id, { rate: 0.5 })
+
+// The grade (and/or the position) changes by a promote — with history
+await exodeApi.school.staff.employment.promoteByExtId('emp-1683', { toGradeExtId: 'grade_senior' })
 
 await exodeApi.school.staff.departmentManager.set({ departmentId: department.id, employmentId: employment.id })
 
@@ -189,6 +205,20 @@ await exodeApi.school.group.removeMembers(groupId, [1])
 
 ```ts
 import { CourseType } from '@exode-team/sdk/api'
+
+// Create — with modules the course is created together with its structure (modules → lessons)
+const course = await exodeApi.school.course.create({
+  type: CourseType.VideoCourse,
+  name: 'Mathematics',
+  description: 'Basic course',
+  authors: [],
+  tags: [],
+  modules: [{ name: 'Module 1', description: '', lessons: [{ name: 'Lesson 1', description: '' }] }],
+})
+
+// Update / get
+await exodeApi.school.course.update(course.id, { name: 'Mathematics (v2)' })
+const same = await exodeApi.school.course.get(course.id)
 
 // List courses
 const { items } = await exodeApi.school.course.list({ types: [CourseType.VideoCourse], take: 20 })
@@ -334,4 +364,4 @@ try {
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-10-22 10:32 UTC_

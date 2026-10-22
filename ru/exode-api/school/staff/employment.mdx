@@ -21,12 +21,15 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 </Warning>
 
 <Warning>
-    Если в школе подключено приложение — источник оргструктуры (например, интеграция с Verifix), трудоустройствами
-    с `extId` управляет оно, и изменение таких записей через API вернёт `MiniappInstallationManagedEntity`
-    (в `data.installationId` — ID установки приложения). Ограничение действует для `hire` с `extId` в теле
-    (пространство `extId` принадлежит интеграции), для `transfer` и `terminate` записи с `extId`, а также для
-    `promote` записи с `extId`, если меняется должность (или грейд — когда интеграция синхронизирует грейды).
-    Записи без `extId` по-прежнему можно менять через API.
+    Если в школе подключено приложение — источник оргструктуры (например, интеграция с Verifix) и оно импортирует
+    сотрудников, трудоустройствами с `extId` управляет оно, и изменение таких записей через API вернёт
+    `MiniappInstallationManagedEntity` (в `data.installationId` — ID установки приложения). Ограничение действует
+    для `hire` с `extId` в теле (пространство `extId` принадлежит интеграции), для `transfer` и `terminate` записи
+    с `extId`, для `update` записи с `extId`, если меняется дата начала `startAt` (ставку, тип и вид занятости
+    интеграция не синхронизирует — их менять можно), а также для `promote` записи с `extId`, если меняется
+    должность (или грейд — когда интеграция синхронизирует грейды). Записи без `extId` по-прежнему можно менять
+    через API. Если импорт сотрудников в настройках приложения выключен, ограничение снимается: записи остаются
+    связанными с интеграцией, но меняются вручную.
 </Warning>
 
 <Info>
@@ -45,7 +48,8 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
     В ответе возвращается именно новая запись трудоустройства — **с новым `id`**. Поэтому в своей системе храните
     `extId` трудоустройства, а не `id`: `id` меняется при каждом переводе и повышении, `extId` — нет. Назначение
     руководителем департамента переходит на новую запись автоматически; ранее созданные отсутствия остаются
-    привязанными к закрытой записи.
+    привязанными к закрытой записи. Исправить условия занятости или дату начала текущей записи без перехода
+    можно через [`update`](#изменить-условия-трудоустройства) — тогда запись и её `id` не меняются.
 </Info>
 
 <Info>
@@ -53,8 +57,8 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
     От 1 до 50 символов, без `/` и пробелов. Уникален в рамках школы **среди открытых (не завершённых)**
     трудоустройств: при переводе или повышении `extId` переносится на новую активную запись (закрытая сохраняет
     копию), а после увольнения освобождается — его можно снова передать при повторном найме. По `extId` доступны
-    отдельные роуты `ext/{extId}/transfer`, `ext/{extId}/promote` и `ext/{extId}/terminate`; они находят только
-    открытую запись, поэтому для уже закрытого трудоустройства вернут `StaffEmploymentNotFound`.
+    отдельные роуты `ext/{extId}/update`, `ext/{extId}/transfer`, `ext/{extId}/promote` и `ext/{extId}/terminate`;
+    они находят только открытую запись, поэтому для уже закрытого трудоустройства вернут `StaffEmploymentNotFound`.
 </Info>
 
 ### Какую операцию выбрать
@@ -62,15 +66,16 @@ import HeaderParamFields from '/snippets/ru/exode-api/header-params-fields.mdx';
 | Событие в HR-системе | Операция |
 |---|---|
 | Приём на работу, новое совместительство | [`hire`](#нанять-сотрудника) — создаёт ещё одну активную запись |
+| Исправление даты приёма, ставки, типа или вида занятости (без перевода) | [`update`](#изменить-условия-трудоустройства) — меняет текущую запись, без истории |
 | Перевод в другой департамент (должность та же) | [`transfer`](#перевести-в-другой-департамент) |
 | Смена должности и/или грейда в том же департаменте | [`promote`](#сменить-должность) |
 | Сменились и департамент, и должность (или грейд) | [`transfer`](#перевести-в-другой-департамент) с `toPositionId` / `toGradeId` — одной операцией |
 | Увольнение с одного места работы | [`terminate`](#уволить-сотрудника) |
 
 Удаления трудоустройства в API нет: запись закрывается только через `terminate` и остаётся в истории. Каждая
-операция изменения есть в двух вариантах: по `employmentId` в теле запроса и по `extId` в пути
-(`ext/{extId}/...`). Работают они одинаково; вариант с `extId` удобнее при синхронизации — не нужно хранить
-внутренние ID Exode.
+операция изменения есть в двух вариантах: по `employmentId` (в теле запроса, у `update` — в пути) и по `extId`
+в пути (`ext/{extId}/...`). Работают они одинаково; вариант с `extId` удобнее при синхронизации — не нужно
+хранить внутренние ID Exode.
 
 ## Список трудоустройств
 
@@ -336,7 +341,8 @@ POST /saas/v2/staff/employment/hire
 <ParamField body="extId" type="string" required={false}>
     Внешний идентификатор трудоустройства из системы клиента. От 1 до 50 символов, без `/` и пробелов.
     Должен быть уникален в рамках школы среди открытых (не завершённых) трудоустройств. Если в школе подключено
-    приложение — источник оргструктуры, найм с `extId` вернёт `MiniappInstallationManagedEntity`.
+    приложение — источник оргструктуры и оно импортирует сотрудников, найм с `extId` вернёт
+    `MiniappInstallationManagedEntity`.
 </ParamField>
 
 <ParamField body="positionId" type="integer" required={false}>
@@ -562,6 +568,269 @@ hireEmployment();
   "data": {
     "installationId": 12
   }
+}
+```
+</ResponseExample>
+
+## Изменить условия трудоустройства
+
+```
+PUT /saas/v2/staff/employment/{employmentId}/update
+```
+
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
+
+Исправляет условия **открытой** записи трудоустройства на месте — без перехода и без новой записи в истории:
+дату начала (`startAt`), ставку (`rate`), тип (`type`) и вид (`kind`) занятости. `id` и `extId` записи не
+меняются. Подходит, чтобы исправить ошибку ввода или изменить ставку без перевода. Департамент, должность и
+грейд так не меняются — для них есть [`transfer`](#перевести-в-другой-департамент) и
+[`promote`](#сменить-должность), которые сохраняют историю.
+
+Передаются только изменяемые поля; не переданные (и `null`) остаются прежними. Если не передано ни одного поля,
+вернётся `StaffEmploymentInputRequired`. Для закрытой записи вернётся `StaffEmploymentNotFound`.
+
+<Info>
+    Если запись создана переводом или повышением, вместе с её `startAt` переносится дата окончания (`finishAt`)
+    предыдущей записи цепочки — история остаётся непрерывной. Новая дата начала не может быть раньше начала
+    предыдущей записи, иначе вернётся `StaffEmploymentInvalidTransitionDate`. У записи, созданной наймом, дату
+    начала можно перенести на любую — в прошлое или в будущее.
+</Info>
+
+### Параметры запроса
+
+<ParamField path="employmentId" type="integer" required>
+    ID открытой записи трудоустройства.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Новая дата начала трудоустройства в формате ISO 8601 (например, `2026-07-01T00:00:00.000Z`). Если в школе
+    подключено приложение — источник оргструктуры и оно импортирует сотрудников, изменение даты начала записи с
+    `extId` вернёт `MiniappInstallationManagedEntity`.
+</ParamField>
+
+<ParamField body="kind" type="enum" required={false}>
+    Вид занятости: `Main` (основное место работы), `InternalSecondary` (внутреннее совместительство),
+    `ExternalSecondary` (внешнее совместительство).
+</ParamField>
+
+<ParamField body="type" type="enum" required={false}>
+    Тип занятости: `FullTime` (полная) или `PartTime` (частичная).
+</ParamField>
+
+<ParamField body="rate" type="number" required={false}>
+    Ставка — доля полной ставки, от `0.01` до `1`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/employment/6/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "type": "FullTime",
+    "rate": 1
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateEmployment = async () => {
+  const { data } = await axios.put('https://api.exode.biz/saas/v2/staff/employment/6/update', {
+    type: 'FullTime',
+    rate: 1,
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+updateEmployment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 6,
+    "createdAt": "2026-07-02T11:15:47.273Z",
+    "updatedAt": "2026-07-10T09:02:11.518Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 3,
+    "gradeId": null,
+    "departmentId": 3,
+    "extId": "emp-1683",
+    "startAt": "2026-07-02T11:15:47.273Z",
+    "finishAt": null,
+    "status": "Active",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
+  }
+}
+```
+
+```json Error - Input Required
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInputRequired",
+  "message": "Staff employment update startAt, rate, type or kind is required",
+  "error": "Staff employment update startAt, rate, type or kind is required"
+}
+```
+
+```json Error - Invalid Transition Date
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInvalidTransitionDate",
+  "message": "Staff employment transition date is outside employment interval",
+  "error": "Staff employment transition date is outside employment interval"
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
+}
+```
+
+```json Error - Managed By Integration
+{
+  "code": 400,
+  "success": false,
+  "cause": "MiniappInstallationManagedEntity",
+  "message": "The record is managed by a miniapp",
+  "error": "The record is managed by a miniapp",
+  "data": {
+    "installationId": 12
+  }
+}
+```
+</ResponseExample>
+
+## Изменить условия по внешнему идентификатору
+
+```
+PUT /saas/v2/staff/employment/ext/{extId}/update
+```
+
+Требуется аутентификация и право **«Управление персоналом»** (`StaffManage`).
+
+Аналог изменения условий по `employmentId`, но открытая запись трудоустройства находится по внешнему
+идентификатору `extId` в рамках школы. Тело запроса и правила — те же: меняются только `startAt`, `rate`, `type`
+и `kind`, хотя бы одно поле обязательно.
+
+### Параметры запроса
+
+<ParamField path="extId" type="string" required>
+    Внешний идентификатор открытой записи трудоустройства. Значение в пути должно быть URL-encoded.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    Новая дата начала трудоустройства в формате ISO 8601. Не раньше начала предыдущей записи цепочки, если запись
+    создана переводом или повышением.
+</ParamField>
+
+<ParamField body="kind" type="enum" required={false}>
+    Вид занятости: `Main`, `InternalSecondary` или `ExternalSecondary`.
+</ParamField>
+
+<ParamField body="type" type="enum" required={false}>
+    Тип занятости: `FullTime` или `PartTime`.
+</ParamField>
+
+<ParamField body="rate" type="number" required={false}>
+    Ставка — доля полной ставки, от `0.01` до `1`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/employment/ext/emp-1683/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "startAt": "2026-07-01T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateEmploymentByExtId = async () => {
+  const extId = encodeURIComponent('emp-1683');
+
+  const { data } = await axios.put(`https://api.exode.biz/saas/v2/staff/employment/ext/${extId}/update`, {
+    startAt: '2026-07-01T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+updateEmploymentByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 6,
+    "createdAt": "2026-07-02T11:15:47.273Z",
+    "updatedAt": "2026-07-10T09:05:40.102Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 3,
+    "gradeId": null,
+    "departmentId": 3,
+    "extId": "emp-1683",
+    "startAt": "2026-07-01T00:00:00.000Z",
+    "finishAt": null,
+    "status": "Active",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
+  }
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
 }
 ```
 </ResponseExample>
@@ -1380,7 +1649,8 @@ terminateEmploymentByExtId();
 
 <Check>
     Модуль staff доступен только для школ сегмента `Corporate`. Для чтения списка требуется право **«Просмотр персонала»** (`StaffView`), для
-    операций найма, перевода, повышения и увольнения — право **«Управление персоналом»** (`StaffManage`).
+    операций найма, изменения условий, перевода, повышения и увольнения — право **«Управление персоналом»**
+    (`StaffManage`).
 </Check>
 
 <Warning>
@@ -1392,4 +1662,4 @@ terminateEmploymentByExtId();
 
 ---
 
-_Обновлено: 2026-10-16 13:24 UTC_
+_Обновлено: 2026-10-22 10:32 UTC_

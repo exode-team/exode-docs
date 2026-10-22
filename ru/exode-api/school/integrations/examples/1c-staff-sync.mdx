@@ -446,6 +446,7 @@ PUT /saas/v2/user/ext/i.ivanov.01011990/update
 (нет — нанять, есть — пропустить). Оно НЕ умеет закрывать/менять существующие назначения:
 - сотрудника **перевели** → `POST /staff/employment/ext/{extId}/transfer`;
 - **повысили** (сменилась должность) → `POST /staff/employment/ext/{extId}/promote`;
+- изменили **ставку, тип или вид занятости** (или исправили дату приёма) → `PUT /staff/employment/ext/{extId}/update`;
 - **уволили** → `POST /staff/employment/ext/{extId}/terminate`.
 
 И зеркальное следствие: если существующее назначение **НЕ передать** в `employments` —
@@ -513,6 +514,7 @@ PUT /saas/v2/user/ext/i.ivanov.01011990/update
 | Разблокировали («Работает» вернулся) | Тоже цикл — `"status": "Active"` снимет блокировку |
 | Перевели в другое подразделение | `POST /staff/employment/ext/{extId назначения}/transfer` |
 | Сменилась должность (повышение) | `POST /staff/employment/ext/{extId назначения}/promote` |
+| Изменили ставку, тип или вид занятости, исправили дату приёма | `PUT /staff/employment/ext/{extId назначения}/update { "rate": 0.5 }` — назначение меняется на месте, без истории |
 | Уволили | `POST /staff/employment/ext/{extId назначения}/terminate` |
 | Приняли обратно | `PUT /user/ext/{extId}/update` с `extra.staff.employments` (или `POST /staff/employment/hire`) — статус `Active` вернётся сам. Обычный цикл для этого не подходит: существующему сотруднику он `extra` не передаёт |
 | Перевели и одновременно сменили должность | Один `.../transfer` с `toDepartmentExtId` и `toPositionId` — ID должности Exode по GUID: `GET /staff/position/list?extIds=<GUID>` |
@@ -586,7 +588,8 @@ POST /saas/v2/staff/absence/create
   Если `departmentExtId` не найден — create вернёт `StaffDepartmentNotFound` и пользователь создан не будет.
 - **Кадровые изменения существующего сотрудника** идут через employment-endpoint'ы по extId назначения:
   перевод — `POST /staff/employment/ext/{extId}/transfer { "toDepartmentExtId": "ПОДР-002" }`,
-  смена должности — `.../promote { "toPositionExtId": "<GUID>" }`, увольнение — `.../terminate`.
+  смена должности — `.../promote { "toPositionExtId": "<GUID>" }`, ставка и условия —
+  `PUT .../update { "rate": 0.5 }`, увольнение — `.../terminate`.
   Новое назначение (в т.ч. совместительство) — `POST /staff/employment/hire`, либо `extra.staff.employments`
   в `user/update`/`user/upsert` — донанимает идемпотентно (повтор той же активной пары
   департамент + должность — no-op); переводы и увольнения через `extra` не выражаются.
@@ -625,12 +628,13 @@ POST /saas/v2/staff/absence/create
   подразделение вернут `StaffPositionNotInDepartment`. Подробнее — в разделе
   [Должности](/ru/exode-api/school/staff/position).
 - **Если в школе подключено приложение — источник оргструктуры** (например, интеграция с Verifix), записями
-  с `extId` управляет оно: создание с `extId`, переименование, удаление, перевод и увольнение таких записей
-  через API вернут `MiniappInstallationManagedEntity`. Подробнее — в
+  с `extId` управляет оно (пока импорт их типа включён в настройках приложения): создание с `extId`,
+  переименование, удаление, перевод и увольнение таких записей через API вернут
+  `MiniappInstallationManagedEntity`. Подробнее — в
   [гайде по синхронизации](/ru/exode-api/school/staff/sync-guide).
 
 {/* updated-stamp */}
 
 ---
 
-_Обновлено: 2026-10-16 13:24 UTC_
+_Обновлено: 2026-10-22 10:32 UTC_

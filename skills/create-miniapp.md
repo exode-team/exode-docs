@@ -90,7 +90,7 @@ The app code (Step 2) is identical for both paths. If the user asked for a diffe
 stack entirely, keep the same architecture: SSR page, client reads initData, server
 verifies it.
 
-- **`@exode-team/sdk` version `^0.3.2`** — the official SDK:
+- **`@exode-team/sdk` version `^0.10.0`** — the official SDK:
   - `@exode-team/sdk/miniapp` — `retrieveInitData()`, the `ExodeMiniApp` host bridge;
   - `@exode-team/sdk/miniapp/react` — `ExodeMiniAppProvider` and hooks (`useExodeUser`,
     `useExodeTheme`, `useExodeNavigation`, ...);
@@ -233,7 +233,7 @@ ones turn out to be incompatible with each other:
     "deploy": "vinext deploy"
   },
   "dependencies": {
-    "@exode-team/sdk": "^0.3.2",
+    "@exode-team/sdk": "^0.10.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },

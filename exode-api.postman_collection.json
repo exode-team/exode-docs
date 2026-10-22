@@ -4649,7 +4649,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"page\": 1,\n    \"count\": 2,\n    \"pages\": 1,\n    \"isFirst\": true,\n    \"isLast\": true,\n    \"items\": [\n      {\n        \"id\": 4,\n        \"createdAt\": \"2026-07-02T11:15:47.216Z\",\n        \"updatedAt\": \"2026-07-02T11:15:47.260Z\",\n        \"archivedAt\": null,\n        \"schoolId\": 198,\n        \"name\": \"Staff Backend Engineer\",\n        \"extId\": \"e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47\"\n      },\n      {\n        \"id\": 3,\n        \"createdAt\": \"2026-07-02T11:15:47.207Z\",\n        \"updatedAt\": \"2026-07-02T11:15:47.207Z\",\n        \"archivedAt\": null,\n        \"schoolId\": 198,\n        \"name\": \"Backend Engineer\",\n        \"extId\": null\n      }\n    ],\n    \"next\": {\n      \"skip\": 0,\n      \"take\": 10,\n      \"page\": 1\n    },\n    \"prev\": {\n      \"skip\": 0,\n      \"take\": 10,\n      \"page\": 1\n    }\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"page\": 1,\n    \"count\": 2,\n    \"pages\": 1,\n    \"isFirst\": true,\n    \"isLast\": true,\n    \"items\": [\n      {\n        \"id\": 4,\n        \"createdAt\": \"2026-07-02T11:15:47.216Z\",\n        \"updatedAt\": \"2026-07-02T11:15:47.260Z\",\n        \"archivedAt\": null,\n        \"schoolId\": 198,\n        \"name\": \"Staff Backend Engineer\",\n        \"extId\": \"e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47\",\n        \"departmentIds\": [\n          12\n        ]\n      },\n      {\n        \"id\": 3,\n        \"createdAt\": \"2026-07-02T11:15:47.207Z\",\n        \"updatedAt\": \"2026-07-02T11:15:47.207Z\",\n        \"archivedAt\": null,\n        \"schoolId\": 198,\n        \"name\": \"Backend Engineer\",\n        \"extId\": null,\n        \"departmentIds\": [\n          12,\n          15\n        ]\n      }\n    ],\n    \"next\": {\n      \"skip\": 0,\n      \"take\": 10,\n      \"page\": 1\n    },\n    \"prev\": {\n      \"skip\": 0,\n      \"take\": 10,\n      \"page\": 1\n    }\n  }\n}"
             }
           ]
         },
@@ -4747,7 +4747,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"code\": 201,\n  \"payload\": {\n    \"id\": 3,\n    \"createdAt\": \"2026-07-02T11:15:47.207Z\",\n    \"updatedAt\": \"2026-07-02T11:15:47.207Z\",\n    \"archivedAt\": null,\n    \"schoolId\": 198,\n    \"name\": \"Backend Engineer\",\n    \"extId\": null\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"code\": 201,\n  \"payload\": {\n    \"id\": 3,\n    \"createdAt\": \"2026-07-02T11:15:47.207Z\",\n    \"updatedAt\": \"2026-07-02T11:15:47.207Z\",\n    \"archivedAt\": null,\n    \"schoolId\": 198,\n    \"name\": \"Backend Engineer\",\n    \"extId\": null,\n    \"departmentIds\": [\n      12,\n      15\n    ]\n  }\n}"
             },
             {
               "name": "Error - Name Is Not Unique",
@@ -5006,7 +5006,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"id\": 4,\n    \"createdAt\": \"2026-07-02T11:15:47.216Z\",\n    \"updatedAt\": \"2026-07-02T11:15:47.260Z\",\n    \"archivedAt\": null,\n    \"schoolId\": 198,\n    \"name\": \"Staff Backend Engineer\",\n    \"extId\": null\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"id\": 4,\n    \"createdAt\": \"2026-07-02T11:15:47.216Z\",\n    \"updatedAt\": \"2026-07-02T11:15:47.260Z\",\n    \"archivedAt\": null,\n    \"schoolId\": 198,\n    \"name\": \"Staff Backend Engineer\",\n    \"extId\": null,\n    \"departmentIds\": [\n      12\n    ]\n  }\n}"
             },
             {
               "name": "Error - Name Is Not Unique",
@@ -5216,7 +5216,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"id\": 4,\n    \"createdAt\": \"2026-07-02T11:15:47.216Z\",\n    \"updatedAt\": \"2026-07-02T11:15:47.260Z\",\n    \"archivedAt\": null,\n    \"schoolId\": 198,\n    \"name\": \"Staff Backend Engineer\",\n    \"extId\": \"e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"id\": 4,\n    \"createdAt\": \"2026-07-02T11:15:47.216Z\",\n    \"updatedAt\": \"2026-07-02T11:15:47.260Z\",\n    \"archivedAt\": null,\n    \"schoolId\": 198,\n    \"name\": \"Staff Backend Engineer\",\n    \"extId\": \"e2b4a1c0-7f3d-4b6a-9c2e-1d5f8a0b3c47\",\n    \"departmentIds\": [\n      12\n    ]\n  }\n}"
             },
             {
               "name": "Error - Not Found",
@@ -6998,6 +6998,425 @@
                 }
               ],
               "body": "{\n  \"code\": 400,\n  \"success\": false,\n  \"cause\": \"UserNotBelongsToSchool\",\n  \"message\": \"User does not belong to the school\",\n  \"error\": \"User does not belong to the school\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Изменить условия трудоустройства",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Seller-Id",
+                "value": "{{sellerId}}"
+              },
+              {
+                "key": "School-Id",
+                "value": "{{schoolId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saas/v2/staff/employment/6/update",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "saas",
+                "v2",
+                "staff",
+                "employment",
+                "6",
+                "update"
+              ]
+            },
+            "description": "```\nPUT /saas/v2/staff/employment/{employmentId}/update\n```\n\nНаём, перевод, повышение и увольнение сотрудников корпоративной школы",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"FullTime\",\n  \"rate\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/employment/6/update",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "employment",
+                    "6",
+                    "update"
+                  ]
+                },
+                "description": "```\nPUT /saas/v2/staff/employment/{employmentId}/update\n```\n\nНаём, перевод, повышение и увольнение сотрудников корпоративной школы",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"FullTime\",\n  \"rate\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"id\": 6,\n    \"createdAt\": \"2026-07-02T11:15:47.273Z\",\n    \"updatedAt\": \"2026-07-10T09:02:11.518Z\",\n    \"archivedAt\": null,\n    \"schoolId\": 198,\n    \"userId\": 1683,\n    \"positionId\": 3,\n    \"gradeId\": null,\n    \"departmentId\": 3,\n    \"extId\": \"emp-1683\",\n    \"startAt\": \"2026-07-02T11:15:47.273Z\",\n    \"finishAt\": null,\n    \"status\": \"Active\",\n    \"kind\": \"Main\",\n    \"type\": \"FullTime\",\n    \"rate\": 1\n  }\n}"
+            },
+            {
+              "name": "Error - Input Required",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/employment/6/update",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "employment",
+                    "6",
+                    "update"
+                  ]
+                },
+                "description": "```\nPUT /saas/v2/staff/employment/{employmentId}/update\n```\n\nНаём, перевод, повышение и увольнение сотрудников корпоративной школы",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"FullTime\",\n  \"rate\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Error",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": 400,\n  \"success\": false,\n  \"cause\": \"StaffEmploymentInputRequired\",\n  \"message\": \"Staff employment update startAt, rate, type or kind is required\",\n  \"error\": \"Staff employment update startAt, rate, type or kind is required\"\n}"
+            },
+            {
+              "name": "Error - Invalid Transition Date",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/employment/6/update",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "employment",
+                    "6",
+                    "update"
+                  ]
+                },
+                "description": "```\nPUT /saas/v2/staff/employment/{employmentId}/update\n```\n\nНаём, перевод, повышение и увольнение сотрудников корпоративной школы",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"FullTime\",\n  \"rate\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Error",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": 400,\n  \"success\": false,\n  \"cause\": \"StaffEmploymentInvalidTransitionDate\",\n  \"message\": \"Staff employment transition date is outside employment interval\",\n  \"error\": \"Staff employment transition date is outside employment interval\"\n}"
+            },
+            {
+              "name": "Error - Employment Not Found",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/employment/6/update",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "employment",
+                    "6",
+                    "update"
+                  ]
+                },
+                "description": "```\nPUT /saas/v2/staff/employment/{employmentId}/update\n```\n\nНаём, перевод, повышение и увольнение сотрудников корпоративной школы",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"FullTime\",\n  \"rate\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Error",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": 400,\n  \"success\": false,\n  \"cause\": \"StaffEmploymentNotFound\",\n  \"message\": \"Staff active employment not found\",\n  \"error\": \"Staff active employment not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Изменить условия по внешнему идентификатору",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Seller-Id",
+                "value": "{{sellerId}}"
+              },
+              {
+                "key": "School-Id",
+                "value": "{{schoolId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saas/v2/staff/employment/ext/emp-1683/update",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "saas",
+                "v2",
+                "staff",
+                "employment",
+                "ext",
+                "emp-1683",
+                "update"
+              ]
+            },
+            "description": "```\nPUT /saas/v2/staff/employment/ext/{extId}/update\n```\n\nНаём, перевод, повышение и увольнение сотрудников корпоративной школы",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startAt\": \"2026-07-01T00:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/employment/ext/emp-1683/update",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "employment",
+                    "ext",
+                    "emp-1683",
+                    "update"
+                  ]
+                },
+                "description": "```\nPUT /saas/v2/staff/employment/ext/{extId}/update\n```\n\nНаём, перевод, повышение и увольнение сотрудников корпоративной школы",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"startAt\": \"2026-07-01T00:00:00.000Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"payload\": {\n    \"id\": 6,\n    \"createdAt\": \"2026-07-02T11:15:47.273Z\",\n    \"updatedAt\": \"2026-07-10T09:05:40.102Z\",\n    \"archivedAt\": null,\n    \"schoolId\": 198,\n    \"userId\": 1683,\n    \"positionId\": 3,\n    \"gradeId\": null,\n    \"departmentId\": 3,\n    \"extId\": \"emp-1683\",\n    \"startAt\": \"2026-07-01T00:00:00.000Z\",\n    \"finishAt\": null,\n    \"status\": \"Active\",\n    \"kind\": \"Main\",\n    \"type\": \"FullTime\",\n    \"rate\": 1\n  }\n}"
+            },
+            {
+              "name": "Error - Employment Not Found",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Seller-Id",
+                    "value": "{{sellerId}}"
+                  },
+                  {
+                    "key": "School-Id",
+                    "value": "{{schoolId}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/saas/v2/staff/employment/ext/emp-1683/update",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "saas",
+                    "v2",
+                    "staff",
+                    "employment",
+                    "ext",
+                    "emp-1683",
+                    "update"
+                  ]
+                },
+                "description": "```\nPUT /saas/v2/staff/employment/ext/{extId}/update\n```\n\nНаём, перевод, повышение и увольнение сотрудников корпоративной школы",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"startAt\": \"2026-07-01T00:00:00.000Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Error",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": 400,\n  \"success\": false,\n  \"cause\": \"StaffEmploymentNotFound\",\n  \"message\": \"Staff active employment not found\",\n  \"error\": \"Staff active employment not found\"\n}"
             }
           ]
         },

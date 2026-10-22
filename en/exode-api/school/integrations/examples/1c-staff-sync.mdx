@@ -446,6 +446,7 @@ The rule is simple: `extra.employments` can only **"make sure the employment exi
 (if not, hire; if it does, skip). It CANNOT close or change existing employments:
 - the employee was **transferred** → `POST /staff/employment/ext/{extId}/transfer`;
 - **promoted** (position changed) → `POST /staff/employment/ext/{extId}/promote`;
+- the **rate, employment type or kind** changed (or the hiring date was corrected) → `PUT /staff/employment/ext/{extId}/update`;
 - **dismissed** → `POST /staff/employment/ext/{extId}/terminate`.
 
 The mirror consequence: if you do **NOT include** an existing employment in `employments`,
@@ -513,6 +514,7 @@ All of them are addressed by the **employment** `extId` (the same `extId` you pa
 | Unblocked ("Работает" (Working) is back) | Also the loop: `"status": "Active"` lifts the block |
 | Transferred to another department | `POST /staff/employment/ext/{employment extId}/transfer` |
 | Position changed (promotion) | `POST /staff/employment/ext/{employment extId}/promote` |
+| Rate, employment type or kind changed, hiring date corrected | `PUT /staff/employment/ext/{employment extId}/update { "rate": 0.5 }`; the employment is changed in place, without history |
 | Dismissed | `POST /staff/employment/ext/{employment extId}/terminate` |
 | Re-hired | `PUT /user/ext/{extId}/update` with `extra.staff.employments` (or `POST /staff/employment/hire`); the `Active` status returns automatically. The regular loop does not work for this: it does not send `extra` for an existing employee |
 | Transferred and changed position at the same time | A single `.../transfer` with `toDepartmentExtId` and `toPositionId`; the Exode position ID by GUID: `GET /staff/position/list?extIds=<GUID>` |
@@ -586,7 +588,8 @@ If you want precision, use the ID of the employment record from 1C as the extId.
   If `departmentExtId` is not found, create returns `StaffDepartmentNotFound` and the user is not created.
 - **HR changes for an existing employee** go through the employment endpoints by employment extId:
   transfer: `POST /staff/employment/ext/{extId}/transfer { "toDepartmentExtId": "ПОДР-002" }`,
-  position change: `.../promote { "toPositionExtId": "<GUID>" }`, termination: `.../terminate`.
+  position change: `.../promote { "toPositionExtId": "<GUID>" }`, rate and terms:
+  `PUT .../update { "rate": 0.5 }`, termination: `.../terminate`.
   A new employment (including secondary employment): `POST /staff/employment/hire`, or `extra.staff.employments`
   in `user/update`/`user/upsert`, which hires idempotently (repeating the same active
   department + position pair is a no-op); transfers and terminations cannot be expressed through `extra`.
@@ -625,12 +628,13 @@ If you want precision, use the ID of the employment record from 1C as the extId.
   another department returns `StaffPositionNotInDepartment`. See [Positions](/en/exode-api/school/staff/position)
   for details.
 - **If the school has an org-structure source app connected** (for example, the Verifix integration), it manages
-  the records that have an `extId`: creating with an `extId`, renaming, deleting, transferring and terminating such
-  records via the API returns `MiniappInstallationManagedEntity`. See the
+  the records that have an `extId` (while the import of their kind is on in the app settings): creating with an
+  `extId`, renaming, deleting, transferring and terminating such records via the API returns
+  `MiniappInstallationManagedEntity`. See the
   [sync guide](/en/exode-api/school/staff/sync-guide) for details.
 
 {/* updated-stamp */}
 
 ---
 
-_Updated: 2026-10-16 13:24 UTC_
+_Updated: 2026-10-22 10:32 UTC_

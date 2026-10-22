@@ -3,7 +3,7 @@
 Self-contained reference for the `@exode-team/sdk` package. Feed it to an LLM so the model
 can write correct integration code for the Exode platform without extra context.
 
-Package version: **0.3.4**
+Package version: **0.10.0**
 Repository: https://github.com/exode-team/exode-sdk
 npm: https://www.npmjs.com/package/@exode-team/sdk
 
@@ -24,7 +24,7 @@ Requirements: Node.js >= 18; TypeScript >= 5.7 (optional, types ship with packag
 React >= 17 (optional peer dep, only for `miniapp/react`). Dependency: `zod@^4`.
 
 Install: `npm install @exode-team/sdk`. CDN (miniapp IIFE, global `ExodeMiniAppSDK`):
-`<script src="https://static.exode.biz/sdk/v0.3.1/miniapp.global.js"></script>` (CDN versions may lag npm;
+`<script src="https://static.exode.biz/sdk/v0.10.0/miniapp.global.js"></script>` (CDN versions may lag npm;
 `retrieveInitData` is in the CDN bundle since v0.3.1).
 
 No root export — always import from a specific subpath.
@@ -39,8 +39,8 @@ https://docs.exode.biz/en/exode-api/setup.
 
 Server-side HTTP client for `/saas/v2/*` (server-only; never ship the token to the browser).
 Backend wraps every success response as `{ success, code, payload }` — the client unwraps `payload`
-automatically. The `/saas/v2/*` endpoints are mirrored by typed methods (`exodeApi.request()` covers anything
-else). Known gap in 0.3.4 types: REST `user/create` also accepts `domain` and `password`, which `UserCreateInput` lacks.
+automatically. Every `/saas/v2/*` endpoint is mirrored by a typed method (`exodeApi.request()` covers anything
+else).
 
 ### 2.1 Constructor
 
@@ -79,7 +79,7 @@ import { UserStateKey } from '@exode-team/sdk/api'
 exodeApi.school.user.create(input: UserCreateInput): Promise<User | null>
 exodeApi.school.user.update(userId: number, input: UpdateUserInput): Promise<User | null>
 exodeApi.school.user.updateByExtId(extId: string, input: UpdateUserInput): Promise<User | null>
-exodeApi.school.user.upsert(input: UpdateUserInput): Promise<{ user: User; isCreated: boolean }>
+exodeApi.school.user.upsert(input: UserUpsertInput): Promise<{ user: User; isCreated: boolean }>  // UpdateUserInput + skipSendCredentials?
 exodeApi.school.user.find(input: { login?: string; tgId?: number; extId?: string }): Promise<User | null>
 exodeApi.school.user.findMany(input: { logins?: string[]; tgIds?: number[]; extIds?: string[] }): Promise<User[]>  // max 250 per list; not found are omitted
 exodeApi.school.user.list(params?: FilterUserInput & SortUserInput & ListInput): Promise<PaginatedList<User>>
@@ -92,6 +92,13 @@ exodeApi.school.user.createAuthToken(input: { userId: number; forceCreate?: bool
 interface UserCreateInput {
   email?: string | null; phone?: string | null; tgId?: number | null
   extId?: string | null
+  domain?: string | null                          // domain login, ≤65; generated as id12345 when omitted
+  password?: string | null                        // 6..100, instead of a generated one; applies only on creation
+  skipSendCredentials?: boolean | null            // do not send the credentials (SMS/email/Telegram); default false
+  extra?: { staff?: { employments?: HireUserEmploymentStaffInput[] } } | null
+                                                  // Corporate school: staff.employments (1..10) is required —
+                                                  // { departmentId | departmentExtId, positionId? | positionExtId?,
+                                                  //   gradeId? | gradeExtId?, extId?, startAt?, kind?, type?, rate? }
   status?: 'Active' | 'OnLeave' | 'Banned' | 'Blocked' | 'Terminated' | null  // the banned field was removed from the API
   profile?: {
     firstName?: string | null; lastName?: string | null
@@ -126,9 +133,15 @@ exodeApi.school.group.removeMembers(groupId: number, userIds: number[]): Promise
 ### 2.5 `school.course`
 
 ```ts
+exodeApi.school.course.create(input: ImportCourseInput): Promise<CourseOutput>  // with modules[] → lessons[] at once
+exodeApi.school.course.update(courseId: number, input: UpdateCourseInput): Promise<CourseOutput>
+exodeApi.school.course.get(courseId: number): Promise<CourseOutput>
 exodeApi.school.course.list(params?: FilterCourseInput & ListInput): Promise<PaginatedList<CourseSaasItem>>
 exodeApi.school.course.progresses(courseId: number, params?: ListInput): Promise<PaginatedList<CourseProgress>>
-// CourseSaasItem: { courseId, name, type, groupIds[] }
+// ImportCourseInput: type!, name!, description!, authors![] (user ids), tags![], modules?[{ name!, description!,
+//   lessons![{ name!, description!, ... }] }], product?, settings?, image?, ... — fields:
+//   https://docs.exode.biz/en/exode-api/school/course/create
+// CourseOutput: the course (same shape the course webhooks publish); CourseSaasItem: { courseId, name, type, groupIds[] }
 ```
 
 ### 2.6 `school.invoice`, `school.productAccess`, `school.certificate`
@@ -185,7 +198,10 @@ const result = await exodeApi.school.queryExport.getResult(uuid)
 exodeApi.school.staff.department.tree() / .list(params?) / .create(input) / .update(id, input)
   / .updateByExtId(extId, input) / .delete(id) / .deleteByExtId(extId)
 exodeApi.school.staff.position.list(params?) / .create / .update / .updateByExtId / .delete / .deleteByExtId
-exodeApi.school.staff.employment.list(params?) / .hire(input) / .transfer(input) / .transferByExtId(extId, input)
+exodeApi.school.staff.grade.list(params?) / .create / .update / .updateByExtId / .delete / .deleteByExtId
+exodeApi.school.staff.employment.list(params?) / .hire(input)
+  / .update(employmentId, input) / .updateByExtId(extId, input)   // { startAt?, rate?, type?, kind? } in place, ≥1 field
+  / .transfer(input) / .transferByExtId(extId, input)
   / .promote(input) / .promoteByExtId(extId, input) / .terminate(input) / .terminateByExtId(extId, input?)
 exodeApi.school.staff.departmentManager.set(input) / .remove(managerId) / .removeByExtId(extId)
 exodeApi.school.staff.absence.list(params?) / .create / .update / .updateByExtId / .delete / .deleteByExtId
@@ -268,29 +284,36 @@ export type { ExodeAPIConfig, RequestOptions }
 //   FormLayout, FormFieldValue
 // output types (z.infer): UserOutput, ListUserOutput, FindManyUserOutput, UpsertUserOutput, SetUserStateOutput, GetUserStateOutput,
 //   SessionAuthTokenOutput, DeleteManyUserOutput, GroupSaasOutput, ListGroupOutput,
-//   CreateManyMemberGroupOutput, CourseSaasOutput, ListCourseOutput, ListProgressCourseOutput,
+//   CreateManyMemberGroupOutput, CourseOutput, CourseSaasOutput, ListCourseOutput, ListProgressCourseOutput,
 //   FormLayoutOutput, ListFormFieldValueOutput, FormFieldValuesOutput, InvoiceSaasOutput,
 //   ListInvoiceOutput, ProductAccessSaasOutput, ListProductAccessOutput, WorkflowExecutionOutput,
-//   ProgressWorkflowOutput, AffectedOutput, ListGroupMemberOutput, ListCertificateOutput, ListFormLayoutOutput,
+//   ProgressWorkflowOutput, AffectedOutput, GroupMemberSaasOutput, ListGroupMemberOutput, CertificateSaasOutput,
+//   ListCertificateOutput, ListFormLayoutOutput,
 //   Staff*: StaffDepartmentOutput, StaffDepartmentTreeOutput, ListStaffDepartmentOutput, StaffPositionOutput,
-//   ListStaffPositionOutput, StaffEmploymentOutput, ListStaffEmploymentOutput, StaffDepartmentManagerOutput,
+//   ListStaffPositionOutput, StaffGradeOutput, ListStaffGradeOutput, StaffEmploymentOutput,
+//   ListStaffEmploymentOutput, StaffDepartmentManagerOutput,
 //   StaffAbsenceOutput, ListStaffAbsenceOutput
 // input types (from shared codegen): ListInput, BaseSortInput, DateRangeInput, NumberRangeInput,
-//   UtmParamsInput, UtmParamsItemInput, ProfileContactInput, UpdateProfileInput, UpdateUserInput,
+//   UtmParamsInput, UtmParamsItemInput, ProfileContactInput, CreateProfileInput, UpdateProfileInput, UpdateUserInput,
+//   SchoolUserExtraInput, SchoolUserStaffExtraInput, HireUserEmploymentStaffInput,
 //   FilterUserInput, SortUserInput, FilterGroupInput, FilterMemberGroupInput, FilterCertificateInput,
 //   FilterFormLayoutInput, staff Create*/Update*/Filter*/Hire*/Transfer*/Promote*/Terminate* inputs,
-//   FilterCourseInput, FilterProgressCourseInput, FilterInvoiceInput, FilterAccessProductInput,
+//   FilterCourseInput, FilterProgressCourseInput, ImportCourseInput, ImportModuleCourseInput,
+//   ImportLessonCourseInput, UpdateCourseInput, CourseImageInput, CourseSettingsInput, CourseBundleInput,
+//   CreateProductInput, FilterInvoiceInput, FilterAccessProductInput,
 //   FilterFormFieldValueInput, CreateFormLayoutInput, UpdateFormLayoutInput, FormLayoutConfigInput,
 //   UpsertFormFieldValueInput
-// SDK-only input types: CreateProfileInput, UserCreateInput, UserFindInput, UserFindManyInput, AuthTokenInput,
+// SDK-only input types: UserCreateInput, UserUpsertInput, UserFindInput, UserFindManyInput, AuthTokenInput,
 //   UserListParams, GroupListParams, GroupMemberListParams, CourseListParams, CertificateListParams,
-//   FormLayoutListParams, Staff*ListParams, *ByExtIdEmploymentStaffInput, FormFieldValueGetParams, SetCustomFieldValueInput,
+//   FormLayoutListParams, Staff*ListParams, UpdateEmploymentStaffInput, *ByExtIdEmploymentStaffInput,
+//   FormFieldValueGetParams, SetCustomFieldValueInput,
 //   UpsertFormFieldValueBySlugInput, SetCustomFieldValueBySlugInput, InvoiceListParams,
 //   ProductAccessListParams, QueryExportGenerateInput
 // NOTE: zod schemas themselves are NOT exported — there is no runtime validation in the client
 //   (the backend validates via @ZodResponse), so zod stays out of the runtime bundle.
 // enums: Language, ProfileRole, UserSexType, UserStateKey, UserStatus, AppServeDomain, AppServeProduct, CourseType,
-//   CourseParticipationType, CourseProgressLessonStatus, InvoiceType,
+//   CourseParticipationType, CourseProgressLessonStatus, CourseLessonType, CourseLessonStatus,
+//   CourseLessonAccessType, BuildStatus, InvoiceType,
 //   InvoiceStatus, ProductCurrency, ProductBillingType, ProductAccessBillingStatus,
 //   ProductPriceBillingInterval, ProductParticipantStatus, FormLayoutMode, FormLayoutStatus,
 //   FormResubmitMode, GroupSpace, GroupTgConnectionMode, WorkflowExecutionStatus, WorkflowExecutionFlow,
@@ -457,6 +480,7 @@ address fragment and needs no provider. `user` is `null` until handshake (only v
 |------|--------|---------|
 | Create a user from your server | `@exode-team/sdk/api` | `exodeApi.school.user.create({ ... })` |
 | Auto-login a user into a school | `@exode-team/sdk/api` | `createAuthToken` -> `?___uat=<token>` |
+| Create / update / get a course | `@exode-team/sdk/api` | `school.course.create({ ... })` / `.update(id, { ... })` / `.get(id)` |
 | List courses / progress | `@exode-team/sdk/api` | `school.course.list()` / `school.course.progresses(id)` |
 | List invoices / accesses | `@exode-team/sdk/api` | `school.invoice.list()` / `school.productAccess.list()` |
 | Manage form values | `@exode-team/sdk/api` | `school.form.customFieldValueSetBySlug({ ... })` |

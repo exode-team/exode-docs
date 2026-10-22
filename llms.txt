@@ -30,7 +30,7 @@ Complete machine-readable reference for all methods, parameters, entities, and w
 - [Departments](https://docs.exode.biz/en/exode-api/school/staff/department): `GET /saas/v2/staff/department/tree` (also `list`, `create`, `update`, `delete`; `ext/{extId}` variants).
 - [Positions](https://docs.exode.biz/en/exode-api/school/staff/position): `GET /saas/v2/staff/position/list` (also `create`, `update`, `delete`; optional `departmentIds`/`gradeIds` links).
 - [Grades](https://docs.exode.biz/en/exode-api/school/staff/grade): `GET /saas/v2/staff/grade/list` (also `create`, `update`, `delete`; `ext/{extId}` variants).
-- [Employments](https://docs.exode.biz/en/exode-api/school/staff/employment): `GET /saas/v2/staff/employment/list` (also `hire`, `promote`, `transfer`, `terminate`).
+- [Employments](https://docs.exode.biz/en/exode-api/school/staff/employment): `GET /saas/v2/staff/employment/list` (also `hire`, `update`, `promote`, `transfer`, `terminate`; `ext/{extId}` variants).
 - [Department managers](https://docs.exode.biz/en/exode-api/school/staff/department-manager): `POST /saas/v2/staff/department-manager/set` (also `remove`).
 - [Absences](https://docs.exode.biz/en/exode-api/school/staff/absence): `GET /saas/v2/staff/absence/list` (also `create`, `update`, `delete`).
 - [Sync example (1C)](https://docs.exode.biz/en/exode-api/school/integrations/examples/1c-staff-sync): end-to-end staff-sync example via `ext/{extId}` endpoints.

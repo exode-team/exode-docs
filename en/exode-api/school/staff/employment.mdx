@@ -21,12 +21,15 @@ import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
 </Warning>
 
 <Warning>
-    If the school has an org-structure source app connected (for example, the Verifix integration), employments
-    with an `extId` are managed by that app, and changing such records through the API returns
+    If the school has an org-structure source app connected (for example, the Verifix integration) and it imports
+    employees, employments with an `extId` are managed by that app, and changing such records through the API returns
     `MiniappInstallationManagedEntity` (`data.installationId` holds the ID of the app installation). The restriction
     applies to `hire` with an `extId` in the body (the `extId` namespace belongs to the integration), to `transfer` and
-    `terminate` of a record with an `extId`, and to `promote` of a record with an `extId` when the position changes
-    (or the grade — when the integration syncs grades). Records without an `extId` can still be changed through the API.
+    `terminate` of a record with an `extId`, to `update` of a record with an `extId` when the start date `startAt`
+    changes (the integration does not sync the rate, the type and the kind — they can be changed), and to `promote` of
+    a record with an `extId` when the position changes (or the grade — when the integration syncs grades). Records
+    without an `extId` can still be changed through the API. If the import of employees is turned off in the app
+    settings, the restriction is lifted: the records stay linked to the integration but are changed by hand.
 </Warning>
 
 <Info>
@@ -45,7 +48,8 @@ import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
     The response contains the new employment record — **with a new `id`**. Therefore, store the employment's
     `extId` in your system, not its `id`: the `id` changes with every transfer and promotion, the `extId` does not. A department
     manager assignment moves to the new record automatically; previously created absences remain
-    linked to the closed record.
+    linked to the closed record. To correct the employment terms or the start date of the current record without a
+    transition, use [`update`](#update-employment-terms) — the record and its `id` stay the same.
 </Info>
 
 <Info>
@@ -53,8 +57,8 @@ import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
     From 1 to 50 characters, without `/` or whitespace. It is unique within the school **among open (not finished)**
     employments: on transfer or promotion the `extId` moves to the new active record (the closed one keeps a
     copy), and after termination it is released — you can pass it again when rehiring. Separate routes
-    `ext/{extId}/transfer`, `ext/{extId}/promote` and `ext/{extId}/terminate` work by `extId`; they only find
-    an open record, so for an already closed employment they return `StaffEmploymentNotFound`.
+    `ext/{extId}/update`, `ext/{extId}/transfer`, `ext/{extId}/promote` and `ext/{extId}/terminate` work by `extId`;
+    they only find an open record, so for an already closed employment they return `StaffEmploymentNotFound`.
 </Info>
 
 ### Which operation to choose
@@ -62,14 +66,15 @@ import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
 | Event in the HR system | Operation |
 |---|---|
 | Hiring, a new secondary job | [`hire`](#hire-an-employee) — creates another active record |
+| Correction of the hiring date, rate, type or kind of employment (no transfer) | [`update`](#update-employment-terms) — changes the current record, without history |
 | Transfer to another department (same position) | [`transfer`](#transfer-to-another-department) |
 | Position and/or grade change within the same department | [`promote`](#change-position) |
 | Both the department and the position (or grade) changed | [`transfer`](#transfer-to-another-department) with `toPositionId` / `toGradeId` — in a single operation |
 | Termination from one job | [`terminate`](#terminate-an-employee) |
 
 The API has no employment deletion: a record is closed only through `terminate` and stays in the history. Every
-modifying operation comes in two variants: by `employmentId` in the request body and by `extId` in the path
-(`ext/{extId}/...`). They work the same way; the `extId` variant is more convenient for synchronization — you don't need to store
+modifying operation comes in two variants: by `employmentId` (in the request body, for `update` — in the path) and by
+`extId` in the path (`ext/{extId}/...`). They work the same way; the `extId` variant is more convenient for synchronization — you don't need to store
 Exode's internal IDs.
 
 ## List employments
@@ -336,7 +341,7 @@ checked for belonging to the school (`StaffGradeNotFound`) and against the posit
 <ParamField body="extId" type="string" required={false}>
     External identifier of the employment from the client's system. From 1 to 50 characters, without `/` or whitespace.
     Must be unique within the school among open (not finished) employments. If the school has an org-structure
-    source app connected, a hire with an `extId` returns `MiniappInstallationManagedEntity`.
+    source app connected and it imports employees, a hire with an `extId` returns `MiniappInstallationManagedEntity`.
 </ParamField>
 
 <ParamField body="positionId" type="integer" required={false}>
@@ -562,6 +567,269 @@ hireEmployment();
   "data": {
     "installationId": 12
   }
+}
+```
+</ResponseExample>
+
+## Update employment terms
+
+```
+PUT /saas/v2/staff/employment/{employmentId}/update
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Corrects the terms of an **open** employment record in place — without a transition and without a new record in the
+history: the start date (`startAt`), the rate (`rate`), the type (`type`) and the kind (`kind`) of employment. The
+record's `id` and `extId` stay the same. Use it to fix an input error or to change the rate without a transfer. The
+department, the position and the grade are not changed this way — use [`transfer`](#transfer-to-another-department)
+and [`promote`](#change-position), which keep the history.
+
+Pass only the fields to change; the ones not passed (and `null`) stay as they were. If no field is passed,
+`StaffEmploymentInputRequired` is returned. For a closed record, `StaffEmploymentNotFound` is returned.
+
+<Info>
+    If the record was created by a transfer or a promotion, its `startAt` moves the end date (`finishAt`) of the
+    previous record of the chain along with it — the history stays continuous. The new start date cannot be earlier
+    than the start of the previous record, otherwise `StaffEmploymentInvalidTransitionDate` is returned. For a record
+    created by a hire, the start date can be moved to any date — in the past or in the future.
+</Info>
+
+### Request parameters
+
+<ParamField path="employmentId" type="integer" required>
+    ID of the open employment record.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    New employment start date in ISO 8601 format (for example, `2026-07-01T00:00:00.000Z`). If the school has an
+    org-structure source app connected and it imports employees, changing the start date of a record with an `extId`
+    returns `MiniappInstallationManagedEntity`.
+</ParamField>
+
+<ParamField body="kind" type="enum" required={false}>
+    Employment kind: `Main` (main job), `InternalSecondary` (internal secondary job),
+    `ExternalSecondary` (external secondary job).
+</ParamField>
+
+<ParamField body="type" type="enum" required={false}>
+    Employment type: `FullTime` (full-time) or `PartTime` (part-time).
+</ParamField>
+
+<ParamField body="rate" type="number" required={false}>
+    Rate — a fraction of the full rate, from `0.01` to `1`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/employment/6/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "type": "FullTime",
+    "rate": 1
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateEmployment = async () => {
+  const { data } = await axios.put('https://api.exode.biz/saas/v2/staff/employment/6/update', {
+    type: 'FullTime',
+    rate: 1,
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+updateEmployment();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 6,
+    "createdAt": "2026-07-02T11:15:47.273Z",
+    "updatedAt": "2026-07-10T09:02:11.518Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 3,
+    "gradeId": null,
+    "departmentId": 3,
+    "extId": "emp-1683",
+    "startAt": "2026-07-02T11:15:47.273Z",
+    "finishAt": null,
+    "status": "Active",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
+  }
+}
+```
+
+```json Error - Input Required
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInputRequired",
+  "message": "Staff employment update startAt, rate, type or kind is required",
+  "error": "Staff employment update startAt, rate, type or kind is required"
+}
+```
+
+```json Error - Invalid Transition Date
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentInvalidTransitionDate",
+  "message": "Staff employment transition date is outside employment interval",
+  "error": "Staff employment transition date is outside employment interval"
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
+}
+```
+
+```json Error - Managed By Integration
+{
+  "code": 400,
+  "success": false,
+  "cause": "MiniappInstallationManagedEntity",
+  "message": "The record is managed by a miniapp",
+  "error": "The record is managed by a miniapp",
+  "data": {
+    "installationId": 12
+  }
+}
+```
+</ResponseExample>
+
+## Update terms by external identifier
+
+```
+PUT /saas/v2/staff/employment/ext/{extId}/update
+```
+
+Requires authentication and the **"Staff Management"** permission (`StaffManage`).
+
+Same as updating the terms by `employmentId`, but the open employment record is looked up by the external
+identifier `extId` within the school. The request body and the rules are the same: only `startAt`, `rate`, `type` and
+`kind` change, at least one field is required.
+
+### Request parameters
+
+<ParamField path="extId" type="string" required>
+    External identifier of the open employment record. The value in the path must be URL-encoded.
+</ParamField>
+
+<ParamField body="startAt" type="string" required={false}>
+    New employment start date in ISO 8601 format. Not earlier than the start of the previous record of the chain,
+    if the record was created by a transfer or a promotion.
+</ParamField>
+
+<ParamField body="kind" type="enum" required={false}>
+    Employment kind: `Main`, `InternalSecondary` or `ExternalSecondary`.
+</ParamField>
+
+<ParamField body="type" type="enum" required={false}>
+    Employment type: `FullTime` or `PartTime`.
+</ParamField>
+
+<ParamField body="rate" type="number" required={false}>
+    Rate — a fraction of the full rate, from `0.01` to `1`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl --location --request PUT 'https://api.exode.biz/saas/v2/staff/employment/ext/emp-1683/update' \
+  --header 'Seller-Id: {{ sellerId }}' \
+  --header 'School-Id: {{ schoolId }}' \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer YOUR_TOKEN' \
+  --data-raw '{
+    "startAt": "2026-07-01T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const updateEmploymentByExtId = async () => {
+  const extId = encodeURIComponent('emp-1683');
+
+  const { data } = await axios.put(`https://api.exode.biz/saas/v2/staff/employment/ext/${extId}/update`, {
+    startAt: '2026-07-01T00:00:00.000Z',
+  }, {
+    headers: {
+      'Seller-Id': '{{ sellerId }}',
+      'School-Id': '{{ schoolId }}',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_TOKEN',
+    },
+  });
+
+  console.log(data.payload);
+};
+
+updateEmploymentByExtId();
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "code": 200,
+  "payload": {
+    "id": 6,
+    "createdAt": "2026-07-02T11:15:47.273Z",
+    "updatedAt": "2026-07-10T09:05:40.102Z",
+    "archivedAt": null,
+    "schoolId": 198,
+    "userId": 1683,
+    "positionId": 3,
+    "gradeId": null,
+    "departmentId": 3,
+    "extId": "emp-1683",
+    "startAt": "2026-07-01T00:00:00.000Z",
+    "finishAt": null,
+    "status": "Active",
+    "kind": "Main",
+    "type": "FullTime",
+    "rate": 1
+  }
+}
+```
+
+```json Error - Employment Not Found
+{
+  "code": 400,
+  "success": false,
+  "cause": "StaffEmploymentNotFound",
+  "message": "Staff active employment not found",
+  "error": "Staff active employment not found"
 }
 ```
 </ResponseExample>
@@ -1380,7 +1648,8 @@ terminateEmploymentByExtId();
 
 <Check>
     The staff module is available only to schools in the `Corporate` segment. Reading the list requires the **"Staff browsing"** permission (`StaffView`);
-    hiring, transfer, promotion and termination require the **"Staff Management"** permission (`StaffManage`).
+    hiring, updating the terms, transfer, promotion and termination require the **"Staff Management"** permission
+    (`StaffManage`).
 </Check>
 
 <Warning>
@@ -1392,4 +1661,4 @@ terminateEmploymentByExtId();
 
 ---
 
-_Updated: 2026-10-16 13:24 UTC_
+_Updated: 2026-10-22 10:32 UTC_

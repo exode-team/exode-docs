@@ -117,9 +117,8 @@ flowchart TD
   - `departmentIds` accepts only **internal Exode department IDs** (there is no `extId` variant) — take
     them from the `department/create` response or from `GET /staff/department/list?extIds=...`. So sync positions
     with links **after** departments; an unknown ID or an ID from another school returns `StaffDepartmentNotFound`;
-  - the links are not returned in the position response — you can check them with
-    `GET /staff/position/list?departmentId=N`: it returns the positions available in the department (linked to it
-    and common ones);
+  - the position response carries `departmentIds` — use it to verify the links; the positions available in a
+    department (linked to it and common ones) are returned by `GET /staff/position/list?departmentId=N`;
   - the links are checked on hire, promotion and transfer: a position that is not available in the department returns
     `StaffPositionNotInDepartment`.
 
@@ -249,6 +248,7 @@ in the [Employments](/en/exode-api/school/staff/employment) section:
 | Transfer to another department | `POST /staff/employment/ext/{extId}/transfer` |
 | Position and/or grade change (promotion) | `POST /staff/employment/ext/{extId}/promote` (`toPositionExtId`, `toGradeExtId`) |
 | Both department and position changed | A single `transfer` with `toPositionId` (and `toGradeId` if needed) — get the position ID through `GET /staff/position/list?extIds=...` |
+| Rate, employment type or kind changed, hiring date corrected | `PUT /staff/employment/ext/{extId}/update` (`rate`, `type`, `kind`, `startAt`) — the record is changed in place, without history |
 | Termination from an assignment | `POST /staff/employment/ext/{extId}/terminate` |
 | New assignment / part-time | `POST /staff/employment/hire` (or an `employments` element) |
 | Rehiring a terminated employee | `user/ext/{extId}/update` with `extra.staff.employments` (or `hire`) — the `Active` status is restored automatically |
@@ -371,15 +371,19 @@ Fields that have **no direct counterpart** in the API:
   the records that have an `extId`. For such records, the API returns `MiniappInstallationManagedEntity`:
 
   - when creating a department, position or employment with an `extId`;
-  - when changing synced fields — the name and `extId`, and for a department also the parent (`parentId`,
-    `parentExtId`);
+  - when changing synced fields — the name and `extId`, for a department also the parent (`parentId`,
+    `parentExtId`), for an employment — the start date `startAt`;
   - when deleting a department or position;
   - on transfer and termination of such employments, and on a promotion that changes the position (and the grade,
     if the integration syncs grades).
 
   You can still change a position's department and grade links (`departmentIds`, `gradeIds`) — send them
-  in a separate request, without `name` and `extId`. Records without an `extId`, as well as absences and department
-  managers, are not affected by the lock.
+  in a separate request, without `name` and `extId`; the same goes for the rate, type and kind of an employment.
+  Records without an `extId`, as well as absences and department managers, are not affected by the lock.
+
+  The app imports departments, positions and employees separately: each kind can be turned off in the app settings
+  (employees are imported only together with departments). The lock applies only to the kinds that are imported —
+  records of a kind turned off stay linked to the integration but are changed through the API.
 </Warning>
 
 ## Minimal example: an employee with an employment
@@ -440,4 +444,4 @@ curl --location 'https://api.exode.biz/saas/v2/form/custom-field/value/set-by-sl
 
 ---
 
-_Updated: 2026-10-16 13:24 UTC_
+_Updated: 2026-10-22 10:32 UTC_

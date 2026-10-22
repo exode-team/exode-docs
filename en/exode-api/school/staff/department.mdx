@@ -26,10 +26,12 @@ import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
 </Warning>
 
 <Warning>
-  If the school has an org-structure source app connected (for example, the Verifix integration), departments with an
-  `extId` are managed by it: creating a department with an `extId`, changing the `name`, `extId` or parent
-  (`parentId`, `parentExtId`) of such a department and deleting it via the API return the
-  `MiniappInstallationManagedEntity` error (`data.installationId` holds the ID of the connected app).
+  If the school has an org-structure source app connected (for example, the Verifix integration) and it imports
+  departments, departments with an `extId` are managed by it: creating a department with an `extId`, changing the
+  `name`, `extId` or parent (`parentId`, `parentExtId`) of such a department and deleting it via the API return the
+  `MiniappInstallationManagedEntity` error (`data.installationId` holds the ID of the connected app). If the import of
+  departments is turned off in the app settings, the restriction is lifted: the departments stay linked to the
+  integration but are changed by hand.
 </Warning>
 
 <Tip>
@@ -809,4 +811,4 @@ deleteDepartmentByExtId();
 
 ---
 
-_Updated: 2026-10-16 13:24 UTC_
+_Updated: 2026-10-22 10:32 UTC_
