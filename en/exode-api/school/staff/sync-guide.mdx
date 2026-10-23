@@ -383,8 +383,8 @@ Fields that have **no direct counterpart** in the API:
   - when changing synced fields — the name and `extId`, for a department also the parent (`parentId`,
     `parentExtId`), for an employment — the start date `startAt`;
   - when deleting a department or position;
-  - on transfer and termination of such employments, and on a promotion that changes the position (and the grade,
-    if the integration syncs grades).
+  - on transfer and termination of such employments, and on a promotion that changes the position while the app
+    imports positions (and the grade, if the integration syncs grades).
 
   You can still change a position's department and grade links (`departmentIds`, `gradeIds`) — send them
   in a separate request, without `name` and `extId`; the same goes for the rate, type and kind of an employment.
@@ -454,4 +454,4 @@ curl --location 'https://api.exode.biz/saas/v2/form/custom-field/value/set-by-sl
 
 ---
 
-_Updated: 2026-10-23 08:03 UTC_
+_Updated: 2026-10-23 10:08 UTC_

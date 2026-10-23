@@ -27,7 +27,9 @@ import HeaderParamFields from '/snippets/en/exode-api/header-params-fields.mdx';
     applies to `hire` with an `extId` in the body (the `extId` namespace belongs to the integration), to `transfer` and
     `terminate` of a record with an `extId`, to `update` of a record with an `extId` when the start date `startAt`
     changes (the integration does not sync the rate, the type and the kind — they can be changed), and to `promote` of
-    a record with an `extId` when the position changes (or the grade — when the integration syncs grades). Records
+    a record with an `extId` when the position changes and the app imports positions (or the grade — when the
+    integration syncs grades). With the import of positions turned off the school owns the position of an employee:
+    the sync does not change it, and a `promote` to a new position passes. Records
     without an `extId` can still be changed through the API. If the import of employees is turned off in the app
     settings, the restriction is lifted: the records stay linked to the integration but are changed by hand.
 </Warning>
@@ -1662,4 +1664,4 @@ terminateEmploymentByExtId();
 
 ---
 
-_Updated: 2026-10-22 23:06 UTC_
+_Updated: 2026-10-23 10:08 UTC_
