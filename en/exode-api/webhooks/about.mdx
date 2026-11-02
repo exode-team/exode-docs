@@ -312,6 +312,11 @@ Below are the events that are actually delivered, along with the structure of th
 
     The event is sent only when **money is actually charged**: initializing a recurring payment (card binding,
     a zero payment with the `BindingCompleted` status) does not trigger the webhook.
+
+    The recipient is **the seller of the paid products**, not the buyer's school: the webhook goes to the school
+    whose product was paid for. So a school paying for its Exode plan does not get it on its own endpoint (the plan
+    is a product of the platform), and an invoice with products of several sellers (a marketplace cart) goes to none
+    of them.
 </Accordion>
 
 <Accordion title="ProductEnrolledToFree — free access granted">
@@ -635,4 +640,4 @@ The body below is a real test-delivery example (synthetic values, exact field se
 
 ---
 
-_Updated: 2026-10-17 06:52 UTC_
+_Updated: 2026-11-02 02:45 UTC_

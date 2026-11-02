@@ -221,7 +221,7 @@ Common audit fields on most entities: `id, createdAt, updatedAt, deletedAt?, arc
   - `CourseCompleted`: `{ user, course, product?, access?, groups?, states? }`.
   - `CourseLessonPracticeCompleted`: `{ user, course?, lesson?, practice?, attempt?, variantId? }`.
   - `CertificateIssued`: `{ user, course, product?, certificate }` — certificate issued for a completed course.
-  - `PaymentCompleted`: `{ payment }` (with the invoice/products/acquiring tree). Sent only on an actual charge: card binding (recurrent init, `BindingCompleted`) does not trigger it.
+  - `PaymentCompleted`: `{ payment }` (with the invoice/products/acquiring tree). Sent only on an actual charge: card binding (recurrent init, `BindingCompleted`) does not trigger it. Goes to the seller of the paid products, not the buyer's school: a school's own Exode plan payment does not reach its endpoint, an invoice of several sellers reaches none of them.
   - `ProductEnrolledToFree` / `ProductEnrolledViaLms` / `ProductEnrolledViaPayment`: `{ user, profile?, access?, product?, course?, states?{utmSignupParams?, utmEnrollParams?} }`.
   - `ProductEnrolledByInviteLink`: `{ user, profile?, access?, product?, course?, states?, inviteLinkId }` — enrollment via an invite link. Arrives **together with** `ProductEnrolledToFree` (the link grants free access); distinguished by the presence of `inviteLinkId`.
   - `SchoolCreated`: `{ school(+seller?) }` — system level only (not available for seller subscription).
