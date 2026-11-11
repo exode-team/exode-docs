@@ -26,6 +26,12 @@ GET /saas/v2/course/:courseId/progresses
     `CourseProgressChanged` и `CourseCompleted` — см. [Вебхуки](/ru/exode-api/webhooks/about).
 </Tip>
 
+<Note>
+    Просмотр видео (`videoWatchPercent`, `videoProgresses`) приходит только в этом методе. Вебхуки о нём
+    не сообщают, а `updatedAt` записи при просмотре не меняется: чтобы получить свежий процент, запросите
+    прогресс курса заново.
+</Note>
+
 ## Параметры пути
 
 <ParamField path="courseId" type="integer" required>
@@ -85,6 +91,28 @@ GET /saas/v2/course/:courseId/progresses
                 </ResponseField>
                 <ResponseField name="createdAt" type="string">Дата создания записи (ISO 8601).</ResponseField>
                 <ResponseField name="updatedAt" type="string">Дата обновления записи (ISO 8601).</ResponseField>
+                <ResponseField name="videoWatchPercent" type="integer | null">
+                    Сколько видео урока досмотрено, от `0` до `100`. Считается по всем видео урока с учётом
+                    их длительности: длинное видео весит больше короткого. `null` — в уроке нет видео
+                    с известной длительностью.
+                </ResponseField>
+                <ResponseField name="videoProgresses" type="object[]">
+                    Просмотр каждого видео урока. Видео, которое участник не открывал, тоже есть в списке —
+                    без `currentTime` и `watchedPercent`. Пустой массив — в уроке нет видео.
+
+                    <Expandable title="Свойства элемента">
+                        <ResponseField name="contentElementUuid" type="string">UUID блока с видео в уроке.</ResponseField>
+                        <ResponseField name="title" type="string | null">Название видео.</ResponseField>
+                        <ResponseField name="duration" type="number | null">Длительность видео в секундах.</ResponseField>
+                        <ResponseField name="currentTime" type="number | null">
+                            Секунда, на которой участник остановился.
+                        </ResponseField>
+                        <ResponseField name="watchedPercent" type="integer | null">
+                            Сколько видео досмотрено, от `0` до `100`. Учитываются фрагменты, которые участник
+                            действительно просмотрел, а не позиция перемотки.
+                        </ResponseField>
+                    </Expandable>
+                </ResponseField>
             </Expandable>
         </ResponseField>
 
@@ -202,7 +230,17 @@ print(response.json())
         "isCompleted": true,
         "completedAt": "2025-01-15T10:30:00Z",
         "createdAt": "2025-01-10T09:00:00Z",
-        "updatedAt": "2025-01-15T10:30:00Z"
+        "updatedAt": "2025-01-15T10:30:00Z",
+        "videoWatchPercent": 85,
+        "videoProgresses": [
+          {
+            "contentElementUuid": "6f1c2a3b-4d5e-4f60-8a71-92b3c4d5e6f7",
+            "title": "Вводное видео",
+            "duration": 600,
+            "currentTime": 510,
+            "watchedPercent": 85
+          }
+        ]
       }
     ],
     "next": {
@@ -230,4 +268,4 @@ print(response.json())
 
 ---
 
-_Обновлено: 2026-09-25 13:43 UTC_
+_Обновлено: 2026-11-11 10:36 UTC_

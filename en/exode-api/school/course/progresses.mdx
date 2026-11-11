@@ -26,6 +26,12 @@ GET /saas/v2/course/:courseId/progresses
     `CourseProgressChanged` and `CourseCompleted` webhooks — see [Webhooks](/en/exode-api/webhooks/about).
 </Tip>
 
+<Note>
+    Video watching (`videoWatchPercent`, `videoProgresses`) comes only in this method. Webhooks do not report
+    it, and the record `updatedAt` does not change while watching: request the course progress again to get
+    a fresh percent.
+</Note>
+
 ## Path parameters
 
 <ParamField path="courseId" type="integer" required>
@@ -85,6 +91,28 @@ GET /saas/v2/course/:courseId/progresses
                 </ResponseField>
                 <ResponseField name="createdAt" type="string">Record creation date (ISO 8601).</ResponseField>
                 <ResponseField name="updatedAt" type="string">Record update date (ISO 8601).</ResponseField>
+                <ResponseField name="videoWatchPercent" type="integer | null">
+                    How much of the lesson video is watched, from `0` to `100`. Covers all the videos of the
+                    lesson weighted by their duration: a long video counts more than a short one. `null` — the
+                    lesson has no video with a known duration.
+                </ResponseField>
+                <ResponseField name="videoProgresses" type="object[]">
+                    Watching of each video of the lesson. A video the participant has not opened is listed too —
+                    without `currentTime` and `watchedPercent`. An empty array — the lesson has no video.
+
+                    <Expandable title="Item properties">
+                        <ResponseField name="contentElementUuid" type="string">UUID of the video block in the lesson.</ResponseField>
+                        <ResponseField name="title" type="string | null">Video title.</ResponseField>
+                        <ResponseField name="duration" type="number | null">Video duration in seconds.</ResponseField>
+                        <ResponseField name="currentTime" type="number | null">
+                            The second the participant stopped at.
+                        </ResponseField>
+                        <ResponseField name="watchedPercent" type="integer | null">
+                            How much of the video is watched, from `0` to `100`. Counts the fragments the participant
+                            actually watched, not the seek position.
+                        </ResponseField>
+                    </Expandable>
+                </ResponseField>
             </Expandable>
         </ResponseField>
 
@@ -202,7 +230,17 @@ print(response.json())
         "isCompleted": true,
         "completedAt": "2025-01-15T10:30:00Z",
         "createdAt": "2025-01-10T09:00:00Z",
-        "updatedAt": "2025-01-15T10:30:00Z"
+        "updatedAt": "2025-01-15T10:30:00Z",
+        "videoWatchPercent": 85,
+        "videoProgresses": [
+          {
+            "contentElementUuid": "6f1c2a3b-4d5e-4f60-8a71-92b3c4d5e6f7",
+            "title": "Introduction",
+            "duration": 600,
+            "currentTime": 510,
+            "watchedPercent": 85
+          }
+        ]
       }
     ],
     "next": {
@@ -230,4 +268,4 @@ print(response.json())
 
 ---
 
-_Updated: 2026-09-25 14:33 UTC_
+_Updated: 2026-11-11 10:36 UTC_

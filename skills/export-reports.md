@@ -81,7 +81,8 @@ Excel sheets — skip query-export and page through a list endpoint instead
 - `GET /product-access/list/raw` — product accesses.
 - `GET /certificate/list/raw` — issued certificates (**no query-export type exists
   for certificates — this is the only way**).
-- `GET /course/:courseId/progresses` — per-lesson progress records for one course.
+- `GET /course/:courseId/progresses` — per-lesson progress records for one course, each with the
+  video watch of its lesson (`videoWatchPercent`, `videoProgresses`).
 
 Array params repeat the key (`userIds=1&userIds=2`); ranges nest
 (`createdAtDateRange[from]=...&createdAtDateRange[to]=...`). You then build the
